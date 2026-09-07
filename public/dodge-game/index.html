@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Esquiva Académica 🐸 - Esquiva el código del profesor</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="/favicon.ico">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">🐸 Esquiva <span>Académica</span></div>
+    <nav class="nav">
+      <a href="/dodge-game/" class="nav-btn active">🎮 Jugar</a>
+      <a href="#guia" class="nav-btn">📖 Guía</a>
+      <a href="#ajustes" class="nav-btn" id="settingsMenuBtn">⚙️ Ajustes</a>
+      <a href="/" class="nav-btn">🏫 Flexbox Academy</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="game-container">
+      <canvas id="gameCanvas" width="1200" height="825"></canvas>
+
+      <!-- HUD superpuesto -->
+      <div class="hud">
+        <div class="hud-left">
+          <span class="hud-item">❤️ Vidas: <b id="lives">3</b></span>
+          <span class="hud-item">🎯 Nivel: <b id="level">1</b> / <span id="levelTotal">4</span></span>
+          <span class="hud-item">💎 Puntuación: <b id="score">0</b></span>
+        </div>
+        <div class="hud-right">
+          <span class="hud-item hidden" id="shieldHud">🛡️ <b id="shieldTime">0</b>s</span>
+          <span class="hud-item hidden" id="ammoHud">🔫 <b id="ammoCount">0</b></span>
+          <span class="hud-item">🧱 Esquivado: <b id="dodged">0</b></span>
+          <span class="hud-item">💥 Destruido: <b id="destroyed">0</b></span>
+          <meter id="levelProgress" class="level-meter" value="0" min="0" max="100"></meter>
+        </div>
+        <div class="boss-bar hidden" id="bossBar">
+          <span>👑 PROF. FROGGIO</span>
+          <div class="boss-health">
+            <div class="boss-health-fill" id="bossHealthFill"></div>
+            <span class="boss-health-text" id="bossHealthText">30 / 30</span>
+          </div>
+        </div>
+        <div class="knowledge-bar" id="knowledgeBar">
+          <span class="knowledge-label">📖 CONOCIMIENTO</span>
+          <div class="knowledge-track">
+            <div class="knowledge-fill" id="knowledgeFill"></div>
+          </div>
+          <span class="knowledge-text" id="knowledgeText">0 / 100</span>
+        </div>
+        <div class="multiplier hidden" id="multiplierBadge">✦ x<b id="multiplier">1</b></div>
+      </div>
+
+      <!-- Overlays -->
+      <div class="overlay" id="menuOverlay">
+        <div class="card">
+          <h1>🐸 Esquiva Académica</h1>
+          <p class="lead">El profesor lanza <b>códigos de HTML, CSS, JavaScript y Python</b>
+             directo a tu pupitre. Esquívalos... o <b>combínelos</b> disparando correcciones.</p>
+
+          <div class="controls">
+            <div class="control"><b>← →</b> Mover pupitre</div>
+            <div class="control"><b>␣ Espacio</b> Disparar corrección (fight-back)</div>
+          </div>
+
+          <ul class="tips">
+            <li>📖 4 niveles: <b>HTML</b>, <b>CSS</b>, <b>JS</b> y el <b>JEFE FINAL</b>.</li>
+            <li>👑 En el jefe recoge <b>🛡️ escudos</b>, <b>🔫 balas</b> y <b>❓ preguntas</b> para ganar balas.</li>
+            <li>💎 Gana <b>EXP</b> y <b>puntos</b> para tu perfil y compra marcos en Ajustes.</li>
+          </ul>
+
+          <button class="btn btn-primary btn-lg" id="startBtn">¡Empezar!</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="levelOverlay">
+        <div class="card">
+          <h2 id="levelTitle">Nivel 1</h2>
+          <p id="levelDesc" class="lead"></p>
+          <button class="btn btn-primary btn-lg" id="goLevelBtn">¡Vamos!</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="guiaOverlay">
+        <div class="card">
+          <h2>📖 Guía de Etiquetas</h2>
+          <p class="lead">Aprende las etiquetas que aparecerán en el juego</p>
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="html">HTML</button>
+            <button class="tab-btn" data-tab="css">CSS</button>
+            <button class="tab-btn" data-tab="js">JavaScript</button>
+            <button class="tab-btn" data-tab="py">Python</button>
+          </div>
+          <div class="tab-content html-tab active">
+            <h3>Etiquetas HTML</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Etiqueta</th>
+                  <th>Descripción</th>
+                  <th>Ejemplo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code><div></code></td>
+                  <td>Contenedor genérico para agrupar elementos</td>
+                  <td><code><div>Hola</div></code></td>
+                </tr>
+                <tr>
+                  <td><code><span></code></td>
+                  <td>Contenedor en línea para texto o elementos</td>
+                  <td><code><span>texto</span></code></td>
+                </tr>
+                <tr>
+                  <td><code><p></code></td>
+                  <td>Párrafo de texto</td>
+                  <td><code><p>Texto del párrafo</p></code></td>
+                </tr>
+                <tr>
+                  <td><code><h1></code> - <code><h6></code></td>
+                  <td>Encabezados (h1 es el más importante)</td>
+                  <td><code><h1>Título</h1></code></td>
+                </tr>
+                <tr>
+                  <td><code><a></code></td>
+                  <td>Hipervínculo (enlace)</td>
+                  <td><code><a href="url">Texto</a></code></td>
+                </tr>
+                <tr>
+                  <td><code><img></code></td>
+                  <td>Imagen</td>
+                  <td><code>&lt;img src="imagen.jpg" alt="Descripción"&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code><ul></code></td>
+                  <td>Lista no ordenada</td>
+                  <td><code><ul><li>Item</li></ul></code></td>
+                </tr>
+                <tr>
+                  <td><code><ol></code></td>
+                  <td>Lista ordenada</td>
+                  <td><code><ol><li>Item</li></ol></code></td>
+                </tr>
+                <tr>
+                  <td><code><li></code></td>
+                  <td>Elemento de lista</td>
+                  <td><code><li>Elemento</li></code></td>
+                </tr>
+                <tr>
+                  <td><code><form></code></td>
+                  <td>Formulario de entrada de datos</td>
+                  <td><code><form></form></code></td>
+                </tr>
+                <tr>
+                  <td><code><button></code></td>
+                  <td>Botón clickeable</td>
+                  <td><code><button>Click</button></code></td>
+                </tr>
+                <tr>
+                  <td><code><section></code></td>
+                  <td>Sección temática del documento</td>
+                  <td><code><section>Contenido</section></code></td>
+                </tr>
+                <tr>
+                  <td><code><article></code></td>
+                  <td>Contenido independiente auto-contenido</td>
+                  <td><code><article>Artículo</article></code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-content css-tab" style="display:none">
+            <h3>Etiquetas CSS</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Propiedad</th>
+                  <th>Descripción</th>
+                  <th>Ejemplo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>color</code></td>
+                  <td>Color del texto</td>
+                  <td><code>color: #e65100;</code></td>
+                </tr>
+                <tr>
+                  <td><code>margin</code></td>
+                  <td>Espacio fuera del elemento</td>
+                  <td><code>margin: 10px;</code></td>
+                </tr>
+                <tr>
+                  <td><code>padding</code></td>
+                  <td>Espacio dentro del elemento</td>
+                  <td><code>padding: 15px;</code></td>
+                </tr>
+                <tr>
+                  <td><code>display</code></td>
+                  <td>Tipo de visualización (block, inline, flex)</td>
+                  <td><code>display: flex;</code></td>
+                </tr>
+                <tr>
+                  <td><code>flex-direction</code></td>
+                  <td>Dirección de los elementos flex</td>
+                  <td><code>flex-direction: row;</code></td>
+                </tr>
+                <tr>
+                  <td><code>justify-content</code></td>
+                  <td>Alineación horizontal</td>
+                  <td><code>justify-content: center;</code></td>
+                </tr>
+                <tr>
+                  <td><code>align-items</code></td>
+                  <td>Alineación vertical en flex</td>
+                  <td><code>align-items: center;</code></td>
+                </tr>
+                <tr>
+                  <td><code>font-size</code></td>
+                  <td>Tamaño de la fuente</td>
+                  <td><code>font-size: 16px;</code></td>
+                </tr>
+                <tr>
+                  <td><code>border</code></td>
+                  <td>Borde alrededor del elemento</td>
+                  <td><code>border: 1px solid #ccc;</code></td>
+                </tr>
+                <tr>
+                  <td><code>background</code></td>
+                  <td>Color de fondo</td>
+                  <td><code>background: #f8f9fa;</code></td>
+                </tr>
+                <tr>
+                  <td><code>position</code></td>
+                  <td>Tipo de posicionamiento</td>
+                  <td><code>position: relative;</code></td>
+                </tr>
+                <tr>
+                  <td><code>width</code></td>
+                  <td>Ancho del elemento</td>
+                  <td><code>width: 100%;</code></td>
+                </tr>
+                <tr>
+                  <td><code>height</code></td>
+                  <td>Altura del elemento</td>
+                  <td><code>height: 200px;</code></td>
+                </tr>
+                <tr>
+                  <td><code>border-radius</code></td>
+                  <td>Bordes redondeados</td>
+                  <td><code>border-radius: 8px;</code></td>
+                </tr>
+                <tr>
+                  <td><code>text-align</code></td>
+                  <td>Alineación de texto</td>
+                  <td><code>text-align: center;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-content js-tab" style="display:none">
+            <h3>Etiquetas y Funciones JavaScript</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Función/Palabra clave</th>
+                  <th>Descripción</th>
+                  <th>Ejemplo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>function()</code></td>
+                  <td>Declaración de función</td>
+                  <td><code>function suma(a, b) { return a + b; }</code></td>
+                </tr>
+                <tr>
+                  <td><code>const</code></td>
+                  <td>Variable constante (no cambia)</td>
+                  <td><code>const x = 10;</code></td>
+                </tr>
+                <tr>
+                  <td><code>let</code></td>
+                  <td>Variable mutable</td>
+                  <td><code>let x = 10; x = 20;</code></td>
+                </tr>
+                <tr>
+                  <td><code>=></code> (flecha)</td>
+                  <td>Función flecha moderna</td>
+                  <td><code>(x) => x + 1</code></td>
+                </tr>
+                <tr>
+                  <td><code>console.log()</code></td>
+                  <td>Mostrar en la consola</td>
+                  <td><code>console.log("Hola");</code></td>
+                </tr>
+                <tr>
+                  <td><code>addEventListener</code></td>
+                  <td>Escuchar eventos</td>
+                  <td><code>element.addEventListener('click', fn)</code></td>
+                </tr>
+                <tr>
+                  <td><code>querySelector</code></td>
+                  <td>Seleccionar elemento CSS</td>
+                  <td><code>document.querySelector('.clase')</code></td>
+                </tr>
+                <tr>
+                  <td><code>map()</code></td>
+                  <td>Transformar array</td>
+                  <td><code>[1,2,3].map(x => x * 2)</code></td>
+                </tr>
+                <tr>
+                  <td><code>filter()</code></td>
+                  <td>Filtrar array</td>
+                  <td><code>[1,2,3].filter(x => x > 1)</code></td>
+                </tr>
+                <tr>
+                  <td><code>Promise</code></td>
+                  <td>Operaciones asíncronas</td>
+                  <td><code>new Promise(resolve => {})</code></td>
+                </tr>
+                <tr>
+                  <td><code>async</code></td>
+                  <td>Función asíncrona</td>
+                  <td><code>async function obtenerDatos() {}</code></td>
+                </tr>
+                <tr>
+                  <td><code>await</code></td>
+                  <td>Esperar promesa</td>
+                  <td><code>const data = await fetch('/api')</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-content py-tab" style="display:none">
+            <h3>Palabras clave Python</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Palabra clave</th>
+                  <th>Descripción</th>
+                  <th>Ejemplo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>def</code></td>
+                  <td>Definir una función</td>
+                  <td><code>def hola(): print("Hola")</code></td>
+                </tr>
+                <tr>
+                  <td><code>print()</code></td>
+                  <td>Mostrar texto en pantalla</td>
+                  <td><code>print("Hola Mundo")</code></td>
+                </tr>
+                <tr>
+                  <td><code>for</code></td>
+                  <td>Bucle para iterar</td>
+                  <td><code>for i in range(5):</code></td>
+                </tr>
+                <tr>
+                  <td><code>if</code></td>
+                  <td>Condición lógica</td>
+                  <td><code>if x > 0:</code></td>
+                </tr>
+                <tr>
+                  <td><code>else</code></td>
+                  <td>Alternativa a if</td>
+                  <td><code>else: print("No")</code></td>
+                </tr>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>Crear una lista</td>
+                  <td><code>mi_lista = [1, 2, 3]</code></td>
+                </tr>
+                <tr>
+                  <td><code>dict</code></td>
+                  <td>Crear un diccionario</td>
+                  <td><code>mi_dict = {"clave": "valor"}</code></td>
+                </tr>
+                <tr>
+                  <td><code>import</code></td>
+                  <td>Importar módulo</td>
+                  <td><code>import math</code></td>
+                </tr>
+                <tr>
+                  <td><code>class</code></td>
+                  <td>Definir una clase</td>
+                  <td><code>class Persona:</code></td>
+                </tr>
+                <tr>
+                  <td><code>return</code></td>
+                  <td>Retornar valor de función</td>
+                  <td><code>return x + 1</code></td>
+                </tr>
+                <tr>
+                  <td><code>range()</code></td>
+                  <td>Generar secuencia de números</td>
+                  <td><code>range(5)</code> → 0, 1, 2, 3, 4</td>
+                </tr>
+                <tr>
+                  <td><code>lambda</code></td>
+                  <td>Función anónima</td>
+                  <td><code>lambda x: x * 2</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="gameOverOverlay">
+        <div class="card">
+          <h2 id="gameOverTitle">💥 Game Over</h2>
+          <p id="gameOverText" class="lead"></p>
+          <p class="muted">Puntuación total: <b id="finalScore">0</b></p>
+          <button class="btn btn-primary btn-lg" id="restartBtn">Volver a intentar</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="settingsOverlay">
+        <div class="card card-lg settings-card">
+          <h2>⚙️ Ajustes</h2>
+          <p class="lead muted" id="settingsGuestNote">Inicia sesión para guardar tu perfil en tu cuenta.</p>
+
+          <div class="settings-grid">
+            <!-- Columna perfil -->
+            <div class="settings-col">
+              <h3>👤 Perfil</h3>
+              <div class="profile-head" id="profileHead">
+                <div class="avatar-wrap">
+                  <div class="avatar-frame" id="avatarFrame">
+                    <img id="avatarImg" src="" alt="Foto de perfil">
+                    <span id="avatarPlaceholder">👾</span>
+                  </div>
+                </div>
+                <div class="profile-stats">
+                  <p class="profile-name" id="profileName">Invitado</p>
+                  <p class="profile-level" id="profileLevel">Nivel 1 · 0 EXP</p>
+                  <p class="profile-hours" id="profileHours">⏱ 0 horas jugadas</p>
+                  <p class="profile-coins" id="profileCoins">🪙 0 puntos</p>
+                </div>
+              </div>
+
+              <div class="field-row" id="loginFields">
+                <div class="field-group">
+                  <label>Usuario</label>
+                  <input type="text" id="settingsUser" placeholder="Tu usuario" autocomplete="username">
+                </div>
+                <div class="field-group">
+                  <label>Contraseña</label>
+                  <input type="password" id="settingsPass" placeholder="••••••" autocomplete="current-password">
+                </div>
+                <p class="form-error hidden" id="settingsError"></p>
+                <div class="btn-row">
+                  <button class="btn btn-primary btn-sm" id="settingsLoginBtn">Entrar</button>
+                  <button class="btn btn-ghost btn-sm" id="settingsRegisterBtn">Registrarme</button>
+                  <button class="btn btn-ghost btn-sm hidden" id="settingsLogoutBtn">Cerrar sesión</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Columna preferencias -->
+            <div class="settings-col">
+              <h3>🎨 Apariencia</h3>
+              <div class="setting-item">
+                <label>Tema</label>
+                <div class="theme-toggle">
+                  <button class="theme-btn active" id="themeDarkBtn">🌙 Oscuro</button>
+                  <button class="theme-btn" id="themeLightBtn">☀️ Claro</button>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label>Foto de perfil</label>
+                <button class="btn btn-ghost btn-sm" id="uploadPicBtn">📷 Elegir imagen</button>
+                <input type="file" id="picInput" accept="image/*" class="hidden">
+                <p class="hint">La imagen se guarda en tu cuenta.</p>
+              </div>
+
+              <div class="setting-item">
+                <label>Cambiar nombre</label>
+                <div class="btn-row">
+                  <input type="text" id="changeNameInput" placeholder="Nuevo nombre" maxlength="20">
+                  <button class="btn btn-primary btn-sm" id="saveNameBtn">Guardar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="frames-section">
+            <h3>🖼️ Marcos de perfil</h3>
+            <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
+            <div class="frames-grid" id="framesGrid"></div>
+          </div>
+
+          <button class="btn btn-primary" id="settingsCloseBtn">Listo</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="quizOverlay">
+        <div class="card card-quiz">
+          <div class="quiz-header">
+            <span class="quiz-icon">❓</span>
+            <span class="quiz-label">PREGUNTA SORPRESA</span>
+          </div>
+          <h2 id="quizQuestion">¿Qué sabemos de programación?</h2>
+          <p class="lead muted" id="quizSub">Responde correctamente y gana balas 💥</p>
+          <div class="quiz-options" id="quizOptions">
+            <button class="quiz-option">Verdadero</button>
+            <button class="quiz-option">Falso</button>
+          </div>
+          <p class="quiz-feedback hidden" id="quizFeedback"></p>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="victoryOverlay">
+        <div class="card">
+          <h2>🏆 ¡Maestro de la Esquiva!</h2>
+          <p class="lead">Has completado los <b>4 niveles</b> y has derrotado al
+             <b>PROF. FROGGIO</b>. 🎓</p>
+          <p id="victoryDesc" class="muted"></p>
+          <p class="muted">Puntuación total: <b id="finalScoreVictory">0</b></p>
+          <p class="muted">💎 +200 EXP y 🪙 +150 puntos para tu cuenta si tienes sesión iniciada.</p>
+          <button class="btn btn-primary btn-lg" id="victoryRestartBtn">Jugar de nuevo</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>🐸 Esquiva Académica — Juego 2D de esquivar códigos. Inspirado en la escuela
+       y en <a href="https://flexboxfroggy.com" target="_blank">Flexbox Froggy</a>.</p>
+  </footer>
+
+  <script src="js/profile.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    // Tab switching for guide
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active class from all buttons and contents
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+
+        // Add active to clicked button
+        btn.classList.add('active');
+
+        // Show corresponding tab content
+        const tabId = btn.getAttribute('data-tab') + '-tab';
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

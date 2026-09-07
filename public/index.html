@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CODE INVADERS — Galaga de Programación</title>
+  <link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+  <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
+  <div id="introOverlay" class="intro-overlay hidden" role="dialog" aria-modal="true" aria-label="Introducción Code Invaders">
+    <header class="intro-header">
+      <div class="intro-brand">✦ CODE <span>INVADERS</span></div>
+      <div class="intro-header-right">
+        <span class="intro-online"><span class="dot"></span> EN LÍNEA</span>
+        <button class="intro-close" id="introClose" aria-label="Cerrar introducción">✕ CERRAR</button>
+      </div>
+    </header>
+    <div class="intro-panel">
+      <div id="introContent"></div>
+      <div class="intro-progress"><div class="intro-progress-fill" id="introProgressFill"></div></div>
+      <div class="intro-nav">
+        <button id="introPrev" aria-label="Página anterior">‹ ANTERIOR</button>
+        <div class="intro-dots" id="introDots"></div>
+        <span class="intro-page-label" id="introPageLabel">Página 1 de 6</span>
+        <button id="introNext" aria-label="Página siguiente">SIGUIENTE ›</button>
+      </div>
+      <button class="intro-skip" id="introSkip">SALTAR INTRODUCCIÓN →</button>
+    </div>
+  </div>
+  <!-- ============ HEADER / NAV ============ -->
+  <header class="topbar">
+    <div class="logo-wrap" id="logoWrap">
+      <button class="logo logo--alien" id="logoMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menú">
+        <span class="logo-alien" aria-hidden="true">👾</span>
+      </button>
+      <div class="logo-menu hidden" id="logoMenu" role="menu">
+        <button class="logo-menu-item" id="menuTutorial" role="menuitem">📖 Tutorial</button>
+        <button class="logo-menu-item" id="shopBtn" role="menuitem">🛒 Tienda <span class="badge-shop" id="coinVal">0</span></button>
+        <button class="logo-menu-item" data-view="docs" role="menuitem">📖 Manual de uso</button>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="game">🎮 Juego</button>
+      <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
+      <button class="nav-btn" data-view="qr">📷 QR</button>
+      <button class="nav-btn" id="settingsNavBtn">⚙️ Ajustes</button>
+    </nav>
+    <div class="topbar-right">
+      <button class="icon-btn" id="bellBtn" title="Notificaciones">
+        🔔 <span class="badge hidden" id="bellBadge">0</span>
+      </button>
+      <div class="notif-panel hidden" id="notifPanel"></div>
+      <div class="user-box" id="userBox">
+        <button class="btn btn-primary btn-sm" id="loginBtn">Iniciar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ TOASTS ============ -->
+  <div class="toasts" id="toasts"></div>
+
+  <!-- ============ LOGIN / REGISTRO MODAL ============ -->
+  <div class="modal-backdrop hidden" id="authModal">
+    <div class="modal">
+      <h2 id="authTitle">Iniciar sesión</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Iniciar sesión</button>
+        <button class="tab" data-tab="register">Registrarse</button>
+      </div>
+      <form id="authForm">
+        <label>Usuario
+          <input type="text" id="authUser" required minlength="3" placeholder="ej. coder123">
+        </label>
+        <label>Contraseña
+          <input type="password" id="authPass" required minlength="4" placeholder="••••••">
+        </label>
+        <p class="form-error hidden" id="authError"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="authSubmit">Entrar</button>
+      </form>
+      <button class="btn-link" id="authClose">Cerrar</button>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ============ SECCIÓN JUEGO ============ -->
+    <section id="view-game" class="view active">
+      <div class="game-wrapper">
+        <!-- Canvas -->
+        <div class="canvas-wrap">
+          <canvas id="gameCanvas" width="700" height="500"></canvas>
+          <div class="speedrun-timer hidden" id="speedrunHud">⏱ 00:00.00</div>
+          <button class="exit-btn hidden" id="exitBtn" aria-label="Salir de la partida" title="Salir (Esc)">✕ Salir</button>
+          <div class="exit-overlay hidden" id="exitOverlay">
+            <div class="exit-card">
+              <h3>¿Salir de la partida?</h3>
+              <p>Perderás el progreso del nivel actual.</p>
+              <div class="exit-actions">
+                <button class="btn btn-ghost btn-sm" id="exitCancel">Seguir jugando</button>
+                <button class="btn btn-primary btn-sm" id="exitConfirm">Salir</button>
+              </div>
+            </div>
+          </div>
+          <div class="mode-btns" id="modeBtns">
+            <button class="btn-start hidden" id="startBtn">▶ NORMAL</button>
+            <button class="btn-start btn-speedrun hidden" id="speedrunBtn">⚡ SPEEDRUN</button>
+          </div>
+          <button class="btn-start hidden" id="retryBtn">↺ REINTENTAR</button>
+          <div class="touch-controls" id="touchControls" aria-hidden="true">
+            <div class="tc-group">
+              <button class="tc-btn" id="tcLeft" aria-label="Mover izquierda">◀</button>
+              <button class="tc-btn" id="tcRight" aria-label="Mover derecha">▶</button>
+            </div>
+            <div class="tc-group">
+              <button class="tc-btn" id="tcFire" aria-label="Disparar">💥</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cartel de pregunta -->
+        <div class="q-banner hidden" id="qBanner">
+          <span class="q-banner-label">🎯 DESTRUYE LA NAVE CON:</span>
+          <span class="q-banner-text" id="qBannerText">—</span>
+        </div>
+
+        <!-- HUD debajo del canvas -->
+        <div class="hud">
+          <div class="hud-item">
+            <span class="hud-label">NIVEL</span>
+            <span class="hud-val" id="levelVal">-</span>
+          </div>
+          <div class="hud-item hud-target-box">
+            <span class="hud-label">DESTRUIR →</span>
+            <span class="hud-val hud-target" id="targetQuestion">—</span>
+          </div>
+        </div>
+
+        <!-- Input para responder -->
+        <div class="input-bar">
+          <input type="text" id="answerInput" placeholder="Escribe la respuesta y presiona ENTER..." autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECCIÓN RANKED ============ -->
+    <section id="view-ranked" class="view">
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <h1>🏆 RANKED</h1>
+      <p class="lead">Ranking de jugadores de Code Invaders. ¡Subí de nivel y competí!</p>
+      <div class="tournament-banner" id="tournamentBanner"></div>
+      <div class="ranked-tabs" id="rankedTabs">
+        <button class="ranked-tab active" data-tab="normal">🏆 Normal</button>
+        <button class="ranked-tab" data-tab="speedrun">⚡ Speedrun</button>
+      </div>
+      <div class="ranked-grid" id="rankedGrid"></div>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+    </section>
+
+    <!-- ============ SECCIÓN QR ============ -->
+    <section id="view-qr" class="view">
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <h1>📷 QR — Code Invaders</h1>
+      <p class="lead">Escaneá el QR con tu celular para jugar al instante en cualquier dispositivo. Todos compiten en el mismo ranked.</p>
+      <div class="qr-card">
+        <div class="qr-img-wrap">
+          <img id="qrImg" alt="QR Code Invaders" width="300" height="300">
+          <p class="qr-loading" id="qrLoading">Generando QR...</p>
+        </div>
+        <div class="qr-info">
+          <p class="qr-url" id="qrUrl">—</p>
+          <div class="qr-actions">
+            <button class="btn btn-primary btn-sm" id="qrCopyBtn">📋 Copiar link</button>
+            <a class="btn btn-ghost btn-sm" id="qrOpenBtn" target="_blank" rel="noopener">🌐 Abrir</a>
+            <button class="btn btn-ghost btn-sm" id="qrShareBtn">📤 Compartir</button>
+          </div>
+          <p class="hint">Tip: proyectá este QR en el pizarrón. Al iniciar sesión aparecen en el RANKED.</p>
+        </div>
+      </div>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+    </section>
+
+    <!-- ============ SECCIÓN MANUAL ============ -->
+    <section id="view-docs" class="view">
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <h1>📖 Manual de uso</h1>
+      <p class="lead">Guía completa para jugar a <b>Code Invaders</b>.</p>
+      <div class="docs-grid" id="docsGrid"></div>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>👾 Code Invaders — Proyecto educativo · Aprende programación jugando.</p>
+  </footer>
+
+  <div class="modal-backdrop hidden" id="shopModal">
+    <div class="modal modal-shop">
+      <div class="shop-header">
+        <h2>🛒 Tienda de Naves</h2>
+        <button class="btn-close" id="shopClose">✕</button>
+      </div>
+      <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
+      <p class="shop-hint">Gana puntos jugando. Compra skins y equipa tu nave. ¡Se guardan en tu cuenta!</p>
+      <div class="shop-grid" id="shopGrid"></div>
+      <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
+    </div>
+  </div>
+
+  <!-- ============ AJUSTES / PERFIL ============ -->
+  <div class="overlay hidden" id="settingsOverlay">
+    <div class="card card-lg settings-card">
+      <h2>⚙️ Ajustes</h2>
+      <p class="lead muted" id="settingsGuestNote">🔒 Iniciá sesión o registrate para acceder a los ajustes y guardar tu perfil.</p>
+
+      <!-- Tema: siempre visible (invitados pueden cambiarlo) -->
+      <div class="setting-item" style="margin-bottom:16px">
+        <label>Tema</label>
+        <div class="theme-toggle">
+          <button class="theme-btn active" id="themeDarkBtn">🌙 Oscuro</button>
+          <button class="theme-btn" id="themeLightBtn">☀️ Claro</button>
+        </div>
+      </div>
+
+      <!-- Login: visible solo para invitados -->
+      <div class="field-row" id="loginFields">
+        <div class="field-group">
+          <label>Usuario</label>
+          <input type="text" id="settingsUser" placeholder="Tu usuario" autocomplete="username">
+        </div>
+        <div class="field-group">
+          <label>Contraseña</label>
+          <input type="password" id="settingsPass" placeholder="••••••" autocomplete="current-password">
+        </div>
+        <p class="form-error hidden" id="settingsError"></p>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" id="settingsLoginBtn">Entrar</button>
+          <button class="btn btn-ghost btn-sm" id="settingsRegisterBtn">Registrarme</button>
+          <button class="btn btn-ghost btn-sm hidden" id="settingsLogoutBtn">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <!-- Perfil: visible solo para usuarios logueados -->
+      <div class="settings-grid" id="settingsLoggedIn">
+        <div class="settings-col">
+          <h3>👤 Perfil</h3>
+          <div class="profile-head" id="profileHead">
+            <div class="avatar-wrap">
+              <div class="avatar-frame" id="avatarFrame">
+                <img id="avatarImg" src="" alt="Foto de perfil">
+                <span id="avatarPlaceholder">👾</span>
+              </div>
+            </div>
+            <div class="profile-stats">
+              <p class="profile-name" id="profileName">Invitado</p>
+              <p class="profile-level" id="profileLevel">Nivel 1 · 0 EXP</p>
+              <p class="profile-hours" id="profileHours">⏱ 0 horas jugadas</p>
+              <p class="profile-coins" id="profileCoins">🪙 0 puntos</p>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Foto de perfil</label>
+            <button class="btn btn-ghost btn-sm" id="uploadPicBtn">📷 Elegir imagen</button>
+            <input type="file" id="picInput" accept="image/*" class="hidden">
+            <p class="hint">La imagen se guarda en tu cuenta.</p>
+          </div>
+          <div class="setting-item">
+            <label>Cambiar nombre</label>
+            <div class="btn-row">
+              <input type="text" id="changeNameInput" placeholder="Nuevo nombre" maxlength="20">
+              <button class="btn btn-primary btn-sm" id="saveNameBtn">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marcos: visible solo para usuarios logueados -->
+      <div class="frames-section" id="framesSection">
+        <h3>🖼️ Marcos de perfil</h3>
+        <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
+        <div class="frames-grid" id="framesGrid"></div>
+      </div>
+      <button class="btn btn-primary" id="settingsCloseBtn">Listo</button>
+    </div>
+  </div>
+
+  <!-- ============ QUIZ MODO JEFE ============ -->
+  <div class="overlay hidden" id="quizOverlay">
+    <div class="card card-quiz">
+      <div class="quiz-header">
+        <div class="quiz-icon" id="quizIcon">❓</div>
+        <h2 id="quizTitle">Pregunta sorpresa</h2>
+      </div>
+      <p class="quiz-question" id="quizQuestion"></p>
+      <div class="quiz-options" id="quizOptions"></div>
+      <div class="quiz-feedback hidden" id="quizFeedback"></div>
+    </div>
+  </div>
+
+  <!-- ============ INSPECCIONAR PERFIL ============ -->
+  <div class="overlay hidden" id="inspectOverlay">
+    <div class="card card-lg inspect-card">
+      <h2>👤 Perfil de jugador</h2>
+      <div class="inspect-content" id="inspectContent"></div>
+      <button class="btn btn-primary" id="inspectCloseBtn">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=3"></script>
+  <script src="js/qr.js?v=1"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/notifications.js?v=2"></script>
+  <script src="js/docs.js?v=5"></script>
+  <script src="js/intro.js?v=2"></script>
+  <script src="js/game.js?v=16"></script>
+  <script src="js/profile.js?v=3"></script>
+  <script src="js/ranked.js?v=1"></script>
+  <script src="js/app.js?v=7"></script>
+</body>
+</html>

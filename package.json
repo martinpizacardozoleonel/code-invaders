@@ -1,0 +1,23 @@
+{
+  "name": "flexbox-academy",
+  "version": "1.0.0",
+  "description": "Juego estilo Galaga para aprender programación — responde preguntas de HTML, CSS y JavaScript para destruir naves enemigas.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "galaga",
+    "juego",
+    "programacion",
+    "html",
+    "css",
+    "javascript"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "localtunnel": "^2.0.2"
+  }
+}
