@@ -25,23 +25,9 @@ const Profile = {
   async init() {
     this.token = localStorage.getItem('fx_token');
     this.bindUI();
-    this.bindPasswordToggles();
     const savedTheme = localStorage.getItem('ci_theme');
     if (savedTheme) this.applyTheme(savedTheme);
     if (this.token) await this.restoreSession();
-  },
-
-  bindPasswordToggles(){
-    document.querySelectorAll('.pass-toggle').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const id=btn.dataset.target;
-        const inp=document.getElementById(id);
-        if(!inp) return;
-        const show=inp.type==='password';
-        inp.type=show?'text':'password';
-        btn.textContent=show?'🙈':'👁️';
-      });
-    });
   },
 
   async restoreSession() {
@@ -271,6 +257,31 @@ const Profile = {
       if (data.frames) this.framesCatalog = data.frames;
     } catch (e) { }
     this.renderFrames();
+    this.loadNameColors();
+  },
+  async loadNameColors(){
+    try{
+      const data=await API.getNameColors();
+      this.nameColorsCatalog=data.colors||[];
+    }catch(e){ this.nameColorsCatalog=[]; }
+    this.renderNameColors();
+  },
+  async buyNameColor(id){
+    if(!this.isLogged()) return;
+    try{
+      const data=await API.buyNameColor(id);
+      if(this.user){ this.user.ownedNameColors=data.ownedNameColors; this.user.exp=data.exp; }
+      this.renderNameColors(); this.renderProfile();
+    }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }
+  },
+  async equipNameColor(id){
+    if(!this.isLogged()) return;
+    try{
+      const data=await API.equipNameColor(id);
+      if(this.user) this.user.nameColor=data.nameColor;
+      this.renderNameColors();
+      if(typeof Toast!=='undefined') Toast.success('Color equipado');
+    }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }
   },
 
   async buyFrame(id) {
@@ -366,5 +377,26 @@ const Profile = {
     }).join('');
     grid.querySelectorAll('.frame-buy').forEach(btn => btn.addEventListener('click', () => this.buyFrame(btn.dataset.frame)));
     grid.querySelectorAll('.frame-equip').forEach(btn => btn.addEventListener('click', () => this.equipFrame(btn.dataset.frame)));
+  }
+  ,renderNameColors(){
+    const grid=document.getElementById('nameColorsGrid'); if(!grid) return;
+    const owned=(this.user&&this.user.ownedNameColors)||[];
+    const cur=(this.user&&this.user.nameColor)||'#ffffff';
+    const exp=(this.user&&this.user.exp)||0;
+    const list=this.nameColorsCatalog||[];
+    grid.innerHTML=list.map(c=>{
+      const isOwned=owned.includes(c.id);
+      const isActive=(c.color===cur)||(c.id==='white'&&cur==='#ffffff');
+      let btn='';
+      if(isActive) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
+      else if(isOwned) btn=`<button class="btn btn-primary btn-sm name-equip" data-color="${c.id}">Equipar</button>`;
+      else if(exp>=c.price) btn=`<button class="btn btn-primary btn-sm name-buy" data-color="${c.id}">Comprar ${c.price} EXP</button>`;
+      else btn=`<button class="btn btn-ghost btn-sm" disabled>${c.price} EXP</button>`;
+      const bg=c.color==='rainbow'?'linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff)':c.color;
+      return `<div class="frame-card${isActive?' active':''}"><div class="frame-preview" style="background:${bg};border-color:${c.color==='rainbow'?'#fff':c.color}"></div><p style="color:${c.color==='rainbow'?'#fff':c.color};font-weight:800">${c.name}</p>${btn}</div>`;
+    }).join('');
+    grid.querySelectorAll('.name-buy').forEach(b=>b.addEventListener('click',()=>this.buyNameColor(b.dataset.color)));
+    grid.querySelectorAll('.name-equip').forEach(b=>b.addEventListener('click',()=>this.equipNameColor(b.dataset.color)));
+    const resetBtn=document.createElement('button'); resetBtn.className='btn btn-ghost btn-sm'; resetBtn.textContent='Blanco por defecto'; resetBtn.addEventListener('click',()=>this.equipNameColor('white')); grid.appendChild(resetBtn);
   }
 };

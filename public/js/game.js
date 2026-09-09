@@ -102,15 +102,28 @@ const Game = (() => {
     for(let i=0;i<120;i++) titleStars.push({x:Math.random()*CW,y:Math.random()*CH,speed:0.3+Math.random()*1.5,size:0.5+Math.random()*2});
     player.x=CW/2; player.y=CH-55;
     document.addEventListener('keydown',e=>{
-      const typing = inputEl && document.activeElement===inputEl;
-      if(typing && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)) return;
+      const ae=document.activeElement;
+      const isAnswerFocused=ae===inputEl;
+      const typing = isTyping();
+      if(typing && !isAnswerFocused){
+        if(e.key==='Escape' && isInGame() && exitOverlayEl && !exitOverlayEl.classList.contains('hidden')){ e.preventDefault(); hideExitConfirm(); return; }
+        if(e.key==='Escape' && isInGame()){ e.preventDefault(); showExitConfirm(); return; }
+        return;
+      }
+      if(typing && isAnswerFocused && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End',' '].includes(e.key)) return;
       if(!typing) keys[e.key]=true; else if(e.key!=='Enter') keys[e.key]=false;
       if(e.key==='Escape' && isInGame() && exitOverlayEl && !exitOverlayEl.classList.contains('hidden')){ e.preventDefault(); hideExitConfirm(); return; }
       if(e.key==='Escape' && isInGame()){ e.preventDefault(); showExitConfirm(); return; }
-      if(state==='playing'&&e.key==='Enter'){ e.preventDefault(); fireAnswer(); return; }
+      if(state==='playing'&&e.key==='Enter'&&isAnswerFocused){ e.preventDefault(); fireAnswer(); return; }
       if(!typing && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     });
-    document.addEventListener('keyup',e=>{ keys[e.key]=false; });
+    document.addEventListener('keyup',e=>{
+      const ae=document.activeElement;
+      const isAnswerFocused=ae===inputEl;
+      const typing=isTyping();
+      if(typing && !isAnswerFocused) return;
+      keys[e.key]=false;
+    });
     const pickEnemy=(mx,my)=>{
       let hit=null;
       for(let i=enemies.length-1;i>=0;i--){ const en=enemies[i]; if(Math.abs(mx-en.x)<=en.w/2&&Math.abs(my-en.y)<=en.h/2){hit=en;break;} }
@@ -234,7 +247,7 @@ const Game = (() => {
     speedrunHudEl.textContent='⏱ '+formatTime(ms);
     speedrunHudEl.classList.toggle('speedrun-warn', ms>45000);
   }
-  function isTyping(){ return inputEl && document.activeElement===inputEl; }
+  function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable); }
   function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'; }
   function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else exitBtnEl.classList.add('hidden'); if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }

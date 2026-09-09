@@ -24,14 +24,14 @@ const Auth = {
     });
     const modal = document.getElementById('authModal');
     modal.addEventListener('click', (e) => { if (e.target === modal) Modal.close(); });
-    document.querySelectorAll('.pass-toggle').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const inp=document.getElementById(btn.dataset.target);
-        if(!inp) return;
-        const show=inp.type==='password';
-        inp.type=show?'text':'password';
-        btn.textContent=show?'🙈':'👁️';
-      });
+    document.addEventListener('click',e=>{
+      const btn=e.target.closest('.pass-toggle');
+      if(!btn) return;
+      const inp=document.getElementById(btn.dataset.target);
+      if(!inp) return;
+      const show=inp.type==='password';
+      inp.type=show?'text':'password';
+      btn.textContent=show?'🙈':'👁️';
     });
   },
 

@@ -38,14 +38,15 @@
         <button class="logo-menu-item" id="menuTutorial" role="menuitem">📖 Tutorial</button>
         <button class="logo-menu-item" id="shopBtn" role="menuitem">🛒 Tienda <span class="badge-shop" id="coinVal">0</span></button>
         <button class="logo-menu-item" data-view="docs" role="menuitem">📖 Manual de uso</button>
+        <button class="logo-menu-item" data-view="qr" role="menuitem">📷 QR</button>
+        <button class="logo-menu-item" id="menuSettings" role="menuitem">⚙️ Ajustes</button>
       </div>
     </div>
     <nav class="nav">
       <button class="nav-btn active" data-view="game">🎮 Juego</button>
       <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
       <button class="nav-btn" data-view="chat">💬 Chat</button>
-      <button class="nav-btn" data-view="qr">📷 QR</button>
-      <button class="nav-btn" id="settingsNavBtn">⚙️ Ajustes</button>
+      <button class="nav-btn" data-view="friends">👥 Amigos</button>
     </nav>
     <div class="topbar-right">
       <button class="icon-btn" id="bellBtn" title="Notificaciones">
@@ -166,13 +167,43 @@
       <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
       <h1>💬 Chat Global</h1>
       <p class="lead">Habla con todos los jugadores. Los mensajes se guardan y no se borran al refrescar.</p>
-      <div class="chat-card">
+      <div class="chat-card" id="chatCard">
+        <div class="chat-bg-picker" id="chatBgPicker">
+          <label>Fondo chat:</label>
+          <button class="bg-opt active" data-bg="" style="background:#0a0e1a">Oscuro</button>
+          <button class="bg-opt" data-bg="gradient" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">Grad</button>
+          <button class="bg-opt" data-bg="neon" style="background:linear-gradient(135deg,#00e5ff33,#7c4dff33)">Neón</button>
+          <button class="bg-opt" data-bg="forest" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">Bosque</button>
+        </div>
         <div class="chat-messages" id="chatMessages"><p class="lead">Cargando mensajes...</p></div>
         <div class="chat-input-bar">
           <input type="text" id="chatInput" placeholder="Escribe un mensaje... (500)" maxlength="500" autocomplete="off">
           <button class="btn btn-primary btn-sm" id="chatSendBtn">Enviar</button>
         </div>
         <p class="hint" id="chatHint">Debes iniciar sesión para chatear. Los mensajes persisten en la BD.</p>
+      </div>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+    </section>
+    <!-- ============ SECCIÓN AMIGOS ============ -->
+    <section id="view-friends" class="view">
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <h1>👥 Amigos</h1>
+      <p class="lead">Añade amigos, acepta solicitudes (campanita) y chatea en privado. Punto verde = en línea (5 min), rojo = desconectado.</p>
+      <div class="friends-grid">
+        <div class="friends-col">
+          <h3>➕ Añadir amigo</h3>
+          <div class="btn-row"><input type="text" id="friendAddInput" placeholder="Nombre exacto" maxlength="20"><button class="btn btn-primary btn-sm" id="friendAddBtn">Enviar</button></div>
+          <h3 style="margin-top:16px">📩 Solicitudes</h3>
+          <div id="friendReqs"><p class="hint">Sin solicitudes</p></div>
+          <h3 style="margin-top:16px">📋 Lista</h3>
+          <div id="friendsList"></div>
+        </div>
+        <div class="friends-col">
+          <h3>💬 Chat privado</h3>
+          <select id="privFriendSelect" style="width:100%;margin-bottom:8px"><option value="">-- elige amigo --</option></select>
+          <div class="chat-messages" id="privMessages" style="height:280px"><p class="hint">Selecciona un amigo</p></div>
+          <div class="chat-input-bar"><input type="text" id="privInput" placeholder="Mensaje privado..." maxlength="500"><button class="btn btn-primary btn-sm" id="privSendBtn">Enviar</button></div>
+        </div>
       </div>
       <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
     </section>
@@ -304,6 +335,11 @@
         <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
         <div class="frames-grid" id="framesGrid"></div>
       </div>
+      <div class="frames-section" id="nameColorSection">
+        <h3>🎨 Color de nombre</h3>
+        <p class="hint">Compra colores con EXP (3000+). Se ve en chat y ranked.</p>
+        <div class="frames-grid" id="nameColorsGrid"></div>
+      </div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
         <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
@@ -345,6 +381,7 @@
   <script src="js/profile.js?v=3"></script>
   <script src="js/ranked.js?v=1"></script>
   <script src="js/chat.js?v=1"></script>
+  <script src="js/friends.js?v=1"></script>
   <script src="js/app.js?v=7"></script>
 </body>
 </html>
