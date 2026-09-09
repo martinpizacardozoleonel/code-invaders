@@ -43,6 +43,7 @@
     <nav class="nav">
       <button class="nav-btn active" data-view="game">🎮 Juego</button>
       <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
+      <button class="nav-btn" data-view="chat">💬 Chat</button>
       <button class="nav-btn" data-view="qr">📷 QR</button>
       <button class="nav-btn" id="settingsNavBtn">⚙️ Ajustes</button>
     </nav>
@@ -73,7 +74,10 @@
           <input type="text" id="authUser" required minlength="3" placeholder="ej. coder123">
         </label>
         <label>Contraseña
-          <input type="password" id="authPass" required minlength="4" placeholder="••••••">
+          <div class="pass-wrap">
+            <input type="password" id="authPass" required minlength="4" placeholder="••••••">
+            <button type="button" class="pass-toggle" data-target="authPass" aria-label="Mostrar contraseña">👁️</button>
+          </div>
         </label>
         <p class="form-error hidden" id="authError"></p>
         <button type="submit" class="btn btn-primary btn-block" id="authSubmit">Entrar</button>
@@ -157,6 +161,22 @@
       <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
     </section>
 
+    <!-- ============ SECCIÓN CHAT ============ -->
+    <section id="view-chat" class="view">
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <h1>💬 Chat Global</h1>
+      <p class="lead">Habla con todos los jugadores. Los mensajes se guardan y no se borran al refrescar.</p>
+      <div class="chat-card">
+        <div class="chat-messages" id="chatMessages"><p class="lead">Cargando mensajes...</p></div>
+        <div class="chat-input-bar">
+          <input type="text" id="chatInput" placeholder="Escribe un mensaje... (500)" maxlength="500" autocomplete="off">
+          <button class="btn btn-primary btn-sm" id="chatSendBtn">Enviar</button>
+        </div>
+        <p class="hint" id="chatHint">Debes iniciar sesión para chatear. Los mensajes persisten en la BD.</p>
+      </div>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+    </section>
+
     <!-- ============ SECCIÓN QR ============ -->
     <section id="view-qr" class="view">
       <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
@@ -231,7 +251,10 @@
         </div>
         <div class="field-group">
           <label>Contraseña</label>
-          <input type="password" id="settingsPass" placeholder="••••••" autocomplete="current-password">
+          <div class="pass-wrap">
+            <input type="password" id="settingsPass" placeholder="••••••" autocomplete="current-password">
+            <button type="button" class="pass-toggle" data-target="settingsPass" aria-label="Mostrar contraseña">👁️</button>
+          </div>
         </div>
         <p class="form-error hidden" id="settingsError"></p>
         <div class="btn-row">
@@ -281,6 +304,11 @@
         <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
         <div class="frames-grid" id="framesGrid"></div>
       </div>
+      <div class="danger-zone" id="dangerZone">
+        <h3>⚠️ Zona peligrosa</h3>
+        <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
+        <button class="btn btn-ghost" style="border-color:#ff1744;color:#ff1744" id="deleteAccountBtn">🗑️ Borrar mi cuenta</button>
+      </div>
       <button class="btn btn-primary" id="settingsCloseBtn">Listo</button>
     </div>
   </div>
@@ -313,9 +341,10 @@
   <script src="js/notifications.js?v=2"></script>
   <script src="js/docs.js?v=5"></script>
   <script src="js/intro.js?v=2"></script>
-  <script src="js/game.js?v=16"></script>
+  <script src="js/game.js?v=19"></script>
   <script src="js/profile.js?v=3"></script>
   <script src="js/ranked.js?v=1"></script>
+  <script src="js/chat.js?v=1"></script>
   <script src="js/app.js?v=7"></script>
 </body>
 </html>

@@ -39,10 +39,12 @@ const API = (() => {
     buy(token,skinId){ const db=getLocalDb(); const sess=db.sessions.find(s=>s.token===token); if(!sess) throw new Error('No autenticado'); const u=db.users.find(x=>x.id===sess.userId); ensureUser(u); const sk=SKINS_CATALOG.find(s=>s.id===skinId); if(!sk) throw new Error('Skin no existe'); if(u.skins.includes(skinId)) throw new Error('Ya tienes esta skin'); if(u.coins<sk.price) throw new Error('Puntos insuficientes'); u.coins-=sk.price; u.skins.push(skinId); saveLocalDb(db); pushLocalNotif(u.id,'¡Skin comprada! 🛒',`Desbloqueaste ${sk.name}`,'success'); return {coins:u.coins,skins:u.skins}; },
     equip(token,skinId){ const db=getLocalDb(); const sess=db.sessions.find(s=>s.token===token); if(!sess) throw new Error('No autenticado'); const u=db.users.find(x=>x.id===sess.userId); ensureUser(u); if(!u.skins.includes(skinId)) throw new Error('No tienes esta skin'); u.equipped=skinId; saveLocalDb(db); return {equipped:u.equipped}; }
   };
+  const API_BASE = (location.hostname.includes('github.io') ? 'https://code-invaders-maj5.onrender.com' : '');
   async function request(path,options={}){
+    const url = API_BASE + path;
     const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
     const token=localStorage.getItem(TOKEN_KEY); if(token) headers['Authorization']='Bearer '+token;
-    const res=await fetch(path,Object.assign({},options,{headers}));
+    const res=await fetch(url,Object.assign({},options,{headers}));
     let data={}; try{ data=await res.json(); }catch(e){}
     if(!res.ok) throw new Error(data.error||'Error en la petición');
     return data;
@@ -64,9 +66,13 @@ const API = (() => {
     async getShop(){ try{ return await request('/api/shop'); }catch(e){ if(e.message.includes('Failed to fetch')||e.message.includes('fetch')) return Local.shop(); throw e; } },
     async buySkin(id){ const t=localStorage.getItem(TOKEN_KEY); try{ return await request('/api/shop/buy',{method:'POST',body:JSON.stringify({skinId:id})}); }catch(e){ if(e.message.includes('Failed to fetch')||e.message.includes('fetch')) return Local.buy(t,id); throw e; } },
     async equipSkin(id){ const t=localStorage.getItem(TOKEN_KEY); try{ return await request('/api/shop/equip',{method:'POST',body:JSON.stringify({skinId:id})}); }catch(e){ if(e.message.includes('Failed to fetch')||e.message.includes('fetch')) return Local.equip(t,id); throw e; } },
+    async deleteAccount(){ const t=localStorage.getItem(TOKEN_KEY); try{ return await request('/api/account',{method:'DELETE'}); }catch(e){ if(e.message.includes('Failed to fetch')||e.message.includes('fetch')){ const db=getLocalDb(); const sess=db.sessions.find(s=>s.token===t); if(sess){ const uid=sess.userId; db.users=db.users.filter(u=>u.id!==uid); db.sessions=db.sessions.filter(s=>s.userId!==uid); db.notifications=db.notifications.filter(n=>n.userId!==uid); saveLocalDb(db); localStorage.removeItem(TOKEN_KEY); } return {ok:true}; } throw e; } },
     async getTournament(){ try{ return await request('/api/tournament'); }catch(e){ throw e; } },
     async startTournament(){ try{ return await request('/api/tournament/start',{method:'POST'}); }catch(e){ throw e; } },
     async checkTournament(){ try{ return await request('/api/tournament/check',{method:'POST'}); }catch(e){ throw e; } },
+    async getChat(){ try{ return await request('/api/chat'); }catch(e){ throw e; } },
+    async sendChat(text){ try{ return await request('/api/chat',{method:'POST',body:JSON.stringify({text})}); }catch(e){ throw e; } },
+    async deleteChat(id){ try{ return await request('/api/chat/'+id,{method:'DELETE'}); }catch(e){ throw e; } },
     qrUrl:(text,size,color)=>{ const hex=(color||'#43a047').replace('#',''); return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${hex}&bgcolor=ffffff&data=${encodeURIComponent(text)}`; },
     async geocode(q){ const url=`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`; const res=await fetch(url,{headers:{'User-Agent':'CodeInvaders/1.0'}}); return res.json(); }
   };

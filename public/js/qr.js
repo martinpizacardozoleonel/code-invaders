@@ -1,11 +1,7 @@
 const QRView = (() => {
   let url = '';
   function getUrl(){
-    const host = location.origin;
-    if(host.includes('localhost') || host.includes('127.0.0.1')){
-      return 'https://code-invaders-gustavo.loca.lt';
-    }
-    return host;
+    return 'https://code-invaders-maj5.onrender.com';
   }
   function init(){
     url = getUrl();

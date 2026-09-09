@@ -68,6 +68,7 @@
         views.forEach(v => v.classList.toggle('active', v.id === 'view-' + target));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === target));
         if (target === 'ranked' && typeof Ranked !== 'undefined') Ranked.loadRanking();
+        if (target === 'chat' && typeof Chat !== 'undefined') Chat.start();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });

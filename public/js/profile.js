@@ -25,9 +25,23 @@ const Profile = {
   async init() {
     this.token = localStorage.getItem('fx_token');
     this.bindUI();
+    this.bindPasswordToggles();
     const savedTheme = localStorage.getItem('ci_theme');
     if (savedTheme) this.applyTheme(savedTheme);
     if (this.token) await this.restoreSession();
+  },
+
+  bindPasswordToggles(){
+    document.querySelectorAll('.pass-toggle').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id=btn.dataset.target;
+        const inp=document.getElementById(id);
+        if(!inp) return;
+        const show=inp.type==='password';
+        inp.type=show?'text':'password';
+        btn.textContent=show?'🙈':'👁️';
+      });
+    });
   },
 
   async restoreSession() {
@@ -135,6 +149,8 @@ const Profile = {
     if (uploadPicBtn) uploadPicBtn.addEventListener('click', () => picInput && picInput.click());
     if (picInput) picInput.addEventListener('change', (e) => this.savePicture(e));
     if (saveNameBtn) saveNameBtn.addEventListener('click', () => this.saveName());
+    const deleteBtn=document.getElementById('deleteAccountBtn');
+    if(deleteBtn) deleteBtn.addEventListener('click', ()=> this.deleteAccount());
   },
 
   applyTheme(theme) {
@@ -182,6 +198,28 @@ const Profile = {
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  },
+
+  async deleteAccount(){
+    if(!this.isLogged()) return;
+    if(!confirm('¿Borrar tu cuenta? Desaparecés del ranked y se pierde todo. No se puede deshacer.')) return;
+    const btn=document.getElementById('deleteAccountBtn');
+    if(btn) btn.disabled=true;
+    try{
+      await this.api('/api/account', { method:'DELETE' });
+      if(window.API && API.deleteAccount) { try{ await API.deleteAccount(); }catch(e){} }
+      this.token=null; this.user=null; this.active=false; this.pendingTime=0;
+      localStorage.removeItem('fx_token');
+      this.renderProfile();
+      if(typeof Auth!=='undefined' && Auth.logoutLocal) Auth.logoutLocal();
+      const ov=document.getElementById('settingsOverlay');
+      if(ov) ov.classList.add('hidden');
+      if(typeof Toast!=='undefined') Toast.success('Cuenta borrada');
+      if(typeof Ranked!=='undefined' && Ranked.loadRanking) Ranked.loadRanking();
+    }catch(e){
+      if(typeof Toast!=='undefined') Toast.error(e.message);
+      if(btn) btn.disabled=false;
+    }
   },
 
   async saveName() {
@@ -269,12 +307,13 @@ const Profile = {
     const settingsRegisterBtn = document.getElementById('settingsRegisterBtn');
     const settingsLoggedIn = document.getElementById('settingsLoggedIn');
     const framesSection = document.getElementById('framesSection');
+    const dangerZone = document.getElementById('dangerZone');
 
     if (this.isLogged()) {
       if (nameEl) nameEl.textContent = this.user.username || 'Invitado';
-      if (levelEl) levelEl.textContent = `Nivel ${this.expLevel} · ${this.user.exp || 0} EXP`;
-      if (hoursEl) hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`;
-      if (coinsEl) coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`;
+      if (levelEl) { levelEl.textContent = `Nivel ${this.expLevel} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
+      if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
+      if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
       if (avatarImg && this.user.profilePic) { avatarImg.src = this.user.profilePic; avatarImg.style.display = 'block'; }
       if (avatarPH && this.user.profilePic) avatarPH.style.display = 'none';
       if (avatarFrame) {
@@ -288,11 +327,12 @@ const Profile = {
       if (settingsRegisterBtn) settingsRegisterBtn.classList.add('hidden');
       if (settingsLoggedIn) settingsLoggedIn.classList.remove('hidden');
       if (framesSection) framesSection.classList.remove('hidden');
+      if (dangerZone) dangerZone.classList.remove('hidden');
     } else {
       if (nameEl) nameEl.textContent = 'Invitado';
-      if (levelEl) levelEl.textContent = '';
-      if (hoursEl) hoursEl.textContent = '';
-      if (coinsEl) coinsEl.textContent = '';
+      if (levelEl) { levelEl.textContent = ''; levelEl.style.display='none'; }
+      if (hoursEl) { hoursEl.textContent = ''; hoursEl.style.display='none'; }
+      if (coinsEl) { coinsEl.textContent = ''; coinsEl.style.display='none'; }
       if (avatarImg) { avatarImg.src = ''; avatarImg.style.display = 'none'; }
       if (avatarPH) avatarPH.style.display = '';
       if (avatarFrame) avatarFrame.className = 'avatar-frame';
@@ -303,6 +343,7 @@ const Profile = {
       if (settingsRegisterBtn) settingsRegisterBtn.classList.remove('hidden');
       if (settingsLoggedIn) settingsLoggedIn.classList.add('hidden');
       if (framesSection) framesSection.classList.add('hidden');
+      if (dangerZone) dangerZone.classList.add('hidden');
     }
   },
 

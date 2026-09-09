@@ -10,9 +10,10 @@ const Game = (() => {
   function skinById(id){ return SKINS.find(s=>s.id===id)||SKINS[0]; }
   const LEVELS=[
     {id:1,title:'Etiquetas HTML básicas',questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Párrafo',a:'<p>'},{q:'Enlace',a:'<a>'},{q:'Imagen',a:'<img>'},{q:'Lista ordenada',a:'<ol>'},{q:'Lista desordenada',a:'<ul>'},{q:'Elemento en línea',a:'<span>'},{q:'División',a:'<div>'},{q:'Negrita',a:'<b>'},{q:'Cursiva',a:'<i>'}],enemySpeed:0.6,spawnInterval:80,enemyHealth:1},
-    {id:2,title:'Selectores y propiedades CSS',questions:[{q:'Selector por ID',a:'#'},{q:'Selector por clase',a:'.'},{q:'Pseudoclase hover',a:':hover'},{q:'Color de texto',a:'color'},{q:'Tamaño de fuente',a:'font-size'},{q:'Fondo',a:'background'},{q:'Margen',a:'margin'},{q:'Borde',a:'border'},{q:'Posición',a:'position'},{q:'Flexbox',a:'display: flex'}],enemySpeed:0.8,spawnInterval:70,enemyHealth:1},
-    {id:3,title:'JavaScript básico',questions:[{q:'Variable mutable',a:'let'},{q:'Variable constante',a:'const'},{q:'Función flecha',a:'=>'},{q:'Imprimir consola',a:'console.log()'},{q:'Condición si',a:'if'},{q:'Bucle for',a:'for'},{q:'Comparación estricta',a:'==='},{q:'Obtener por ID',a:'getElementById()'},{q:'Escuchar evento',a:'addEventListener()'},{q:'Crear elemento',a:'createElement()'}],enemySpeed:1.0,spawnInterval:60,enemyHealth:2},
-    {id:4,title:'👑 JEFE FINAL',isBoss:true,bossHealth:30,questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Color de texto',a:'color'},{q:'Variable mutable',a:'let'},{q:'Selector por ID',a:'#'},{q:'Alinear contenido',a:'justify-content'},{q:'Obtener por ID',a:'getElementById()'},{q:'Media query',a:'@media'},{q:'Petición HTTP',a:'fetch()'},{q:'Agregar al final',a:'push()'},{q:'Promesa',a:'Promise'},{q:'Borde',a:'border'},{q:'Función flecha',a:'=>'},{q:'Tabla',a:'<table>'},{q:'Animación CSS',a:'@keyframes'},{q:'LocalStorage',a:'localStorage'}],enemySpeed:0,spawnInterval:0,enemyHealth:30}
+    {id:2,title:'Más etiquetas HTML',questions:[{q:'Botón',a:'<button>'},{q:'Campo de entrada',a:'<input>'},{q:'Etiqueta de formulario',a:'<label>'},{q:'Tabla',a:'<table>'},{q:'Fila de tabla',a:'<tr>'},{q:'Celda de tabla',a:'<td>'},{q:'Encabezado de celda',a:'<th>'},{q:'Separador',a:'<hr>'},{q:'Salto de línea',a:'<br>'},{q:'Negrita fuerte',a:'<strong>'}],enemySpeed:0.7,spawnInterval:75,enemyHealth:1},
+    {id:3,title:'CSS — Selectores y propiedades',questions:[{q:'Selector por ID',a:'#'},{q:'Selector por clase',a:'.'},{q:'Pseudoclase hover',a:':hover'},{q:'Color de texto',a:'color'},{q:'Tamaño de fuente',a:'font-size'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Borde',a:'border'},{q:'Posición',a:'position'},{q:'Alinear texto',a:'text-align'}],enemySpeed:0.8,spawnInterval:70,enemyHealth:1},
+    {id:4,title:'JavaScript básico',questions:[{q:'Variable mutable',a:'let'},{q:'Variable constante',a:'const'},{q:'Función flecha',a:'=>'},{q:'Imprimir consola',a:'console.log()'},{q:'Condición si',a:'if'},{q:'Bucle for',a:'for'},{q:'Comparación estricta',a:'==='},{q:'Obtener por ID',a:'getElementById()'},{q:'Escuchar evento',a:'addEventListener()'},{q:'Crear elemento',a:'createElement()'}],enemySpeed:1.0,spawnInterval:60,enemyHealth:2},
+    {id:5,title:'👑 JEFE FINAL',isBoss:true,bossHealth:30,questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Color de texto',a:'color'},{q:'Variable mutable',a:'let'},{q:'Selector por ID',a:'#'},{q:'Alinear contenido',a:'justify-content'},{q:'Obtener por ID',a:'getElementById()'},{q:'Media query',a:'@media'},{q:'Petición HTTP',a:'fetch()'},{q:'Agregar al final',a:'push()'},{q:'Promesa',a:'Promise'},{q:'Borde',a:'border'},{q:'Función flecha',a:'=>'},{q:'Tabla',a:'<table>'},{q:'Animación CSS',a:'@keyframes'},{q:'LocalStorage',a:'localStorage'}],enemySpeed:0,spawnInterval:0,enemyHealth:30}
   ];
   let canvas,ctx,W,H;
   let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
@@ -240,7 +241,7 @@ const Game = (() => {
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
   function doExit(){ hideExitConfirm(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); updateExitBtn(); }
+  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2; startLevel(0); }
@@ -321,7 +322,7 @@ const Game = (() => {
     if(lives<=0){
       state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); if(inputEl) inputEl.disabled=true;
       if(speedrun&&!speedrunFinished){ speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; try{ if(!speedrunBest||speedrunTime<speedrunBest){ const st=store(); const pref=isLogged()?`ci_${uid()}_`:`ci_guest_`; st.setItem(pref+'speedrun_best', String(speedrunTime)); speedrunBest=speedrunTime; } }catch(e){} pushSpeedrun(speedrunTime); }
-      showRetryBtn(); saveProgress(false);
+      showBtns(); saveProgress(false);
     }
     updateHUD();
   }
@@ -371,7 +372,7 @@ const Game = (() => {
     if(it.type==='bullets'){ bossBullets=Math.min(bossBullets+3,3); showToast('🔫 +3 balas (máx 3)'); }
     else if(it.type==='question'){ openBossQuiz(); }
     else if(it.type==='trap'){
-      if(Math.random()<0.5){ lives--; showToast('💀 Trampa: -1 vida'); explode(player.x,player.y,'#f44',15); playSound('hit'); if(lives<=0){ bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); showRetryBtn(); saveProgress(false); } }
+      if(Math.random()<0.5){ lives--; showToast('💀 Trampa: -1 vida'); explode(player.x,player.y,'#f44',15); playSound('hit'); if(lives<=0){ bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); showBtns(); saveProgress(false); } }
       else { invertedTimer=4; showToast('💀 Trampa: controles invertidos 4s'); }
     }
   }
@@ -409,7 +410,7 @@ const Game = (() => {
   function bossDamagePlayer(){
     if(invertedTimer>0) return;
     lives--; playSound('hit'); explode(player.x,player.y,'#f44',12);
-    if(lives<=0){ bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); showRetryBtn(); saveProgress(false); }
+    if(lives<=0){ bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); showBtns(); saveProgress(false); }
     updateHUD();
   }
   function drawBossDodge(){
@@ -613,7 +614,7 @@ const Game = (() => {
     ctx.font='16px monospace'; ctx.fillStyle='#0f0'; ctx.fillText('Galaga de Programación',W/2,H/2-60);
     ctx.font='13px monospace'; ctx.fillStyle='#8af'; ctx.fillText('Destruye naves escribiendo la respuesta correcta',W/2,H/2-30);
     ctx.fillStyle='#ffd600'; ctx.font='bold 13px monospace'; ctx.fillText('Elige tu modo:',W/2,H/2+5);
-    ctx.fillStyle='#8af'; ctx.font='12px monospace'; ctx.fillText('NORMAL: 3 niveles + Jefe | SPEEDRUN: Nivel 1 DIFÍCIL con cronómetro',W/2,H/2+26);
+    ctx.fillStyle='#8af'; ctx.font='12px monospace'; ctx.fillText('NORMAL: 4 niveles + Jefe | SPEEDRUN: Nivel 1 DIFÍCIL con cronómetro',W/2,H/2+26);
     ctx.fillStyle='#ff8a80'; ctx.font='11px monospace'; ctx.fillText('🛒 Compra skins en la Tienda con tus puntos',W/2,H/2+44);
     ctx.fillStyle='#555'; ctx.font='11px monospace'; ctx.fillText('← → Mover | Clic: apuntar | ENTER: disparar',W/2,H/2+64);
   }
