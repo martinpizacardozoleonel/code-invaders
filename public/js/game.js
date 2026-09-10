@@ -410,7 +410,7 @@ const Game = (() => {
     if(bossItemTimer>=5+Math.random()*4){ bossItemTimer=0; spawnBossItem(); }
     for(let i=bossItems.length-1;i>=0;i--){ const it=bossItems[i]; it.y+=it.speed||1.4; it.bob+=dt*2.5; const iy=it.y+Math.sin(it.bob)*10; if(it.y>H+40){ bossItems.splice(i,1); continue; } if(Math.abs(player.x-it.x)<45&&Math.abs(player.y-iy)<45){ collectBossItem(it); bossItems.splice(i,1); } }
     if(bossQuizActive) return;
-    if(keys[' ']&&shootCooldown<=0&&bossBullets>0){ shootCooldown=15; bossBullets--; const dx=bossX-player.x,dy=bossY-player.y,dist=Math.sqrt(dx*dx+dy*dy); const vx=dx/dist*8,vy=dy/dist*8; makeLaser(player.x,player.y-22,bossX,bossY,'#ff0'); bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion'); if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true); } }
+    if(keys[' ']&&shootCooldown<=0&&bossBullets>0){ shootCooldown=15; bossBullets--; const dx=bossX-player.x,dy=bossY-player.y,dist=Math.sqrt(dx*dx+dy*dy); const vx=dx/dist*8,vy=dy/dist*8; makeLaser(player.x,player.y-22,bossX,bossY,'#ff0'); bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion'); if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } } }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
     updateHUD();
   }
@@ -508,7 +508,12 @@ const Game = (() => {
       }
     }
     if(bossHP<=0){
-      explode(bossX,bossY,'#ff0',40); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true);
+      explode(bossX,bossY,'#ff0',40); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100);
+      if(level < LEVELS.length-1){
+        state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500);
+      } else {
+        state='bossWin'; showRetryBtn(); saveProgress(true);
+      }
     }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
     for(let i=lasers.length-1;i>=0;i--){ lasers[i].life--; if(lasers[i].life<=0) lasers.splice(i,1); }
@@ -575,7 +580,12 @@ const Game = (() => {
       explode(enemies[0].x,enemies[0].y,'#ff0',40);
       enemies=[]; currentEnemy=null;
       addCoins(100);
-      state='bossWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); saveProgress(true);
+      if(level < LEVELS.length-1){
+        state='levelcomplete'; if(inputEl) inputEl.disabled=true; saveProgress(true);
+        setTimeout(()=>startLevel(level+1),1800);
+      } else {
+        state='bossWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); saveProgress(true);
+      }
     }
   }
   function saveProgress(solved){

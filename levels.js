@@ -72,6 +72,28 @@ const LEVELS = [
     enemySpeed: 0,
     spawnInterval: 0,
     enemyHealth: 12
+  },
+  {
+    id: 5,
+    title: '👑 JEFE CSS',
+    isBoss: true,
+    isCssBoss: true,
+    bossHealth: 10,
+    questions: [
+      { q: 'Color de texto', a: 'color' },
+      { q: 'Fondo', a: 'background' },
+      { q: 'Margen exterior', a: 'margin' },
+      { q: 'Margen interior', a: 'padding' },
+      { q: 'Borde', a: 'border' },
+      { q: 'Ancho', a: 'width' },
+      { q: 'Altura', a: 'height' },
+      { q: 'Posición', a: 'position' },
+      { q: 'Alinear ítems', a: 'align-items' },
+      { q: 'Justificar contenido', a: 'justify-content' }
+    ],
+    enemySpeed: 0,
+    spawnInterval: 0,
+    enemyHealth: 1
   }
 ];
 
