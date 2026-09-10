@@ -9,11 +9,10 @@ const Game = (() => {
   ];
   function skinById(id){ return SKINS.find(s=>s.id===id)||SKINS[0]; }
   const LEVELS=[
-    {id:1,title:'Etiquetas HTML básicas',questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Párrafo',a:'<p>'},{q:'Enlace',a:'<a>'},{q:'Imagen',a:'<img>'},{q:'Lista ordenada',a:'<ol>'},{q:'Lista desordenada',a:'<ul>'},{q:'Elemento en línea',a:'<span>'},{q:'División',a:'<div>'},{q:'Negrita',a:'<b>'},{q:'Cursiva',a:'<i>'}],enemySpeed:0.6,spawnInterval:80,enemyHealth:1},
-    {id:2,title:'Más etiquetas HTML',questions:[{q:'Botón',a:'<button>'},{q:'Campo de entrada',a:'<input>'},{q:'Etiqueta de formulario',a:'<label>'},{q:'Tabla',a:'<table>'},{q:'Fila de tabla',a:'<tr>'},{q:'Celda de tabla',a:'<td>'},{q:'Encabezado de celda',a:'<th>'},{q:'Separador',a:'<hr>'},{q:'Salto de línea',a:'<br>'},{q:'Negrita fuerte',a:'<strong>'}],enemySpeed:0.7,spawnInterval:75,enemyHealth:1},
-    {id:3,title:'CSS — Selectores y propiedades',questions:[{q:'Selector por ID',a:'#'},{q:'Selector por clase',a:'.'},{q:'Pseudoclase hover',a:':hover'},{q:'Color de texto',a:'color'},{q:'Tamaño de fuente',a:'font-size'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Borde',a:'border'},{q:'Posición',a:'position'},{q:'Alinear texto',a:'text-align'}],enemySpeed:0.8,spawnInterval:70,enemyHealth:1},
-    {id:4,title:'JavaScript básico',questions:[{q:'Variable mutable',a:'let'},{q:'Variable constante',a:'const'},{q:'Función flecha',a:'=>'},{q:'Imprimir consola',a:'console.log()'},{q:'Condición si',a:'if'},{q:'Bucle for',a:'for'},{q:'Comparación estricta',a:'==='},{q:'Obtener por ID',a:'getElementById()'},{q:'Escuchar evento',a:'addEventListener()'},{q:'Crear elemento',a:'createElement()'}],enemySpeed:1.0,spawnInterval:60,enemyHealth:2},
-    {id:5,title:'👑 JEFE FINAL',isBoss:true,bossHealth:30,questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Color de texto',a:'color'},{q:'Variable mutable',a:'let'},{q:'Selector por ID',a:'#'},{q:'Alinear contenido',a:'justify-content'},{q:'Obtener por ID',a:'getElementById()'},{q:'Media query',a:'@media'},{q:'Petición HTTP',a:'fetch()'},{q:'Agregar al final',a:'push()'},{q:'Promesa',a:'Promise'},{q:'Borde',a:'border'},{q:'Función flecha',a:'=>'},{q:'Tabla',a:'<table>'},{q:'Animación CSS',a:'@keyframes'},{q:'LocalStorage',a:'localStorage'}],enemySpeed:0,spawnInterval:0,enemyHealth:30}
+    {id:1,title:'HTML Básico',questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Párrafo',a:'<p>'},{q:'Enlace',a:'<a>'},{q:'Imagen',a:'<img>'},{q:'Lista desordenada',a:'<ul>'},{q:'División',a:'<div>'},{q:'Elemento en línea',a:'<span>'},{q:'Botón',a:'<button>'},{q:'Campo de entrada',a:'<input>'},{q:'Tabla',a:'<table>'}],enemySpeed:0.5,spawnInterval:90,enemyHealth:1},
+    {id:2,title:'CSS Básico',questions:[{q:'Color de texto',a:'color'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde',a:'border'},{q:'Tamaño de fuente',a:'font-size'},{q:'Ancho',a:'width'},{q:'Selector por clase',a:'.'},{q:'Selector por ID',a:'#'},{q:'Alinear texto',a:'text-align'}],enemySpeed:0.7,spawnInterval:75,enemyHealth:1},
+    {id:3,title:'JS Básico',questions:[{q:'Variable mutable',a:'let'},{q:'Variable constante',a:'const'},{q:'Comparación estricta',a:'==='},{q:'Función flecha',a:'=>'},{q:'Condición si',a:'if'},{q:'Bucle for',a:'for'}],enemySpeed:0.5,spawnInterval:95,enemyHealth:1},
+    {id:4,title:'👑 JEFE FINAL',isBoss:true,bossHealth:12,questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Color de texto',a:'color'},{q:'Variable mutable',a:'let'},{q:'Selector por ID',a:'#'},{q:'Borde',a:'border'},{q:'Función flecha',a:'=>'},{q:'Tabla',a:'<table>'},{q:'Obtener por ID',a:'getElementById()'},{q:'Petición HTTP',a:'fetch()'},{q:'Agregar al final',a:'push()'}],enemySpeed:0,spawnInterval:0,enemyHealth:12}
   ];
   let canvas,ctx,W,H;
   let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
@@ -45,6 +44,7 @@ const Game = (() => {
   let invertedTimer=0;
   let bossQuizActive=false,bossQuizData=null,bossQuizLocked=false;
   let bossDodgeScore=0;
+  let playSecAcc=0;
   const BOSS_TAG_DEFS=[
     {tag:'<h1>',color:'#e44d26'},{tag:'<p>',color:'#e44d26'},{tag:'<a>',color:'#e44d26'},
     {tag:'.class',color:'#264de4'},{tag:'#id',color:'#264de4'},{tag:'margin',color:'#264de4'},
@@ -509,6 +509,14 @@ const Game = (() => {
   }
   function update(){
     frameCount++; if(shootCooldown>0) shootCooldown--; if(scorePop>0) scorePop--; else if(scorePop<0) scorePop++; if(comboPop>0) comboPop--;
+    if((state==='playing'||state==='intro') && frameCount%60===0){
+      playSecAcc+=1;
+      if(playSecAcc>=10 && typeof Profile!=='undefined' && Profile.addPlaytime){
+        Profile.addPlaytime(playSecAcc);
+        playSecAcc=0;
+      }
+    }
+    if(state==='title' && playSecAcc>0 && typeof Profile!=='undefined' && Profile.flushTime){ Profile.addPlaytime(playSecAcc); Profile.flushTime(true); playSecAcc=0; }
     if(exitOverlayEl && !exitOverlayEl.classList.contains('hidden')) return;
     if(speedrun&&!speedrunFinished&&(state==='playing'||state==='intro')) updateSpeedrunHud();
     if(state==='title'||state==='gameover'||state==='win'||state==='speedrunWin'||state==='bossWin') return;
