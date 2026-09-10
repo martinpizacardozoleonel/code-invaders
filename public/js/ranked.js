@@ -28,7 +28,7 @@ const Ranked={
    let posBadge=''; if(isFinished&&res&&res[u.id]){ const p=res[u.id].position; if(p<=3) posBadge=`<span class="ranked-position-badge ranked-pos-${p}">#${p}</span>`; }
    const timeBadge=u.speedrunBest?`<span class="ranked-time">⚡ ${this.formatTime(u.speedrunBest)}</span>`:'';
    const onlineDot=`<span class="dot ${u.online?'online':'offline'}" title="${u.online?'En línea':'Desconectado'}"></span>`;
-   const nameSt=this.nameStyle(u.nameColor);
+   const nameSt=this.nameStyle(u.nameColor)+API.fontStyle(u.equippedFont)+API.fxStyle(u.equippedFx);
    return `<div class="ranked-card" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot} ${posBadge}</p><p class="ranked-stats">❤️ ${u.solved} niveles · ⭐ ${u.exp||0} EXP · ⏱ ${u.hoursPlayed||0}h ${timeBadge}</p></div><div class="ranked-coins">🪙 ${u.coins||0}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
   }).join(''); this.bindCardEvents(grid);
  },
@@ -39,7 +39,7 @@ const Ranked={
    const medals=['🥇','🥈','🥉']; const medal=i<3?medals[i]:`<span class="ranked-pos">${i+1}</span>`;
    const frameClass=u.equippedFrame&&u.equippedFrame!=='none'?' frame-'+u.equippedFrame:'';
    const pic=u.profilePic?`<img src="${u.profilePic}" alt="${u.username}" class="ranked-avatar">`:`<span class="ranked-avatar-placeholder">👾</span>`;
-   const isTop3=i<3?` ranked-pos-${i+1}`:''; const nameSt=this.nameStyle(u.nameColor); const onlineDot=`<span class="dot ${u.online?'online':'offline'}"></span>`;
+   const isTop3=i<3?` ranked-pos-${i+1}`:''; const nameSt=this.nameStyle(u.nameColor)+API.fontStyle(u.equippedFont)+API.fxStyle(u.equippedFx); const onlineDot=`<span class="dot ${u.online?'online':'offline'}"></span>`;
    return `<div class="ranked-card ranked-card-speedrun" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot}</p><p class="ranked-stats">⚡ <span class="ranked-time-main">${this.formatTime(u.speedrunBest)}</span> · ❤️ ${u.solved} niveles</p></div><div class="ranked-coins ranked-time-badge${isTop3}">⏱ ${this.formatTime(u.speedrunBest)}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
   }).join(''); this.bindCardEvents(grid);
  },
@@ -75,13 +75,13 @@ const Ranked={
    const data=await API.getUserProfile(userId);
    const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:''; const pic=data.profilePic?`<img src="${data.profilePic}" alt="${data.username}" class="inspect-avatar">`:`<span class="inspect-avatar-placeholder">👾</span>`;
    const expLevel=Math.floor((data.exp||0)/100)+1; const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido'; const speedrunHtml=data.speedrunBest?`<p class="inspect-speedrun">⚡ Speedrun: <strong>${this.formatTime(data.speedrunBest)}</strong></p>`:'<p class="inspect-speedrun muted">⚡ Sin speedrun</p>';
-   const nameSt=this.nameStyle(data.nameColor); const onlineDot=`<span class="dot ${data.online?'online':'offline'}"></span> ${data.online?'En línea':'Desconectado'}`;
+   const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx); const onlineDot=`<span class="dot ${data.online?'online':'offline'}"></span> ${data.online?'En línea':'Desconectado'}`;
    ct.innerHTML=`<div class="inspect-head"><div class="inspect-avatar-wrap${frameClass}">${pic}</div><div class="inspect-stats"><p class="inspect-name" style="${nameSt}">${data.username} ${onlineDot}</p><p class="inspect-level">Nivel ${expLevel} · ${data.exp||0} EXP</p><p class="inspect-hours">⏱ ${data.hoursPlayed||0} h</p><p class="inspect-coins">🪙 ${data.coins||0}</p>${speedrunHtml}</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">${data.solved}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">${data.attempts}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">${created}</span></div></div>`;
   }catch(e){ ct.innerHTML='<p>Error</p>'; }
  }
 };
 
-// Banners visibles en perfil publico (inspect)
+// Banners visibles en perfil publico (inspect) - banner como fondo de toda la tarjeta
 Ranked._bannersCache=null;
 Ranked._bannerById=async function(id){
   if(!id||id==='none') return {id:'none',name:'Sin banner',grad:'',border:'#333'};
@@ -95,24 +95,28 @@ Ranked._bannerById=async function(id){
 };
 Ranked.inspectUser=async function(userId){
   const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML='<p>Cargando...</p>'; ov.classList.remove('hidden');
+  const card=ov.querySelector('.inspect-card'); if(card){ card.style.background=''; card.style.borderColor=''; }
   try{
     const data=await API.getUserProfile(userId);
     const b=await this._bannerById(data.equippedBanner);
-    let bannerHtml='';
-    if((data.equippedBanner&&data.equippedBanner!=='none')||data.bannerImg){
-      const st=(b&&b.grad)?('background:'+b.grad+';border-color:'+b.border+';'):'';
-      const im=data.bannerImg?('<img src="'+data.bannerImg+'" alt="Banner" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">'):'';
-      const lb=(b&&b.name&&!data.bannerImg)?('<span style="position:relative;z-index:1;">'+b.name+'</span>'):'';
-      bannerHtml='<div class="profile-banner inspect-banner" style="'+st+'position:relative;overflow:hidden;">'+im+lb+'</div>';
-    }
+    const hasBanner=(data.equippedBanner&&data.equippedBanner!=='none')||data.bannerImg;
     const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:'';
     const pic=data.profilePic?('<img src="'+data.profilePic+'" alt="'+data.username+'" class="inspect-avatar">'):('<span class="inspect-avatar-placeholder">👾</span>');
     const expLevel=Math.floor((data.exp||0)/100)+1;
     const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido';
     const speedrunHtml=data.speedrunBest?('<p class="inspect-speedrun">⚡ Speedrun: <strong>'+this.formatTime(data.speedrunBest)+'</strong></p>'):('<p class="inspect-speedrun muted">⚡ Sin speedrun</p>');
-    const nameSt=this.nameStyle(data.nameColor);
+    const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx);
     const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span> '+(data.online?'En línea':'Desconectado');
-    ct.innerHTML=bannerHtml+'<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+'">'+pic+'</div><div class="inspect-stats"><p class="inspect-name" style="'+nameSt+'">'+data.username+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
+    const inner='<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+'">'+pic+'</div><div class="inspect-stats"><p class="inspect-name" style="'+nameSt+'">'+data.username+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
+    if(hasBanner){
+      const bgImg=data.bannerImg?("background-image:url('"+data.bannerImg+"');"):'';
+      const bgGrad=(!data.bannerImg&&b&&b.grad)?('background:'+b.grad+';'):'';
+      const bcol=(b&&b.border)?b.border:'#333';
+      if(card){ card.style.borderColor=bcol; }
+      ct.innerHTML='<div class="inspect-fullbanner" style="'+bgGrad+bgImg+'border:2px solid '+bcol+';">'+inner+'</div>';
+    } else {
+      ct.innerHTML=inner;
+    }
   }catch(e){ ct.innerHTML='<p>Error</p>'; }
 };
 

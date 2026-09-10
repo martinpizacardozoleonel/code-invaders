@@ -151,7 +151,7 @@ const Chat={
         const own=m.userId===meId;
         const date=new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
         const del=own?`<button class="chat-del" data-id="${m.id}" title="Borrar">🗑️</button>`:'';
-        return `<div class="chat-msg ${own?'own':''}"><div class="chat-head"><span class="chat-user">${this.esc(m.username)}</span><span class="chat-time">${date}</span>${del}</div><div class="chat-text">${this.esc(m.text)}</div></div>`;
+        return `<div class="chat-msg ${own?'own':''}"><div class="chat-head"><span class="chat-user" style="color:${m.nameColor||"#00e5ff"};${API.fontStyle(m.equippedFont)}${API.fxStyle(m.equippedFx)}">${this.esc(m.username)}</span><span class="chat-time">${date}</span>${del}</div><div class="chat-text">${this.esc(m.text)}</div></div>`;
        }).join('');
        box.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',()=>this.del(b.dataset.id)));
        if(atBottom){

@@ -5,6 +5,8 @@ const Profile = {
   pendingTime: 0,
   active: false,
   bannersCatalog: [],
+  fontsCatalog: [],
+  fxsCatalog: [],
   framesCatalog: [
     { id: 'none', name: 'Ninguno', price: 0 },
     { id: 'bronce', name: 'Bronce', price: 200 },
@@ -264,6 +266,8 @@ const Profile = {
     this.renderFrames();
     this.loadNameColors();
     this.loadBanners();
+    this.loadFonts();
+    this.loadFxs();
   },
   async loadNameColors(){
     try{
@@ -358,6 +362,78 @@ const Profile = {
     g.querySelectorAll('.b-equip').forEach(b=>b.addEventListener('click',()=>this.equipBanner(b.dataset.b)));
     this.renderProfileBanner();
   },
+  async loadFonts(){
+    try{ const d=await API.getFonts(); this.fontsCatalog=d.fonts||[]; }catch(e){ this.fontsCatalog=[]; }
+    this.renderFonts();
+  },
+  async buyFont(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.buyFont(id);
+      if(this.user){ this.user.fonts=d.fonts; this.user.coins=d.coins; }
+      this.renderFonts(); this.renderProfile();
+      Toast.success('Letra comprada');
+    }catch(e){ Toast.error(e.message); }
+  },
+  async equipFont(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.equipFont(id);
+      if(this.user) this.user.equippedFont=d.equippedFont;
+      this.renderFonts(); this.renderProfile();
+      Toast.success('Letra equipada');
+    }catch(e){ Toast.error(e.message); }
+  },
+  renderFonts(){
+    const g=document.getElementById('fontsGrid'); if(!g) return;
+    const owned=(this.user&&this.user.fonts)||['normal']; const cur=(this.user&&this.user.equippedFont)||'normal'; const coins=(this.user&&this.user.coins)||0; const list=this.fontsCatalog||[];
+    g.innerHTML=list.map(x=>{
+      const has=owned.includes(x.id); const act=x.id===cur; let btn='';
+      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
+      else if(has) btn='<button class="btn btn-primary btn-sm f-equip" data-f="'+x.id+'">Equipar</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm f-buy" data-f="'+x.id+'">Comprar '+x.price+'</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#0a0e1a;'+x.css+'"><span>Aa</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
+    }).join('');
+    g.querySelectorAll('.f-buy').forEach(b=>b.addEventListener('click',()=>this.buyFont(b.dataset.f)));
+    g.querySelectorAll('.f-equip').forEach(b=>b.addEventListener('click',()=>this.equipFont(b.dataset.f)));
+  },
+  async loadFxs(){
+    try{ const d=await API.getFxs(); this.fxsCatalog=d.fxs||[]; }catch(e){ this.fxsCatalog=[]; }
+    this.renderFxs();
+  },
+  async buyFx(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.buyFx(id);
+      if(this.user){ this.user.fxs=d.fxs; this.user.coins=d.coins; }
+      this.renderFxs(); this.renderProfile();
+      Toast.success('Efecto comprado');
+    }catch(e){ Toast.error(e.message); }
+  },
+  async equipFx(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.equipFx(id);
+      if(this.user) this.user.equippedFx=d.equippedFx;
+      this.renderFxs(); this.renderProfile();
+      Toast.success('Efecto equipado');
+    }catch(e){ Toast.error(e.message); }
+  },
+  renderFxs(){
+    const g=document.getElementById('fxsGrid'); if(!g) return;
+    const owned=(this.user&&this.user.fxs)||['none']; const cur=(this.user&&this.user.equippedFx)||'none'; const coins=(this.user&&this.user.coins)||0; const list=this.fxsCatalog||[];
+    g.innerHTML=list.map(x=>{
+      const has=owned.includes(x.id); const act=x.id===cur; let btn='';
+      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
+      else if(has) btn='<button class="btn btn-primary btn-sm x-equip" data-x="'+x.id+'">Equipar</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm x-buy" data-x="'+x.id+'">Comprar '+x.price+'</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:#0a0e1a;'+x.css+'"><span>Efecto</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
+    }).join('');
+    g.querySelectorAll('.x-buy').forEach(b=>b.addEventListener('click',()=>this.buyFx(b.dataset.x)));
+    g.querySelectorAll('.x-equip').forEach(b=>b.addEventListener('click',()=>this.equipFx(b.dataset.x)));
+  },
   async buyFrame(id) {
     if (!this.isLogged()) return;
     try {
@@ -393,10 +469,13 @@ const Profile = {
     const settingsLoggedIn = document.getElementById('settingsLoggedIn');
     const framesSection = document.getElementById('framesSection');
     const bannerSection = document.getElementById('bannerSection');
+    const fontsSection = document.getElementById('fontsSection');
+    const fxsSection = document.getElementById('fxsSection');
+    const fontsSection = document.getElementById('fontsSection');
     const dangerZone = document.getElementById('dangerZone');
 
     if (this.isLogged()) {
-      if (nameEl) nameEl.textContent = this.user.username || 'Invitado';
+      if (nameEl) { nameEl.textContent = this.user.username || 'Invitado'; try{ let s=API.fontStyle(this.user.equippedFont)+API.fxStyle(this.user.equippedFx); const c=this.user.nameColor; if(c&&c!=='rainbow'&&c!=='#ffffff') s='color:'+c+';'+s; nameEl.style.cssText=s; if(c==='rainbow'){ nameEl.style.background='linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff)'; nameEl.style.webkitBackgroundClip='text'; nameEl.style.webkitTextFillColor='transparent'; } }catch(e){} }
       if (levelEl) { levelEl.textContent = `Nivel ${this.expLevel} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
       if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
       if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
@@ -414,6 +493,9 @@ const Profile = {
       if (settingsLoggedIn) settingsLoggedIn.classList.remove('hidden');
       if (framesSection) framesSection.classList.remove('hidden');
       if (bannerSection) bannerSection.classList.remove('hidden');
+      if (fontsSection) fontsSection.classList.remove('hidden');
+      if (fxsSection) fxsSection.classList.remove('hidden');
+      if (fontsSection) fontsSection.classList.remove('hidden');
       this.renderProfileBanner();
       if (dangerZone) dangerZone.classList.remove('hidden');
     } else {
@@ -432,6 +514,9 @@ const Profile = {
       if (settingsLoggedIn) settingsLoggedIn.classList.add('hidden');
       if (framesSection) framesSection.classList.add('hidden');
       if (bannerSection) bannerSection.classList.add('hidden');
+      if (fontsSection) fontsSection.classList.add('hidden');
+      if (fxsSection) fxsSection.classList.add('hidden');
+      if (fontsSection) fontsSection.classList.add('hidden');
       if (dangerZone) dangerZone.classList.add('hidden');
     }
   },
@@ -495,7 +580,7 @@ Profile.syncAuth = function(){
           if(Auth.user.profilePic!==undefined) this.user.profilePic=Auth.user.profilePic;
           if(Auth.user.banners!==undefined) this.user.banners=Auth.user.banners;
           if(Auth.user.equippedBanner!==undefined) this.user.equippedBanner=Auth.user.equippedBanner;
-          if(Auth.user.bannerImg!==undefined) this.user.bannerImg=Auth.user.bannerImg;
+          if(Auth.user.bannerImg!==undefined) this.user.bannerImg=Auth.user.bannerImg; if(Auth.user.fonts!==undefined) this.user.fonts=Auth.user.fonts; if(Auth.user.equippedFont!==undefined) this.user.equippedFont=Auth.user.equippedFont; if(Auth.user.fxs!==undefined) this.user.fxs=Auth.user.fxs; if(Auth.user.equippedFx!==undefined) this.user.equippedFx=Auth.user.equippedFx;
         }
         this.active=true;
       }

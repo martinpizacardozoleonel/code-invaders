@@ -87,6 +87,22 @@ const API = (() => {
     async getBanners(){ return request('/api/banners'); },
     async buyBanner(bannerId){ return request('/api/banners/buy', {method:'POST',body:JSON.stringify({bannerId})}); },
     async equipBanner(bannerId){ return request('/api/banners/equip', {method:'POST',body:JSON.stringify({bannerId})}); },
+    async getFonts(){ return request('/api/fonts'); },
+    async buyFont(fontId){ return request('/api/fonts/buy',{method:'POST',body:JSON.stringify({fontId})}); },
+    async equipFont(fontId){ return request('/api/fonts/equip',{method:'POST',body:JSON.stringify({fontId})}); },
+    fontStyle(id){
+      if(!id||id==='normal') return '';
+      const M={titan:'font-weight:900;font-family:Impact,sans-serif;letter-spacing:1px;',mono:'font-family:monospace;font-weight:700;',cursiva:'font-style:italic;font-weight:700;font-family:cursive;letter-spacing:1px;',redonda:'font-family:Trebuchet MS,Verdana,sans-serif;font-weight:800;',elegante:'font-family:Georgia,serif;font-style:italic;letter-spacing:1px;',gotica:'font-family:Georgia,serif;font-weight:700;text-transform:uppercase;letter-spacing:3px;',minecraft:'font-family:monospace;font-weight:900;text-transform:uppercase;letter-spacing:2px;text-shadow:2px 2px 0 rgba(0,0,0,.65);',cuadrada:'font-family:Verdana,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:1px;text-shadow:1px 1px 0 rgba(0,0,0,.6);',pixel:'font-family:monospace;font-weight:900;text-transform:uppercase;letter-spacing:4px;text-shadow:0 0 8px currentColor;',sombra:'font-weight:900;letter-spacing:1px;text-shadow:0 0 10px currentColor,0 0 22px currentColor;'},latido:'font-weight:900;display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;',ola:'font-weight:800;display:inline-block;animation:fxWave 1.8s ease-in-out infinite;',neonvivo:'font-weight:900;animation:fxNeon 1.6s ease-in-out infinite;',fuego:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;',glitch:'font-family:monospace;font-weight:900;text-transform:uppercase;animation:fxGlitch 1.4s steps(2,end) infinite;',arcoiris:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'};
+      return M[id]||'';
+    },
+    async getFxs(){ return request('/api/fxs'); },
+    async buyFx(fxId){ return request('/api/fxs/buy',{method:'POST',body:JSON.stringify({fxId})}); },
+    async equipFx(fxId){ return request('/api/fxs/equip',{method:'POST',body:JSON.stringify({fxId})}); },
+    fxStyle(id){
+      if(!id||id==='none') return '';
+      const M={latido:'display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;',ola:'display:inline-block;animation:fxWave 1.8s ease-in-out infinite;',neon:'animation:fxNeon 1.6s ease-in-out infinite;',brillo:'font-weight:900;background:linear-gradient(100deg,#8a93a6 30%,#ffffff 50%,#8a93a6 70%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxShine 2.4s linear infinite;',fuego:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;',glitch:'animation:fxGlitch 1.4s steps(2,end) infinite;',arcoiris:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'};
+      return M[id]||'';
+    },
     async equipNameColor(colorId){ return request('/api/name-colors/equip',{method:'POST',body:JSON.stringify({colorId})}); },
     qrUrl:(text,size,color)=>{ const hex=(color||'#43a047').replace('#',''); return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${hex}&bgcolor=ffffff&data=${encodeURIComponent(text)}`; },
     async geocode(q){ const url=`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`; const res=await fetch(url,{headers:{'User-Agent':'CodeInvaders/1.0'}}); return res.json(); }

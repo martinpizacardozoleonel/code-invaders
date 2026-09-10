@@ -33,14 +33,14 @@ const Friends={
      const sent=all.filter(f=>f.status==='pending' && f.isRequester);
      if(reqs){
        if(!pending.length) reqs.innerHTML='<p class="hint">Sin solicitudes</p>';
-       else reqs.innerHTML=pending.map(f=>`<div class="friend-req"><span style="color:${f.nameColor}">${f.username}</span><span class="dot ${f.online?'online':'offline'}"></span><div class="btn-row" style="margin-left:auto"><button class="btn btn-primary btn-sm" data-acc="${f.id}">Aceptar</button><button class="btn btn-ghost btn-sm" data-rej="${f.id}">Rechazar</button></div></div>`).join('');
+       else reqs.innerHTML=pending.map(f=>`<div class="friend-req"><span style="color:${f.nameColor};${API.fontStyle(f.equippedFont)}${API.fxStyle(f.equippedFx)}">${f.username}</span><span class="dot ${f.online?'online':'offline'}"></span><div class="btn-row" style="margin-left:auto"><button class="btn btn-primary btn-sm" data-acc="${f.id}">Aceptar</button><button class="btn btn-ghost btn-sm" data-rej="${f.id}">Rechazar</button></div></div>`).join('');
        reqs.querySelectorAll('[data-acc]').forEach(b=>b.addEventListener('click',()=>this.accept(b.dataset.acc)));
        reqs.querySelectorAll('[data-rej]').forEach(b=>b.addEventListener('click',()=>this.reject(b.dataset.rej)));
      }
      if(!accepted.length && !sent.length){ list.innerHTML='<p class="lead">Sin amigos aún. ¡Busca por nombre y agrega!</p>'; this.updatePrivList(accepted); return; }
      let html='';
      if(sent.length) html+=`<h4 style="margin:8px 0;color:var(--text-dim)">Enviadas</h4>`+sent.map(f=>`<div class="friend-card"><span>${f.username}</span><span class="hint">pendiente</span><button class="btn btn-ghost btn-sm" data-cancel="${f.id}">Cancelar</button></div>`).join('');
-     html+=`<h4 style="margin:12px 0;color:var(--text-dim)">Amigos (${accepted.length})</h4>`+accepted.map(f=>`<div class="friend-card friend-open" data-fid="${f.otherId}"><span class="dot ${f.online?'online':'offline'}"></span><span style="color:${f.nameColor};font-weight:800">${f.username}</span><span class="hint">${f.online?'en línea':'desconectado'}</span><button class="btn btn-ghost btn-sm" data-open="${f.otherId}">💬</button><button class="btn btn-ghost btn-sm" data-del="${f.id}" style="color:#ff5252">✕</button></div>`).join('');
+     html+=`<h4 style="margin:12px 0;color:var(--text-dim)">Amigos (${accepted.length})</h4>`+accepted.map(f=>`<div class="friend-card friend-open" data-fid="${f.otherId}"><span class="dot ${f.online?'online':'offline'}"></span><span style="color:${f.nameColor};font-weight:800;${API.fontStyle(f.equippedFont)}${API.fxStyle(f.equippedFx)}">${f.username}</span><span class="hint">${f.online?'en línea':'desconectado'}</span><button class="btn btn-ghost btn-sm" data-open="${f.otherId}">💬</button><button class="btn btn-ghost btn-sm" data-del="${f.id}" style="color:#ff5252">✕</button></div>`).join('');
      list.innerHTML=html;
      list.querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',()=>this.reject(b.dataset.cancel)));
      list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>this.remove(b.dataset.del)));
