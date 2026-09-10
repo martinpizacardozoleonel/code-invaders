@@ -22,16 +22,16 @@ const LEVELS = [
     id: 2,
     title: 'CSS Básico',
     questions: [
-      { q: 'Color de texto', a: 'color' },
-      { q: 'Fondo', a: 'background' },
       { q: 'Margen exterior', a: 'margin' },
-      { q: 'Margen interior', a: 'padding' },
+      { q: 'Color de texto', a: 'color' },
       { q: 'Borde', a: 'border' },
-      { q: 'Tamaño de fuente', a: 'font-size' },
-      { q: 'Ancho', a: 'width' },
+      { q: 'Posición', a: 'position' },
       { q: 'Selector por clase', a: '.' },
       { q: 'Selector por ID', a: '#' },
-      { q: 'Alinear texto', a: 'text-align' }
+      { q: 'Tamaño de fuente', a: 'font-size' },
+      { q: 'Alinear texto', a: 'text-align' },
+      { q: 'Pseudoclase hover', a: ':hover' },
+      { q: 'Activar flexbox', a: 'display: flex' }
     ],
     enemySpeed: 0.7,
     spawnInterval: 75,
