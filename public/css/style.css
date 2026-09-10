@@ -1122,3 +1122,5 @@ main{ padding:20px 24px 44px; }
 .profile-banner span{position:relative;z-index:1;background:rgba(0,0,0,.45);padding:4px 12px;border-radius:999px}
 .banner-preview{height:46px;border-radius:8px;border:2px solid #333;background-size:cover!important;background-position:center!important}
 .banner-leyenda{animation:bannerPulse 3s ease-in-out infinite;background-size:300% 100%!important}
+
+.inspect-banner{margin-bottom:14px;height:90px;}

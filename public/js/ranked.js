@@ -80,3 +80,39 @@ const Ranked={
   }catch(e){ ct.innerHTML='<p>Error</p>'; }
  }
 };
+
+// Banners visibles en perfil publico (inspect)
+Ranked._bannersCache=null;
+Ranked._bannerById=async function(id){
+  if(!id||id==='none') return {id:'none',name:'Sin banner',grad:'',border:'#333'};
+  try{
+    if(!this._bannersCache){
+      const d=await API.getBanners();
+      this._bannersCache=d.banners||[];
+    }
+    return this._bannersCache.find(x=>x.id===id)||{id:'none',name:'',grad:'',border:'#333'};
+  }catch(e){ return {id:'none',name:'',grad:'',border:'#333'}; }
+};
+Ranked.inspectUser=async function(userId){
+  const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML='<p>Cargando...</p>'; ov.classList.remove('hidden');
+  try{
+    const data=await API.getUserProfile(userId);
+    const b=await this._bannerById(data.equippedBanner);
+    let bannerHtml='';
+    if((data.equippedBanner&&data.equippedBanner!=='none')||data.bannerImg){
+      const st=(b&&b.grad)?('background:'+b.grad+';border-color:'+b.border+';'):'';
+      const im=data.bannerImg?('<img src="'+data.bannerImg+'" alt="Banner" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">'):'';
+      const lb=(b&&b.name&&!data.bannerImg)?('<span style="position:relative;z-index:1;">'+b.name+'</span>'):'';
+      bannerHtml='<div class="profile-banner inspect-banner" style="'+st+'position:relative;overflow:hidden;">'+im+lb+'</div>';
+    }
+    const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:'';
+    const pic=data.profilePic?('<img src="'+data.profilePic+'" alt="'+data.username+'" class="inspect-avatar">'):('<span class="inspect-avatar-placeholder">👾</span>');
+    const expLevel=Math.floor((data.exp||0)/100)+1;
+    const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido';
+    const speedrunHtml=data.speedrunBest?('<p class="inspect-speedrun">⚡ Speedrun: <strong>'+this.formatTime(data.speedrunBest)+'</strong></p>'):('<p class="inspect-speedrun muted">⚡ Sin speedrun</p>');
+    const nameSt=this.nameStyle(data.nameColor);
+    const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span> '+(data.online?'En línea':'Desconectado');
+    ct.innerHTML=bannerHtml+'<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+'">'+pic+'</div><div class="inspect-stats"><p class="inspect-name" style="'+nameSt+'">'+data.username+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
+  }catch(e){ ct.innerHTML='<p>Error</p>'; }
+};
+
