@@ -579,7 +579,15 @@ const Game = (() => {
     }
     moveFormation();
     if(!levelData.isBoss){
-      for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.y>H+50){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20); damagePlayer(); } }
+      for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.y>H+50){
+        if(speedrun){
+          enemies.splice(i,1); if(e===currentEnemy) currentEnemy=null;
+          lives=0; state='gameover'; if(inputEl) inputEl.disabled=true; speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; pushSpeedrun(speedrunTime);
+          const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
+          if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+          saveProgress(false); continue;
+        }
+        if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20); damagePlayer(); } }
     }
     for(let i=lasers.length-1;i>=0;i--){ lasers[i].life--; if(lasers[i].life<=0) lasers.splice(i,1); }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
