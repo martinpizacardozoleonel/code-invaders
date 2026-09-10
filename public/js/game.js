@@ -357,7 +357,13 @@ const Game = (() => {
     if(lives<=0){
       state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); if(inputEl) inputEl.disabled=true;
       if(speedrun&&!speedrunFinished){ speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; try{ if(!speedrunBest||speedrunTime<speedrunBest){ const st=store(); const pref=isLogged()?`ci_${uid()}_`:`ci_guest_`; st.setItem(pref+'speedrun_best', String(speedrunTime)); speedrunBest=speedrunTime; } }catch(e){} pushSpeedrun(speedrunTime); }
-      showBtns(); saveProgress(false);
+      showBtns();
+      const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
+      if(startBtnEl) startBtnEl.classList.remove('hidden');
+      if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+      if(retryBtnEl) retryBtnEl.classList.add('hidden');
+      if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+      saveProgress(false);
     }
     updateHUD();
   }
@@ -445,7 +451,14 @@ const Game = (() => {
   function bossDamagePlayer(){
     if(invertedTimer>0) return;
     lives--; playSound('hit'); explode(player.x,player.y,'#f44',12);
-    if(lives<=0){ bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); showBtns(); saveProgress(false); }
+    if(lives<=0){
+      bossDodge=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level);
+      showBtns();
+      const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
+      if(startBtnEl) startBtnEl.classList.remove('hidden');
+      if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+      saveProgress(false);
+    }
     updateHUD();
   }
   function drawBossDodge(){
