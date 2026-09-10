@@ -20,7 +20,7 @@ const Intro = (() => {
         </div>
         <div class="intro-badges">
           <span class="intro-badge">SIN EXPERIENCIA</span>
-          <span class="intro-badge intro-badge-gold">4 NIVELES</span>
+          <span class="intro-badge intro-badge-gold">5 NIVELES</span>
           <span class="intro-badge intro-badge-cyan">2 MODOS</span>
         </div>
       `
@@ -76,27 +76,26 @@ const Intro = (() => {
         <div class="intro-modes">
           <div class="intro-mode intro-mode-normal">
             <div class="intro-mode-head"><span class="intro-mode-icon">▶</span><h4>MODO NORMAL</h4><span class="intro-mode-tag">RECOMENDADO</span></div>
-            <p class="intro-mode-desc">3 niveles de答题 + Jefe Final esquivar.</p>
+            <p class="intro-mode-desc">5 niveles: 3 de preguntas + 2 Jefes. Progreso guardado.</p>
             <ul>
               <li>Nivel 1: HTML básico (10 enemigos)</li>
-              <li>Nivel 2: CSS (10 enemigos)</li>
-              <li>Nivel 3: JavaScript (10 enemigos)</li>
-              <li>Nivel 4: 👑 JEFE FINAL — modo esquivar</li>
-              <li>Progreso guardado + ranking</li>
+              <li>Nivel 2: CSS básico (10 enemigos)</li>
+              <li>Nivel 3: JavaScript básico (6 enemigos)</li>
+              <li>Nivel 4: 👑 JEFE FINAL — esquivar por toda la pantalla (12 HP)</li>
+              <li>Nivel 5: 👑 JEFE CSS — estacionario, burbujas, tira 2 naves CSS, 10 HP (-2 por oleada)</li>
             </ul>
-            <div class="intro-mode-foot"><span class="intro-dot-cyan"></span> Estética cyan</div>
+            <div class="intro-mode-foot"><span class="intro-dot-cyan"></span> 5 niveles + ranking por EXP</div>
           </div>
           <div class="intro-mode intro-mode-speedrun">
             <div class="intro-mode-head"><span class="intro-mode-icon">⚡</span><h4>SPEEDRUN</h4><span class="intro-mode-tag intro-mode-tag-gold">RÉCORD</span></div>
-            <p class="intro-mode-desc">Desafío rápido — lo más veloz posible.</p>
+            <p class="intro-mode-desc">Solo gana quien destruye TODO a tiempo.</p>
             <ul>
-              <li>Nivel especial acelerado</li>
-              <li>Enemigos más rápidos + naranjas</li>
-              <li>Cronómetro mm:ss.cs (warn &gt;45s)</li>
-              <li>Dificultad aumentada</li>
-              <li>Mejor tiempo guardado</li>
+              <li>Nivel 1 acelerado (naves naranjas, 10s)</li>
+              <li>Si una nave escapa → Game Over instantáneo</li>
+              <li>Cronómetro mm:ss.cs (rojo &gt;45s)</li>
+              <li>Mejor tiempo guardado y ranking speedrun</li>
             </ul>
-            <div class="intro-mode-foot"><span class="intro-dot-gold"></span> Estética amarilla</div>
+            <div class="intro-mode-foot"><span class="intro-dot-gold"></span> Ranking por menor tiempo</div>
           </div>
         </div>
       `
@@ -118,22 +117,12 @@ const Intro = (() => {
                 <tr><td><span class="intro-tag-img">P</span></td><td><code>&lt;p&gt;</code></td><td>Párrafo de texto</td><td><code>&lt;p&gt;Hola mundo&lt;/p&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">A</span></td><td><code>&lt;a&gt;</code></td><td>Enlace</td><td><code>&lt;a href="/"&gt;Ir&lt;/a&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">IMG</span></td><td><code>&lt;img&gt;</code></td><td>Imagen</td><td><code>&lt;img src="foto.jpg"&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">OL</span></td><td><code>&lt;ol&gt;</code></td><td>Lista ordenada</td><td><code>&lt;ol&gt;&lt;li&gt;1&lt;/li&gt;&lt;/ol&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">UL</span></td><td><code>&lt;ul&gt;</code></td><td>Lista desordenada</td><td><code>&lt;ul&gt;&lt;li&gt;•&lt;/li&gt;&lt;/ul&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">DIV</span></td><td><code>&lt;div&gt;</code></td><td>Contenedor bloque</td><td><code>&lt;div&gt;...&lt;/div&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">SPAN</span></td><td><code>&lt;span&gt;</code></td><td>Contenedor en línea</td><td><code>&lt;span&gt;texto&lt;/span&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">B</span></td><td><code>&lt;b&gt;</code></td><td>Negrita</td><td><code>&lt;b&gt;negrita&lt;/b&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">I</span></td><td><code>&lt;i&gt;</code></td><td>Cursiva</td><td><code>&lt;i&gt;cursiva&lt;/i&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">BTN</span></td><td><code>&lt;button&gt;</code></td><td>Botón cliqueable</td><td><code>&lt;button&gt;Enviar&lt;/button&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">IN</span></td><td><code>&lt;input&gt;</code></td><td>Campo de entrada</td><td><code>&lt;input type="text"&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">LBL</span></td><td><code>&lt;label&gt;</code></td><td>Etiqueta de formulario</td><td><code>&lt;label&gt;Nombre&lt;/label&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">TAB</span></td><td><code>&lt;table&gt;</code></td><td>Tabla</td><td><code>&lt;table&gt;...&lt;/table&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">TR</span></td><td><code>&lt;tr&gt;</code></td><td>Fila de tabla</td><td><code>&lt;tr&gt;&lt;td&gt;...&lt;/td&gt;&lt;/tr&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">TD</span></td><td><code>&lt;td&gt;</code></td><td>Celda</td><td><code>&lt;td&gt;dato&lt;/td&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">TH</span></td><td><code>&lt;th&gt;</code></td><td>Encabezado de celda</td><td><code>&lt;th&gt;Título&lt;/th&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">HR</span></td><td><code>&lt;hr&gt;</code></td><td>Línea separadora</td><td><code>&lt;hr&gt;</code></td></tr>
-                <tr><td><span class="intro-tag-img">BR</span></td><td><code>&lt;br&gt;</code></td><td>Salto de línea</td><td><code>línea&lt;br&gt;siguiente</code></td></tr>
-                <tr><td><span class="intro-tag-img">STR</span></td><td><code>&lt;strong&gt;</code></td><td>Negrita semántica</td><td><code>&lt;strong&gt;importante&lt;/strong&gt;</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -146,12 +135,8 @@ const Intro = (() => {
               <tbody>
                 <tr><td><span class="intro-tag-img css">#</span></td><td><code>#</code></td><td>Selector por ID</td><td><code>#menu { }</code></td></tr>
                 <tr><td><span class="intro-tag-img css">.</span></td><td><code>.</code></td><td>Selector por clase</td><td><code>.card { }</code></td></tr>
-                <tr><td><span class="intro-tag-img css">*</span></td><td><code>*</code></td><td>Selector universal</td><td><code>* { margin:0 }</code></td></tr>
-                <tr><td><span class="intro-tag-img css">:h</span></td><td><code>:hover</code></td><td>Pseudoclase hover</td><td><code>a:hover{color:red}</code></td></tr>
-                <tr><td><span class="intro-tag-img css">[]</span></td><td><code>[]</code></td><td>Selector atributo</td><td><code>[type="text"]</code></td></tr>
                 <tr><td><span class="intro-tag-img css">C</span></td><td><code>color</code></td><td>Color de texto</td><td><code>color:red;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">BG</span></td><td><code>background</code></td><td>Fondo</td><td><code>background:#000;</code></td></tr>
-                <tr><td><span class="intro-tag-img css">W</span></td><td><code>width / height</code></td><td>Ancho / Alto</td><td><code>width:100px;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">M</span></td><td><code>margin / padding</code></td><td>Margen ext/int</td><td><code>margin:8px; padding:12px;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">B</span></td><td><code>border</code></td><td>Borde</td><td><code>border:1px solid;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">F</span></td><td><code>display:flex</code></td><td>Activar flexbox</td><td><code>display:flex;</code></td></tr>
@@ -172,35 +157,29 @@ const Intro = (() => {
                 <tr><td><span class="intro-tag-img js">=></span></td><td><code>=&gt;</code></td><td>Función flecha</td><td><code>()=>{}</code></td></tr>
                 <tr><td><span class="intro-tag-img js">if</span></td><td><code>if</code></td><td>Condición</td><td><code>if(x>0){}</code></td></tr>
                 <tr><td><span class="intro-tag-img js">===</span></td><td><code>===</code></td><td>Igualdad estricta</td><td><code>a===b</code></td></tr>
-                <tr><td><span class="intro-tag-img js">log</span></td><td><code>console.log()</code></td><td>Imprimir consola</td><td><code>console.log(x)</code></td></tr>
-                <tr><td><span class="intro-tag-img js">DOM</span></td><td><code>getElementById()</code></td><td>Obtener por ID</td><td><code>getElementById("app")</code></td></tr>
-                <tr><td><span class="intro-tag-img js">QS</span></td><td><code>querySelector()</code></td><td>Seleccionar uno</td><td><code>querySelector(".card")</code></td></tr>
                 <tr><td><span class="intro-tag-img js">push</span></td><td><code>push()</code></td><td>Agregar al final</td><td><code>arr.push(1)</code></td></tr>
-                <tr><td><span class="intro-tag-img js">map</span></td><td><code>map()</code></td><td>Transformar array</td><td><code>arr.map(x=>x*2)</code></td></tr>
-                <tr><td><span class="intro-tag-img js">asy</span></td><td><code>async / await</code></td><td>Asincronía</td><td><code>await fetch()</code></td></tr>
-                <tr><td><span class="intro-tag-img js">...</span></td><td><code>...</code></td><td>Spread operator</td><td><code>[...arr]</code></td></tr>
               </tbody>
             </table>
           </div>
         </div>
-        <div class="intro-note">💡 Tip: En el juego la <b>imagen</b> es la pista (“Párrafo”, “Botón”), la <b>etiqueta</b> es lo que escribís y el <b>ejemplo</b> es cómo se ve en código real.</div>
+        <div class="intro-note">💡 Tip: En el juego la <b>imagen</b> es la pista, la <b>etiqueta</b> es lo que escribís y el <b>ejemplo</b> es código real.</div>
       `
     },
     {
       id: 6,
-      kicker: '05 — TU MISIÓN',
-      title: 'Tu misión comienza ahora',
-      subtitle: 'Prepará tu nave. Cada línea te acerca a salvar la galaxia.',
+      kicker: '05 — TU MISIÓN + NUEVO',
+      title: 'Tu misión y novedades',
+      subtitle: 'Más que disparar: amigos, chat y personalización.',
       body: `
         <div class="intro-mission-grid">
           <div class="intro-mission"><span class="intro-m-icon">★</span><h4>PUNTOS</h4><p>10×nivel por acierto + bonus combo.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">🪙</span><h4>MONEDAS</h4><p>Misma ganancia que puntos, para la tienda.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">⭐</span><h4>EXP</h4><p>+10 EXP por enemigo destruido. +100 EXP al ganar el juego.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">🔥</span><h4>RACHAS</h4><p>3 aciertos seguidos → bonus y mantener racha 30s.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">💡</span><h4>PISTAS</h4><p>Con racha ≥3 ves la respuesta sugerida sobre la nave.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">🛒</span><h4>TIENDA</h4><p>6 skins 0–500 🪙. Comprar descuenta, equipar cambia nave.</p></div>
-          <div class="intro-mission"><span class="intro-m-icon">❤️</span><h4>3 VIDAS</h4><p>Se pierden por escape o colisión; jefe: por etiqueta o trampa.</p></div>
-          <div class="intro-mission intro-mission-boss"><span class="intro-m-icon">👑</span><h4>JEFE FINAL</h4><p>Nivel 4: esquivar etiquetas, recoger objetos (🔫 balas, ❓ preguntas, 💀 trampas). 30 HP.</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">⭐</span><h4>EXP</h4><p>+10 por nave, +100 al ganar. Desbloquea colores de nombre (3000+ EXP).</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">🔥</span><h4>RACHAS</h4><p>3 seguidos → bonus y pista 💡 sobre la nave.</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">🛒</span><h4>TIENDA</h4><p>6 skins 0–500 🪙 + marcos. Todo guardado.</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">💬</span><h4>CHAT</h4><p>Global persistente + privado entre amigos. Fondo personalizable.</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">👥</span><h4>AMIGOS</h4><p>Solicitud → notificación campanita → aceptar → chat privado. Verde en línea / rojo desconectado.</p></div>
+          <div class="intro-mission"><span class="intro-m-icon">🏆</span><h4>RANKED</h4><p>Orden: niveles → EXP → intentos. Torneo 15 días a las 00:00, banner animado al finalizar.</p></div>
+          <div class="intro-mission intro-mission-boss"><span class="intro-m-icon">👑</span><h4>JEFES</h4><p>Nivel 4: Prof. Froggio esquivar (12 HP, se mueve por todos lados). Nivel 5: Jefe CSS (10 HP, tira 2 naves CSS, burbujas “¡Que burro!” / “¡Me enojo!”).</p></div>
         </div>
         <div class="intro-cta-wrap">
           <p class="intro-cta-text">¿Listo para defender la galaxia?</p>

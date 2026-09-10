@@ -84,6 +84,9 @@ const API = (() => {
     async sendPrivate(friendId,text){ return request('/api/friends/private/'+friendId,{method:'POST',body:JSON.stringify({text})}); },
     async getNameColors(){ return request('/api/name-colors'); },
     async buyNameColor(colorId){ return request('/api/name-colors/buy',{method:'POST',body:JSON.stringify({colorId})}); },
+    async getBanners(){ return request('/api/banners'); },
+    async buyBanner(bannerId){ return request('/api/banners/buy', {method:'POST',body:JSON.stringify({bannerId})}); },
+    async equipBanner(bannerId){ return request('/api/banners/equip', {method:'POST',body:JSON.stringify({bannerId})}); },
     async equipNameColor(colorId){ return request('/api/name-colors/equip',{method:'POST',body:JSON.stringify({colorId})}); },
     qrUrl:(text,size,color)=>{ const hex=(color||'#43a047').replace('#',''); return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${hex}&bgcolor=ffffff&data=${encodeURIComponent(text)}`; },
     async geocode(q){ const url=`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`; const res=await fetch(url,{headers:{'User-Agent':'CodeInvaders/1.0'}}); return res.json(); }

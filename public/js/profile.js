@@ -4,6 +4,7 @@ const Profile = {
   expLevel: 1,
   pendingTime: 0,
   active: false,
+  bannersCatalog: [],
   framesCatalog: [
     { id: 'none', name: 'Ninguno', price: 0 },
     { id: 'bronce', name: 'Bronce', price: 200 },
@@ -137,6 +138,10 @@ const Profile = {
     if (saveNameBtn) saveNameBtn.addEventListener('click', () => this.saveName());
     const deleteBtn=document.getElementById('deleteAccountBtn');
     if(deleteBtn) deleteBtn.addEventListener('click', ()=> this.deleteAccount());
+    const upB=document.getElementById('uploadBannerBtn'); const bIn=document.getElementById('bannerInput'); const clB=document.getElementById('clearBannerImgBtn');
+    if(upB) upB.addEventListener('click',()=>bIn&&bIn.click());
+    if(bIn) bIn.addEventListener('change',(e)=>this.saveBannerImg(e));
+    if(clB) clB.addEventListener('click',()=>this.clearBannerImg());
   },
 
   applyTheme(theme) {
@@ -284,6 +289,73 @@ const Profile = {
     }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }
   },
 
+  async loadBanners(){
+    try{ const d=await API.getBanners(); this.bannersCatalog=d.banners||[]; }catch(e){ this.bannersCatalog=[]; }
+    this.renderBanners();
+  },
+  async buyBanner(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.buyBanner(id);
+      if(this.user){ this.user.banners=d.banners; this.user.coins=d.coins; }
+      this.renderBanners(); this.renderProfile();
+      Toast.success('Banner comprado');
+    }catch(e){ Toast.error(e.message); }
+  },
+  async equipBanner(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.equipBanner(id);
+      if(this.user) this.user.equippedBanner=d.equippedBanner;
+      this.renderBanners(); this.renderProfileBanner(); this.renderProfile();
+    }catch(e){ Toast.error(e.message); }
+  },
+  async saveBannerImg(e){
+    const f=e.target.files[0]; if(!f||!this.isLogged()) return;
+    if(f.size>2500000){ Toast.error('Imagen muy grande (max 2.5MB)'); return; }
+    const r=new FileReader();
+    r.onload=()=>{
+      const img=new Image();
+      img.onload=async()=>{
+        const c=document.createElement('canvas'); const max=900;
+        let w=img.width,h=img.height; const s=Math.min(1,max/Math.max(w,h));
+        w=Math.round(w*s); h=Math.round(h*s); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        const out=c.toDataURL('image/jpeg',0.75);
+        try{ await this.api('/api/settings',{method:'PUT',body:JSON.stringify({bannerImg:out})}); if(this.user) this.user.bannerImg=out; this.renderProfileBanner(); Toast.success('Foto del banner lista'); }catch(err){ Toast.error('No se pudo guardar'); }
+      };
+      img.src=r.result;
+    };
+    r.readAsDataURL(f);
+  },
+  async clearBannerImg(){
+    if(!this.isLogged()) return;
+    try{ await this.api('/api/settings',{method:'PUT',body:JSON.stringify({bannerImg:''})}); if(this.user) this.user.bannerImg=''; this.renderProfileBanner(); }catch(e){}
+  },
+  renderProfileBanner(){
+    const wrap=document.getElementById('profileBanner'); if(!wrap) return;
+    const im=document.getElementById('bannerImg'); const ph=document.getElementById('bannerPlaceholder'); const cl=document.getElementById('clearBannerImgBtn');
+    const b=(this.bannersCatalog||[]).find(x=>x.id===((this.user&&this.user.equippedBanner)||'none'));
+    wrap.style.background=(b&&b.grad&&b.grad!=='transparent')?b.grad:'';
+    wrap.style.borderColor=b?b.border:'#333';
+    if(b&&b.id==='leyenda') wrap.classList.add('banner-leyenda'); else wrap.classList.remove('banner-leyenda');
+    if(this.user&&this.user.bannerImg){ if(im){ im.src=this.user.bannerImg; im.classList.remove('hidden'); im.style.display='block'; } if(ph) ph.style.display='none'; if(cl) cl.classList.remove('hidden'); }
+    else { if(im){ im.src=''; im.classList.add('hidden'); im.style.display='none'; } if(ph) ph.style.display=''; if(cl) cl.classList.add('hidden'); }
+  },
+  renderBanners(){
+    const g=document.getElementById('bannersGrid'); if(!g) return;
+    const owned=(this.user&&this.user.banners)||['none']; const cur=(this.user&&this.user.equippedBanner)||'none'; const coins=(this.user&&this.user.coins)||0; const list=this.bannersCatalog||[];
+    g.innerHTML=list.map(x=>{
+      const has=owned.includes(x.id); const act=x.id===cur; let btn='';
+      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
+      else if(has) btn='<button class="btn btn-primary btn-sm b-equip" data-b="'+x.id+'">Equipar</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">Comprar '+x.price+'</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      return '<div class="frame-card"><div class="banner-preview" style="background:'+x.grad+';border-color:'+x.border+'"></div><p>'+x.name+'</p>'+btn+'</div>';
+    }).join('');
+    g.querySelectorAll('.b-buy').forEach(b=>b.addEventListener('click',()=>this.buyBanner(b.dataset.b)));
+    g.querySelectorAll('.b-equip').forEach(b=>b.addEventListener('click',()=>this.equipBanner(b.dataset.b)));
+  },
   async buyFrame(id) {
     if (!this.isLogged()) return;
     try {
@@ -318,6 +390,7 @@ const Profile = {
     const settingsRegisterBtn = document.getElementById('settingsRegisterBtn');
     const settingsLoggedIn = document.getElementById('settingsLoggedIn');
     const framesSection = document.getElementById('framesSection');
+    const bannerSection = document.getElementById('bannerSection');
     const dangerZone = document.getElementById('dangerZone');
 
     if (this.isLogged()) {
@@ -338,6 +411,8 @@ const Profile = {
       if (settingsRegisterBtn) settingsRegisterBtn.classList.add('hidden');
       if (settingsLoggedIn) settingsLoggedIn.classList.remove('hidden');
       if (framesSection) framesSection.classList.remove('hidden');
+      if (bannerSection) bannerSection.classList.remove('hidden');
+      this.renderProfileBanner();
       if (dangerZone) dangerZone.classList.remove('hidden');
     } else {
       if (nameEl) nameEl.textContent = 'Invitado';
@@ -354,6 +429,7 @@ const Profile = {
       if (settingsRegisterBtn) settingsRegisterBtn.classList.remove('hidden');
       if (settingsLoggedIn) settingsLoggedIn.classList.add('hidden');
       if (framesSection) framesSection.classList.add('hidden');
+      if (bannerSection) bannerSection.classList.add('hidden');
       if (dangerZone) dangerZone.classList.add('hidden');
     }
   },

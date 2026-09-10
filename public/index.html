@@ -297,6 +297,7 @@
       <div class="settings-grid" id="settingsLoggedIn">
         <div class="settings-col">
           <h3>👤 Perfil</h3>
+          <div class="profile-banner" id="profileBanner"><img id="bannerImg" class="hidden" alt="Banner"><span id="bannerPlaceholder">Tu banner aqui</span></div>
           <div class="profile-head" id="profileHead">
             <div class="avatar-wrap">
               <div class="avatar-frame" id="avatarFrame">
@@ -328,6 +329,12 @@
       </div>
 
       <!-- Marcos: visible solo para usuarios logueados -->
+      <div class="frames-section" id="bannerSection">
+        <h3> Banners de perfil</h3>
+        <p class="hint">Equipa un color Bronce / Plata / Platino / Dorado / Oro Puro / Leyenda y sube tu foto encima.</p>
+        <div class="setting-item"><div class="btn-row"><button class="btn btn-ghost btn-sm" id="uploadBannerBtn"> Elegir foto del banner</button><button class="btn btn-ghost btn-sm hidden" id="clearBannerImgBtn"> Quitar foto</button></div><input type="file" id="bannerInput" accept="image/*" class="hidden"></div>
+        <div class="frames-grid" id="bannersGrid"></div>
+      </div>
       <div class="frames-section" id="framesSection">
         <h3>🖼️ Marcos de perfil</h3>
         <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
@@ -369,14 +376,14 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=3"></script>
+  <script src="js/api.js?v=4"></script>
   <script src="js/qr.js?v=1"></script>
   <script src="js/auth.js?v=2"></script>
   <script src="js/notifications.js?v=2"></script>
   <script src="js/docs.js?v=5"></script>
   <script src="js/intro.js?v=2"></script>
-  <script src="js/game.js?v=19"></script>
-  <script src="js/profile.js?v=3"></script>
+  <script src="js/game.js?v=20"></script>
+  <script src="js/profile.js?v=4"></script>
   <script src="js/ranked.js?v=1"></script>
   <script src="js/chat.js?v=1"></script>
   <script src="js/friends.js?v=1"></script>
