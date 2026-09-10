@@ -590,11 +590,13 @@ footer {
 }
 #introContent::-webkit-scrollbar{ width:6px; }
 #introContent::-webkit-scrollbar-thumb{ background:rgba(0,229,255,.25); border-radius:999px; }
-.intro-kicker{ font-family:'Press Start 2P',monospace; font-size:.58rem; font-weight:400; letter-spacing:1px; color:var(--accent); margin-bottom:8px; text-shadow:0 0 8px rgba(0,229,255,.6); animation:arcadeFloat 2.2s ease-in-out infinite; }
-.intro-title{ font-family:'Press Start 2P',monospace; font-weight:400; font-size:clamp(1.2rem, 3.5vw, 1.9rem); line-height:1.35; color:#fff; margin-bottom:12px; text-shadow:2px 2px 0 #006978, 0 0 12px rgba(0,229,255,.5); animation:arcadeGlitch 3.5s infinite; }
-.intro-subtitle{ font-family:'Press Start 2P',monospace; color:var(--gold); font-weight:400; font-size:.62rem; margin-bottom:10px; line-height:1.6; text-shadow:0 0 6px rgba(255,214,0,.4); }
-.intro-desc{ font-family:'Press Start 2P',monospace; color:var(--text-dim); font-size:.58rem; margin-bottom:14px; line-height:1.7; }
-.intro-lead{ color:#cbd5e1; font-size:.95rem; line-height:1.5; margin-bottom:14px; }
+.intro-kicker{ font-family:'Press Start 2P',monospace; font-size:.42rem; font-weight:400; letter-spacing:1px; color:var(--accent); margin-bottom:8px; text-align:center; text-shadow:0 0 8px rgba(0,229,255,.6); animation:arcadeFloat 2.2s ease-in-out infinite; }
+.intro-title{ font-family:'Press Start 2P',monospace; font-weight:400; font-size:clamp(.95rem, 2.8vw, 1.45rem); line-height:1.4; color:#fff; margin-bottom:10px; text-align:center; text-shadow:2px 2px 0 #006978, 0 0 12px rgba(0,229,255,.5); animation:arcadeGlitch 3.5s infinite; }
+.intro-subtitle{ font-family:'Press Start 2P',monospace; color:var(--gold); font-weight:400; font-size:.48rem; margin-bottom:10px; line-height:1.6; text-align:center; text-shadow:0 0 6px rgba(255,214,0,.4); }
+.intro-desc{ font-family:'Press Start 2P',monospace; color:var(--text-dim); font-size:.44rem; margin-bottom:12px; line-height:1.7; text-align:center; }
+.intro-lead{ color:#cbd5e1; font-size:.88rem; line-height:1.5; margin-bottom:14px; text-align:center; }
+.intro-highlight, .intro-note, .intro-warn{ font-size:.72rem; text-align:center; max-width:680px; margin-left:auto; margin-right:auto; }
+.intro-highlight strong, .intro-note{ font-size:.62rem; }
 .intro-panel, .intro-header, .intro-nav, .intro-body, .intro-slide{ font-family:'Press Start 2P',monospace; }
 .intro-body p, .intro-body li, .intro-body h4{ font-family:'Segoe UI',system-ui,sans-serif; }
 @keyframes arcadeFloat{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-3px)} }

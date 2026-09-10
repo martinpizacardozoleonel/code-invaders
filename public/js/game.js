@@ -795,13 +795,18 @@ const Game = (() => {
   }
   function drawHeart(x,y,s){ ctx.beginPath(); ctx.moveTo(x,y+s*0.3); ctx.bezierCurveTo(x,y,x-s/2,y,x-s/2,y+s*0.3); ctx.bezierCurveTo(x-s/2,y+s*0.6,x,y+s*0.8,x,y+s*0.9); ctx.bezierCurveTo(x,y+s*0.8,x+s/2,y+s*0.6,x+s/2,y+s*0.3); ctx.bezierCurveTo(x+s/2,y,x,y,x,y+s*0.3); ctx.closePath(); ctx.fill(); }
   function drawTitle(){
-    ctx.fillStyle='#fff'; ctx.font='bold 40px monospace'; ctx.textAlign='center'; ctx.fillText('CODE INVADERS',W/2,H/2-95);
-    ctx.font='16px monospace'; ctx.fillStyle='#0f0'; ctx.fillText('Galaga de Programación',W/2,H/2-60);
-    ctx.font='13px monospace'; ctx.fillStyle='#8af'; ctx.fillText('Destruye naves escribiendo la respuesta correcta',W/2,H/2-30);
-    ctx.fillStyle='#ffd600'; ctx.font='bold 13px monospace'; ctx.fillText('Elige tu modo:',W/2,H/2+5);
-    ctx.fillStyle='#8af'; ctx.font='12px monospace'; ctx.fillText('NORMAL: 4 niveles + Jefe | SPEEDRUN: Nivel 1 DIFÍCIL con cronómetro',W/2,H/2+26);
-    ctx.fillStyle='#ff8a80'; ctx.font='11px monospace'; ctx.fillText('🛒 Compra skins en la Tienda con tus puntos',W/2,H/2+44);
-    ctx.fillStyle='#555'; ctx.font='11px monospace'; ctx.fillText('← → Mover | Clic: apuntar | ENTER: disparar',W/2,H/2+64);
+    const glitch = (Math.floor(frameCount/180)%2===0)? 0 : Math.sin(frameCount*0.08)*1.5;
+    const floatY = Math.sin(frameCount*0.06)*4;
+    ctx.textAlign='center';
+    ctx.save(); ctx.translate(0,floatY*0.3);
+    ctx.fillStyle='#fff'; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=10+Math.sin(frameCount*0.1)*4; ctx.font='400 20px "Press Start 2P", monospace'; ctx.fillText('CODE INVADERS',W/2+glitch,H/2-88);
+    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('aprende a programar defendiendo la galaxia.',W/2,H/2-64);
+    ctx.restore();
+    ctx.font='13px monospace'; ctx.fillStyle='#8af'; ctx.fillText('Destruye naves escribiendo la respuesta correcta',W/2,H/2-34);
+    ctx.fillStyle='#ffd600'; ctx.font='400 9px "Press Start 2P", monospace'; ctx.fillText('Elige tu modo:',W/2,H/2+2);
+    ctx.fillStyle='#8af'; ctx.font='11px monospace'; ctx.fillText('NORMAL: 5 niveles | SPEEDRUN: Nivel 1 DIFICIL',W/2,H/2+22);
+    ctx.fillStyle='#ff8a80'; ctx.font='11px monospace'; ctx.fillText('Tienda con tus puntos',W/2,H/2+38);
+    ctx.fillStyle='#555'; ctx.font='11px monospace'; ctx.fillText('Mover Clic ENTER',W/2,H/2+56);
   }
   function drawIntro(){
     const alpha=Math.min(1,(90-levelPause)/30); ctx.globalAlpha=alpha;
@@ -809,11 +814,45 @@ const Game = (() => {
     else { ctx.fillStyle=speedrun?'#ffd600':'#0a1'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText((speedrun?'NIVEL 1 ⚡ SPEEDRUN':'NIVEL '+levelData.id),W/2,H/2-30); ctx.fillStyle='#fff'; ctx.font='18px monospace'; ctx.fillText(levelData.title,W/2,H/2+10); ctx.font='13px monospace'; ctx.fillStyle='#aaa'; ctx.fillText(levelData.questions.length+' enemigos'+(speedrun?' • ¡MODO DIFÍCIL!':''),W/2,H/2+45); }
     ctx.globalAlpha=1;
   }
-  function drawLevelComplete(){ ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#0f0'; ctx.font='bold 28px monospace'; ctx.textAlign='center'; ctx.fillText('¡NIVEL COMPLETADO!',W/2,H/2-10); ctx.fillStyle='#fff'; ctx.font='15px monospace'; ctx.fillText('Puntuación: '+score+'  🪙 '+coins,W/2,H/2+20); }
-  function drawGameOver(){ ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#f44'; ctx.font='bold 38px monospace'; ctx.textAlign='center'; ctx.fillText('GAME OVER',W/2,H/2-40); ctx.fillStyle='#fff'; ctx.font='16px monospace'; ctx.fillText('Puntuación: '+score+'  🪙 '+coins,W/2,H/2-5); ctx.fillText('Nivel: '+(levelData?levelData.id:'-'),W/2,H/2+18); if(speedrun){ ctx.fillStyle='#ffd600'; ctx.font='bold 18px monospace'; ctx.fillText('⏱ Tiempo: '+formatTime(speedrunTime),W/2,H/2+42); if(speedrunBest){ ctx.fillStyle='#aaa'; ctx.font='12px monospace'; ctx.fillText('Mejor: '+formatTime(speedrunBest),W/2,H/2+62); } } }
-  function drawWin(){ ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#0f0'; ctx.font='bold 34px monospace'; ctx.textAlign='center'; ctx.fillText('¡VICTORIA!',W/2,H/2-40); ctx.fillStyle='#ff0'; ctx.font='18px monospace'; ctx.fillText('Completaste todos los niveles',W/2,H/2); ctx.fillStyle='#fff'; ctx.font='16px monospace'; ctx.fillText('Puntuación final: '+score+'  🪙 '+coins,W/2,H/2+35); }
-  function drawSpeedrunWin(){ ctx.fillStyle='rgba(0,0,0,0.82)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#ffd600'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText('⚡ ¡SPEEDRUN COMPLETADO!',W/2,H/2-55); ctx.fillStyle='#fff'; ctx.font='bold 28px monospace'; ctx.fillText('⏱ '+formatTime(speedrunTime),W/2,H/2-12); let bestTxt=''; let isRecord=false; if(speedrunBest&&Math.abs(speedrunBest-speedrunTime)<1){ bestTxt='¡NUEVO RÉCORD!'; isRecord=true; } else if(speedrunBest) bestTxt='Mejor: '+formatTime(speedrunBest); ctx.fillStyle=isRecord?'#0f0':'#aaa'; ctx.font=(isRecord?'bold 16px':'13px')+' monospace'; ctx.fillText(bestTxt,W/2,H/2+16); ctx.fillStyle='#8af'; ctx.font='12px monospace'; ctx.fillText('Nivel 1 completado  •  Puntos: '+score,W/2,H/2+38); ctx.fillStyle='#555'; ctx.font='11px monospace'; ctx.fillText('El cronómetro se detuvo al destruir la última nave',W/2,H/2+58); }
-  function drawBossWin(){ ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#ab47bc'; ctx.font='bold 34px monospace'; ctx.textAlign='center'; ctx.fillText('👑 ¡JEFE VENCIDO!',W/2,H/2-50); ctx.fillStyle='#ffd600'; ctx.font='bold 22px monospace'; ctx.fillText('¡Has salvado la galaxia!',W/2,H/2-16); ctx.fillStyle='#fff'; ctx.font='16px monospace'; ctx.fillText('Puntuación final: '+score+'  🪙 '+coins,W/2,H/2+14); ctx.fillStyle='#ce93d8'; ctx.font='13px monospace'; ctx.fillText('Bonus +100 puntos',W/2,H/2+36); }
+  function drawLevelComplete(){
+    const pulse=Math.sin(frameCount*0.15)*0.06+1;
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(W/2,H/2-10); ctx.scale(pulse,pulse);
+    ctx.fillStyle='#0f0'; ctx.font='400 14px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.shadowColor='#0f0'; ctx.shadowBlur=8; ctx.fillText('¡NIVEL COMPLETADO!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='12px monospace'; ctx.fillText('Puntuación: '+score+'  🪙 '+coins,W/2,H/2+22);
+  }
+  function drawGameOver(){
+    const glitch=Math.sin(frameCount*0.2)*1.2;
+    ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center'; ctx.fillStyle='#ff1744'; ctx.shadowColor='#ff1744'; ctx.shadowBlur=12; ctx.font='400 18px "Press Start 2P", monospace'; ctx.fillText('GAME OVER',W/2+glitch,H/2-42);
+    ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntuacion: '+score+'  monedas '+coins,W/2,H/2-10);
+    ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Nivel: '+(levelData?levelData.id:'-'),W/2,H/2+8);
+    if(speedrun){ ctx.fillStyle='#ffd600'; ctx.font='400 8px "Press Start 2P", monospace'; ctx.fillText('Tiempo: '+formatTime(speedrunTime),W/2,H/2+30); if(speedrunBest){ ctx.fillStyle='#aaa'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Mejor: '+formatTime(speedrunBest),W/2,H/2+44); } }
+  }
+  function drawWin(){
+    const pulse=Math.sin(frameCount*0.12)*0.07+1;
+    ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(W/2,H/2-38); ctx.scale(pulse,pulse); ctx.fillStyle='#0f0'; ctx.shadowColor='#0f0'; ctx.shadowBlur=10; ctx.font='400 15px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡VICTORIA!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Completaste todos los niveles',W/2,H/2-6);
+    ctx.fillStyle='#fff'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntuacion final: '+score+'  monedas '+coins,W/2,H/2+18);
+  }
+  function drawSpeedrunWin(){
+    const pulse=Math.sin(frameCount*0.14)*0.06+1;
+    ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(W/2,H/2-52); ctx.scale(pulse,pulse); ctx.fillStyle='#ffd600'; ctx.shadowColor='#ffd600'; ctx.shadowBlur=10; ctx.font='400 11px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡SPEEDRUN COMPLETADO!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='400 12px "Press Start 2P", monospace'; ctx.fillText('Tiempo '+formatTime(speedrunTime),W/2,H/2-14);
+    let bestTxt=''; let isRecord=false; if(speedrunBest&&Math.abs(speedrunBest-speedrunTime)<1){ bestTxt='¡NUEVO RECORD!'; isRecord=true; } else if(speedrunBest) bestTxt='Mejor: '+formatTime(speedrunBest);
+    ctx.fillStyle=isRecord?'#0f0':'#aaa'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText(bestTxt,W/2,H/2+10);
+    ctx.fillStyle='#8af'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Nivel 1 completado  Puntos: '+score,W/2,H/2+30);
+  }
+  function drawBossWin(){
+    const pulse=Math.sin(frameCount*0.13)*0.08+1;
+    ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(W/2,H/2-48); ctx.scale(pulse,pulse); ctx.fillStyle='#ab47bc'; ctx.shadowColor='#ab47bc'; ctx.shadowBlur=12; ctx.font='400 13px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡JEFE VENCIDO!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 8px "Press Start 2P", monospace'; ctx.fillText('¡Has salvado la galaxia!',W/2,H/2-14);
+    ctx.fillStyle='#fff'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntuacion final: '+score+'  monedas '+coins,W/2,H/2+12);
+    ctx.fillStyle='#ce93d8'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Bonus +100 puntos',W/2,H/2+30);
+  }
   function updateHUD(){
     const eLevel=document.getElementById('levelVal'); const eTarget=document.getElementById('targetQuestion');
     if(eLevel) eLevel.textContent=levelData?(levelData.isBoss?'👑 JEFE':(speedrun?'1 ⚡':levelData.id)):'-';
