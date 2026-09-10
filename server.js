@@ -249,4 +249,5 @@ async function importDb(d){
 app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const dump=await dumpDb(); res.json({dump}); }catch(e){ res.status(500).json({error:'No se pudo exportar'}); } });
 app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
 
+app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json-temporal',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });
 (async()=>{ await initPg(); app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG]':'[JSON]'}`); }); })();

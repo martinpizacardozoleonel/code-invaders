@@ -27,22 +27,45 @@ const Intro = (() => {
     },
     {
       id: 2,
-      kicker: '01 — CONCEPTO',
-      title: '¿Qué es Code Invaders?',
-      subtitle: 'Un shooter arcade donde tu código es tu arma.',
+      kicker: '01 — CONCEPTO + EJEMPLOS REALES',
+      title: '¿Como se juega? Mira este ejemplo',
+      subtitle: 'Si entendes este ejemplo, ya sabes jugar.',
       body: `
-        <p class="intro-lead">Defendés la galaxia resolviendo desafíos de programación. Cada nave enemiga trae una pregunta — tu respuesta la destruye.</p>
-        <div class="intro-steps3">
-          <div class="intro-step"><span class="intro-step-num">1</span><h4>APUNTÁ</h4><p>Seleccionás una nave enemiga con clic o touch.</p></div>
-          <div class="intro-step"><span class="intro-step-num">2</span><h4>RESPONDÉ</h4><p>Escribís la respuesta correcta en el input.</p></div>
-          <div class="intro-step"><span class="intro-step-num">3</span><h4>DESTRUÍ</h4><p>Presionás <code>ENTER</code> o <code>💥 DISPARAR</code>.</p></div>
+        <p class="intro-lead">Toda la galaxia habla en <b>ARCADE</b>. Mira: aparece una nave con una pregunta, vos escribís y disparas.</p>
+        <div class="intro-arcade-demo">
+          <div class="arcade-demo-row">
+            <div class="arcade-nave">👾<span>Párrafo</span></div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-input">&lt;p&gt;</div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-boom">💥 ¡DESTRUIDA!</div>
+          </div>
+          <div class="arcade-demo-row">
+            <div class="arcade-nave">👾<span>Color de texto</span></div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-input">color</div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-boom">💥 ¡DESTRUIDA!</div>
+          </div>
+          <div class="arcade-demo-row">
+            <div class="arcade-nave">👾<span>Variable mutable</span></div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-input">let</div>
+            <div class="arcade-arrow">→</div>
+            <div class="arcade-boom">💥 ¡DESTRUIDA!</div>
+          </div>
         </div>
-        <div class="intro-highlight"><span class="intro-highlight-icon">⚡</span><strong>Tu código es tu arma.</strong> Cada enemigo contiene una pregunta real del juego.</div>
+        <div class="intro-steps3">
+          <div class="intro-step"><span class="intro-step-num">1</span><h4>APUNTA</h4><p>Hace clic en la nave que dice la pregunta.</p></div>
+          <div class="intro-step"><span class="intro-step-num">2</span><h4>ESCRIBE</h4><p>Abajo escribe la etiqueta exacta.</p></div>
+          <div class="intro-step"><span class="intro-step-num">3</span><h4>DISPARA</h4><p>ENTER y tu laser destruye TODAS con esa respuesta.</p></div>
+        </div>
+        <div class="intro-highlight arcade-blink"><span class="intro-highlight-icon">💡</span><strong>EJEMPLO EXTRA:</strong> Si hay 3 naves que dicen "Enlace" y escribís <code>&lt;a&gt;</code>, ¡las 3 explotan a la vez!</div>
         <div class="intro-examples">
-          <div class="intro-ex"><span class="intro-ex-q">Párrafo</span><span class="intro-ex-a">&lt;p&gt;</span></div>
-          <div class="intro-ex"><span class="intro-ex-q">Declarar variable</span><span class="intro-ex-a">let</span></div>
-          <div class="intro-ex"><span class="intro-ex-q">Selector de ID</span><span class="intro-ex-a">#</span></div>
-          <div class="intro-ex"><span class="intro-ex-q">Color de texto</span><span class="intro-ex-a">color</span></div>
+          <div class="intro-ex"><span class="intro-ex-q">Botón</span><span class="intro-ex-a">&lt;button&gt;</span></div>
+          <div class="intro-ex"><span class="intro-ex-q">Selector ID</span><span class="intro-ex-a">#</span></div>
+          <div class="intro-ex"><span class="intro-ex-q">Borde</span><span class="intro-ex-a">border</span></div>
+          <div class="intro-ex"><span class="intro-ex-q">Si / If</span><span class="intro-ex-a">if</span></div>
         </div>
       `
     },
@@ -208,9 +231,7 @@ const Intro = (() => {
     buildDots();
     bindEvents();
     render();
-    const seen = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return '1'; } })();
-    if (!seen) setTimeout(open, 400);
-    else if (reopenBtn) reopenBtn.classList.remove('hidden');
+    setTimeout(open, 600);
   }
 
   function buildDots() {
