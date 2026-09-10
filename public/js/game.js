@@ -220,6 +220,16 @@ const Game = (() => {
     migrateIfNeeded();
     if(isLogged()){
       coins=0; ownedSkins=['default']; equipped='default'; score=0; speedrunBest=null;
+      try{
+        const uid=Auth.user.id;
+        const backup=localStorage.getItem('ci_'+uid+'_progress');
+        if(backup && Auth.progress && !Auth.progress.length){
+          try{ const arr=JSON.parse(backup); if(arr.length) Auth.progress=arr; }catch(e){}
+        }
+        if(Auth.progress && Auth.progress.length){
+          localStorage.setItem('ci_'+uid+'_progress', JSON.stringify(Auth.progress));
+        }
+      }catch(e){}
     } else {
       try{
         const c=sessionStorage.getItem('ci_guest_coins'); coins=c?parseInt(c)||0:0;
@@ -253,11 +263,23 @@ const Game = (() => {
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
   function doExit(){ hideExitConfirm(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
-  function showBtns(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function showBtns(){
+    if(startBtnEl){
+      try{
+        const prog=(typeof Auth!=='undefined'&&Auth.progress)?Auth.progress.filter(p=>p.solved).length:0;
+        if(prog>0 && prog<LEVELS.length) startBtnEl.textContent='▶ CONTINUAR NIVEL '+(prog+1);
+        else if(prog>=LEVELS.length) startBtnEl.textContent='▶ JUGAR DE NUEVO';
+        else startBtnEl.textContent='▶ NORMAL';
+      }catch(e){ startBtnEl.textContent='▶ NORMAL'; }
+      startBtnEl.classList.remove('hidden');
+    }
+    if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
-  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2; startLevel(0); }
+  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
+  let sIdx=0; try{ if(typeof Auth!=='undefined'&&Auth.progress){ const solved=Auth.progress.filter(p=>p.solved).length; sIdx=Math.min(solved, LEVELS.length-1); if(solved>=LEVELS.length) sIdx=0; } }catch(e){}
+  startLevel(sIdx); }
   function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; speedrunStart=performance.now(); 
   score=0; lives=2; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); }
   function startLevel(lvl){
@@ -365,7 +387,7 @@ const Game = (() => {
     for(let i=bossTags.length-1;i>=0;i--){ const t=bossTags[i]; t.y+=t.speed; t.rot+=t.rotSpd*0.02; if(t.y>H+40){ bossTags.splice(i,1); continue; } if(Math.abs(player.x-t.x)<(player.w+t.w)/2-10&&Math.abs(player.y-t.y)<(player.h+t.h)/2-10){ bossTags.splice(i,1); if(!bossQuizActive) bossDamagePlayer(); } }
     bossItemTimer+=dt;
     if(bossItemTimer>=5+Math.random()*4){ bossItemTimer=0; spawnBossItem(); }
-    for(let i=bossItems.length-1;i>=0;i--){ const it=bossItems[i]; it.bob+=dt*2.5; const iy=it.y+Math.sin(it.bob)*10; if(Math.abs(player.x-it.x)<45&&Math.abs(player.y-iy)<45){ collectBossItem(it); bossItems.splice(i,1); } }
+    for(let i=bossItems.length-1;i>=0;i--){ const it=bossItems[i]; it.y+=it.speed||1.4; it.bob+=dt*2.5; const iy=it.y+Math.sin(it.bob)*10; if(it.y>H+40){ bossItems.splice(i,1); continue; } if(Math.abs(player.x-it.x)<45&&Math.abs(player.y-iy)<45){ collectBossItem(it); bossItems.splice(i,1); } }
     if(bossQuizActive) return;
     if(keys[' ']&&shootCooldown<=0&&bossBullets>0){ shootCooldown=15; bossBullets--; const dx=bossX-player.x,dy=bossY-player.y,dist=Math.sqrt(dx*dx+dy*dy); const vx=dx/dist*8,vy=dy/dist*8; makeLaser(player.x,player.y-22,bossX,bossY,'#ff0'); bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion'); if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true); } }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
@@ -378,7 +400,7 @@ const Game = (() => {
     for(let i=0;i<types.length;i++){ acc+=weights[i]; if(r<acc){ type=types[i]; break; } }
     const colors={bullets:'#ffab00',question:'#ffd54f',trap:'#f44'};
     const labels={bullets:'🔫',question:'❓',trap:'💀'};
-    bossItems.push({x:100+Math.random()*(CW-200),y:120+Math.random()*250,type,color:colors[type],label:labels[type],bob:Math.random()*Math.PI*2});
+    bossItems.push({x:100+Math.random()*(CW-200),y:bossY+30,type,color:colors[type],label:labels[type],bob:Math.random()*Math.PI*2,speed:1.2+Math.random()*0.8});
   }
   function collectBossItem(it){
     playSound('pickup');
@@ -462,7 +484,14 @@ const Game = (() => {
   }
   function saveProgress(solved){
     const earned = solved ? (levelData&&levelData.isBoss?100:10*(level+1)) : 0;
-    if(solved && !levelData.isBoss) {}
+    if(solved && Auth && Auth.progress){
+      try{
+        let e=Auth.progress.find(p=>p.level===level+1);
+        if(!e){ e={level:level+1,attempts:1,solved:true,solvedAt:new Date().toISOString()}; Auth.progress.push(e); }
+        else { e.solved=true; e.solvedAt=new Date().toISOString(); }
+        if(isLogged()) localStorage.setItem('ci_'+uid()+'_progress', JSON.stringify(Auth.progress));
+      }catch(err){}
+    }
     if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged) API.saveProgress(level+1,1,solved,earned).catch(()=>{});
     else if(earned) saveShopLocal();
   }

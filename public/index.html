@@ -45,7 +45,7 @@
     <nav class="nav">
       <button class="nav-btn active" data-view="game">🎮 Juego</button>
       <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
-      <button class="nav-btn" data-view="chat">💬 Chat</button>
+      <button class="nav-btn" data-view="chat">💬 Chat Global</button>
       <button class="nav-btn" data-view="friends">👥 Amigos</button>
     </nav>
     <div class="topbar-right">
@@ -168,19 +168,17 @@
       <h1>💬 Chat Global</h1>
       <p class="lead">Habla con todos los jugadores. Los mensajes se guardan y no se borran al refrescar.</p>
       <div class="chat-card" id="chatCard">
-        <div class="chat-bg-picker" id="chatBgPicker">
-          <label>Fondo chat:</label>
-          <button class="bg-opt active" data-bg="" style="background:#0a0e1a">Oscuro</button>
-          <button class="bg-opt" data-bg="gradient" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">Grad</button>
-          <button class="bg-opt" data-bg="neon" style="background:linear-gradient(135deg,#00e5ff33,#7c4dff33)">Neón</button>
-          <button class="bg-opt" data-bg="forest" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">Bosque</button>
+        <div class="chat-bg-picker hidden" id="chatBgPicker" style="display:none !important">
+          <input type="file" id="chatBgInput" accept="image/*" class="hidden">
+          <button class="btn btn-ghost btn-sm hidden" id="chatBgUploadBtn">📷 Foto</button>
+          <button class="btn btn-ghost btn-sm hidden" id="chatBgClearBtn">✕ Quitar</button>
         </div>
         <div class="chat-messages" id="chatMessages"><p class="lead">Cargando mensajes...</p></div>
         <div class="chat-input-bar">
           <input type="text" id="chatInput" placeholder="Escribe un mensaje... (500)" maxlength="500" autocomplete="off">
           <button class="btn btn-primary btn-sm" id="chatSendBtn">Enviar</button>
         </div>
-        <p class="hint" id="chatHint">Debes iniciar sesión para chatear. Los mensajes persisten en la BD.</p>
+        <p class="hint hidden" id="chatHint"></p>
       </div>
       <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
     </section>

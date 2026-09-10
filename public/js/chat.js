@@ -11,38 +11,104 @@ const Chat={
   if(document.getElementById('view-chat').classList.contains('active')) this.start();
   this.initBg();
  },
- initBg(){
-  const picker=document.getElementById('chatBgPicker');
-  if(!picker) return;
-  picker.querySelectorAll('.bg-opt').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      picker.querySelectorAll('.bg-opt').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      this.applyBg(btn.dataset.bg);
-      if(typeof Auth!=='undefined' && Auth.isLogged){
-        fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('fx_token')},body:JSON.stringify({chatBg:btn.dataset.bg})}).catch(()=>{});
-      } else {
-        try{ localStorage.setItem('ci_chat_bg',btn.dataset.bg); }catch(e){}
-      }
-    });
-  });
-  let bg='';
-  try{
-    if(typeof Auth!=='undefined' && Auth.user && Auth.user.chatBg) bg=Auth.user.chatBg;
-    else bg=localStorage.getItem('ci_chat_bg')||'';
-  }catch(e){}
-  if(bg) { const b=picker.querySelector(`[data-bg="${bg}"]`); if(b){ picker.querySelectorAll('.bg-opt').forEach(x=>x.classList.remove('active')); b.classList.add('active'); } this.applyBg(bg); }
- },
- applyBg(bg){
-  const card=document.getElementById('chatCard');
-  const msgs=document.getElementById('chatMessages');
-  const map={'':'',gradient:'linear-gradient(135deg,#1a1a2e,#16213e)',neon:'linear-gradient(135deg,#00e5ff22,#7c4dff22)',forest:'linear-gradient(135deg,#1b5e20,#2e7d32)'};
-  if(card) card.style.background = map[bg] || '';
-  if(msgs){
-    const bg2={gradient:'rgba(0,0,0,0.3)',neon:'rgba(124,77,255,0.08)',forest:'rgba(0,100,0,0.15)','':''};
-    msgs.style.background = bg2[bg] || '';
-  }
- },
+  initBg(){
+   const picker=document.getElementById('chatBgPicker');
+   if(!picker) return;
+   const uploadBtn=document.getElementById('chatBgUploadBtn');
+   const clearBtn=document.getElementById('chatBgClearBtn');
+   const fileInp=document.getElementById('chatBgInput');
+   picker.querySelectorAll('.bg-opt').forEach(btn=>{
+     btn.addEventListener('click',()=>{
+       picker.querySelectorAll('.bg-opt').forEach(b=>b.classList.remove('active'));
+       btn.classList.add('active');
+       if(clearBtn) clearBtn.classList.add('hidden');
+       this.applyBg(btn.dataset.bg);
+       this.saveBg(btn.dataset.bg);
+     });
+   });
+   if(uploadBtn && fileInp){
+     uploadBtn.addEventListener('click',()=>fileInp.click());
+     fileInp.addEventListener('change',()=>this.handleFile(fileInp.files[0]));
+   }
+   if(clearBtn) clearBtn.addEventListener('click',()=>{
+     picker.querySelectorAll('.bg-opt').forEach(b=>b.classList.remove('active'));
+     const def=picker.querySelector('.bg-opt[data-bg=""]'); if(def) def.classList.add('active');
+     clearBtn.classList.add('hidden');
+     this.applyBg(''); this.saveBg('');
+   });
+   let bg='';
+   try{
+     if(typeof Auth!=='undefined' && Auth.user && Auth.user.chatBg) bg=Auth.user.chatBg;
+     else bg=localStorage.getItem('ci_chat_bg')||'';
+   }catch(e){}
+   if(bg) {
+     const isImg = bg.startsWith('data:') || bg.startsWith('http') || bg.startsWith('blob:');
+     if(isImg){
+       picker.querySelectorAll('.bg-opt').forEach(x=>x.classList.remove('active'));
+       if(clearBtn) clearBtn.classList.remove('hidden');
+     } else {
+       const b=picker.querySelector(`[data-bg="${bg}"]`); if(b){ picker.querySelectorAll('.bg-opt').forEach(x=>x.classList.remove('active')); b.classList.add('active'); }
+       if(clearBtn) clearBtn.classList.add('hidden');
+     }
+     this.applyBg(bg);
+   }
+  },
+  saveBg(bg){
+   if(typeof Auth!=='undefined' && Auth.isLogged){
+     fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('fx_token')},body:JSON.stringify({chatBg:bg})}).catch(()=>{});
+     try{ if(Auth.user) Auth.user.chatBg=bg; }catch(e){}
+   }
+   try{ localStorage.setItem('ci_chat_bg',bg); }catch(e){}
+   const clearBtn=document.getElementById('chatBgClearBtn');
+   const isImg = bg && (bg.startsWith('data:')||bg.startsWith('http'));
+   if(clearBtn) clearBtn.classList.toggle('hidden', !isImg);
+  },
+  handleFile(file){
+   if(!file) return;
+   if(file.size>2_500_000){ Toast.error('Imagen muy grande (máx 2.5MB)'); return; }
+   const r=new FileReader();
+   r.onload=()=>{
+     const data=r.result;
+     const img=new Image();
+     img.onload=()=>{
+       const c=document.createElement('canvas'); const max=900; let w=img.width,h=img.height;
+       if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
+       c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+       const out=c.toDataURL('image/jpeg',0.75);
+       document.getElementById('chatBgPicker').querySelectorAll('.bg-opt').forEach(b=>b.classList.remove('active'));
+       this.applyBg(out); this.saveBg(out);
+       Toast.success('Fondo aplicado');
+     };
+     img.src=data;
+   };
+   r.readAsDataURL(file);
+  },
+  applyBg(bg){
+   const card=document.getElementById('chatCard');
+   const msgs=document.getElementById('chatMessages');
+   const isImg = bg && (bg.startsWith('data:')||bg.startsWith('http')||bg.startsWith('blob:'));
+   if(isImg){
+     if(msgs){
+       msgs.style.backgroundImage=`url("${bg}")`;
+       msgs.style.backgroundSize='cover';
+       msgs.style.backgroundPosition='center';
+       msgs.style.backgroundRepeat='no-repeat';
+       msgs.style.backgroundColor='rgba(0,0,0,0.35)';
+       msgs.style.backgroundBlendMode='overlay';
+     }
+     if(card) card.style.background='';
+     const clearBtn=document.getElementById('chatBgClearBtn'); if(clearBtn) clearBtn.classList.remove('hidden');
+     return;
+   }
+   if(msgs){ msgs.style.backgroundImage=''; msgs.style.backgroundBlendMode=''; msgs.style.backgroundSize=''; }
+   const map={'':'',gradient:'linear-gradient(135deg,#1a1a2e,#16213e)',neon:'linear-gradient(135deg,#00e5ff22,#7c4dff22)',forest:'linear-gradient(135deg,#1b5e20,#2e7d32)'};
+   if(card) card.style.background = map[bg] || '';
+   if(msgs){
+     const bg2={gradient:'rgba(0,0,0,0.3)',neon:'rgba(124,77,255,0.08)',forest:'rgba(0,100,0,0.15)','':''};
+     msgs.style.background = bg2[bg] || '';
+     msgs.style.backgroundColor = bg2[bg] || '';
+   }
+  },
  start(){
   this.load();
   if(this.interval) clearInterval(this.interval);
@@ -52,13 +118,11 @@ const Chat={
   _chatUserScrolling:false,
   async load(){
    const box=document.getElementById('chatMessages');
-   const hint=document.getElementById('chatHint');
    const isLogged=typeof Auth!=='undefined'&&Auth.isLogged;
    const inp=document.getElementById('chatInput');
    const btn=document.getElementById('chatSendBtn');
    if(inp) inp.disabled=!isLogged;
    if(btn) btn.disabled=!isLogged;
-   if(hint) hint.textContent=isLogged?'💾 Mensajes guardados en la BD persistente (Postgres). No se borran al refrescar.':'🔒 Debes iniciar sesión para chatear.';
     if(box && !box.dataset.scrollBound){
       box.dataset.scrollBound='1';
       let t=null;
