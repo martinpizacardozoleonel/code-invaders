@@ -37,7 +37,7 @@ async function initPg(){
       equipped TEXT NOT NULL DEFAULT 'default', profile_pic TEXT NOT NULL DEFAULT '', theme TEXT NOT NULL DEFAULT 'dark',
       hours_played INT NOT NULL DEFAULT 0, exp INT NOT NULL DEFAULT 0, frames TEXT NOT NULL DEFAULT '["none"]',
       equipped_frame TEXT NOT NULL DEFAULT 'none', speedrun_best INT, speedrun_history TEXT NOT NULL DEFAULT '[]',
-      created_at TEXT NOT NULL, last_seen TEXT, name_color TEXT NOT NULL DEFAULT '#ffffff', owned_name_colors TEXT NOT NULL DEFAULT '[]', chat_bg TEXT NOT NULL DEFAULT '', banners TEXT NOT NULL DEFAULT '["none"]', equipped_banner TEXT NOT NULL DEFAULT 'none', banner_img TEXT NOT NULL DEFAULT ''', fonts TEXT NOT NULL DEFAULT '["normal"]', equipped_font TEXT NOT NULL DEFAULT 'normal', fxs TEXT NOT NULL DEFAULT '["none"]', equipped_fx TEXT NOT NULL DEFAULT 'none'
+      created_at TEXT NOT NULL, last_seen TEXT, name_color TEXT NOT NULL DEFAULT '#ffffff', owned_name_colors TEXT NOT NULL DEFAULT '[]', chat_bg TEXT NOT NULL DEFAULT '', banners TEXT NOT NULL DEFAULT '["none"]', equipped_banner TEXT NOT NULL DEFAULT 'none', banner_img TEXT NOT NULL DEFAULT '', fonts TEXT NOT NULL DEFAULT '["normal"]', equipped_font TEXT NOT NULL DEFAULT 'normal', fxs TEXT NOT NULL DEFAULT '["none"]', equipped_fx TEXT NOT NULL DEFAULT 'none'
     )`);
     await pool.query(`CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, body TEXT NOT NULL, type TEXT NOT NULL, read BOOLEAN NOT NULL DEFAULT false, created_at TEXT NOT NULL)`);
