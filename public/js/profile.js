@@ -263,6 +263,7 @@ const Profile = {
     } catch (e) { }
     this.renderFrames();
     this.loadNameColors();
+    this.loadBanners();
   },
   async loadNameColors(){
     try{
@@ -355,6 +356,7 @@ const Profile = {
     }).join('');
     g.querySelectorAll('.b-buy').forEach(b=>b.addEventListener('click',()=>this.buyBanner(b.dataset.b)));
     g.querySelectorAll('.b-equip').forEach(b=>b.addEventListener('click',()=>this.equipBanner(b.dataset.b)));
+    this.renderProfileBanner();
   },
   async buyFrame(id) {
     if (!this.isLogged()) return;
@@ -476,3 +478,91 @@ const Profile = {
     const resetBtn=document.createElement('button'); resetBtn.className='btn btn-ghost btn-sm'; resetBtn.textContent='Blanco por defecto'; resetBtn.addEventListener('click',()=>this.equipNameColor('white')); grid.appendChild(resetBtn);
   }
 };
+
+// FIX horas jugadas: Profile debe ver la sesion de Auth aunque se loguee por el modal principal
+Profile.syncAuth = function(){
+  try{
+    if(typeof Auth!=='undefined'){
+      if(Auth.token) this.token=Auth.token;
+      else { const t=localStorage.getItem('fx_token'); if(t) this.token=t; }
+      if(Auth.user){
+        if(!this.user) this.user=JSON.parse(JSON.stringify(Auth.user));
+        else {
+          this.user.username=Auth.user.username;
+          if(Auth.user.coins!==undefined) this.user.coins=Auth.user.coins;
+          if(Auth.user.exp!==undefined) this.user.exp=Auth.user.exp;
+          if(Auth.user.hoursPlayed!==undefined) this.user.hoursPlayed=Auth.user.hoursPlayed;
+          if(Auth.user.profilePic!==undefined) this.user.profilePic=Auth.user.profilePic;
+          if(Auth.user.banners!==undefined) this.user.banners=Auth.user.banners;
+          if(Auth.user.equippedBanner!==undefined) this.user.equippedBanner=Auth.user.equippedBanner;
+          if(Auth.user.bannerImg!==undefined) this.user.bannerImg=Auth.user.bannerImg;
+        }
+        this.active=true;
+      }
+    }
+  }catch(e){}
+};
+Profile.api = async function(path, options){
+  options=options||{};
+  const headers={'Content-Type':'application/json'};
+  const tok=this.token||localStorage.getItem('fx_token');
+  if(tok) headers['Authorization']='Bearer '+tok;
+  const res=await fetch(path,Object.assign({},options,{headers:headers}));
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'Error');
+  return data;
+};
+Profile.isLogged = function(){
+  if(this.active&&this.user) return true;
+  try{ return (typeof Auth!=='undefined')&&!!Auth.token&&!!Auth.user; }catch(e){ return false; }
+};
+Profile.addPlaytime = function(seconds){
+  this.syncAuth();
+  if(!this.isLogged()) return;
+  this.pendingTime+=seconds;
+  if(this.pendingTime>=60) this.flushTime();
+};
+Profile.flushTime = async function(force){
+  this.syncAuth();
+  if(!this.isLogged()) return;
+  if(this.pendingTime<10&&!force) return;
+  const seconds=Math.floor(this.pendingTime);
+  if(seconds<=0) return;
+  this.pendingTime-=seconds;
+  try{
+    const data=await this.api('/api/stats',{method:'POST',body:JSON.stringify({seconds:seconds})});
+    if(data&&data.user){
+      if(!this.user) this.user=data.user;
+      else {
+        if(data.user.hoursPlayed!==undefined) this.user.hoursPlayed=data.user.hoursPlayed;
+        if(data.user.coins!==undefined) this.user.coins=data.user.coins;
+        if(data.user.exp!==undefined) this.user.exp=data.user.exp;
+      }
+      if(data.expLevel) this.expLevel=data.expLevel;
+      this.renderProfile();
+    }
+    try{ if(typeof Auth!=='undefined'&&Auth.user&&data&&data.user){ Auth.user.hoursPlayed=data.user.hoursPlayed; Auth.user.coins=data.user.coins; Auth.user.exp=data.user.exp; } }catch(e){}
+  }catch(e){ this.pendingTime+=seconds; }
+};
+Profile.addExp = async function(amount, coins){
+  this.syncAuth();
+  if(!this.isLogged()) return false;
+  try{
+    const data=await this.api('/api/stats',{method:'POST',body:JSON.stringify({seconds:0,exp:amount,coins:coins||0})});
+    const u=(data&&data.user)||{};
+    if(!this.user) this.user=u;
+    else {
+      if(u.exp!==undefined) this.user.exp=u.exp;
+      if(u.coins!==undefined) this.user.coins=u.coins;
+      if(u.hoursPlayed!==undefined) this.user.hoursPlayed=u.hoursPlayed;
+    }
+    const newLevel=(data&&data.expLevel)||this.expLevel;
+    const leveled=newLevel>this.expLevel;
+    this.expLevel=newLevel;
+    this.renderProfile();
+    try{ if(typeof Auth!=='undefined'&&Auth.user){ Auth.user.exp=this.user.exp; Auth.user.coins=this.user.coins; } }catch(e){}
+    return leveled;
+  }catch(e){ return false; }
+};
+document.addEventListener('visibilitychange',function(){ try{ if(document.hidden&&typeof Profile!=='undefined'&&Profile.flushTime) Profile.flushTime(true); }catch(e){} });
+

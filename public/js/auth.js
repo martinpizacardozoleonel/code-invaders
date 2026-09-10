@@ -143,3 +143,34 @@ const Toast = {
   error: (m) => Toast.show(m, 'error'),
   info: (m) => Toast.show(m, 'info')
 };
+
+// FIX: sincronizar Profile con Auth para que horas/perfil no se pierdan al loguear por el modal
+(function(){
+  function syncP(){
+    try{
+      if(typeof Profile!=='undefined'&&typeof Auth!=='undefined'){
+        if(Auth.token) Profile.token=Auth.token;
+        if(Auth.user&&typeof Profile.syncAuth==='function') Profile.syncAuth();
+        else if(Auth.user){ Profile.user=JSON.parse(JSON.stringify(Auth.user)); Profile.active=true; }
+        if(Profile.renderProfile) Profile.renderProfile();
+        if(Profile.loadFrames&&Auth.user) Profile.loadFrames();
+      }
+    }catch(e){}
+  }
+  function clearP(){
+    try{
+      if(typeof Profile!=='undefined'){
+        Profile.token=null; Profile.user=null; Profile.active=false; Profile.pendingTime=0;
+        if(Profile.renderProfile) Profile.renderProfile();
+      }
+    }catch(e){}
+  }
+  if(typeof Auth!=='undefined'){
+    const _rs=Auth.restoreSession.bind(Auth);
+    Auth.restoreSession=async function(){ const r=await _rs.apply(this,arguments); syncP(); return r; };
+    const _ll=Auth.logoutLocal.bind(Auth);
+    Auth.logoutLocal=function(){ const r=_ll.apply(this,arguments); clearP(); return r; };
+  }
+  document.addEventListener('DOMContentLoaded',function(){ setTimeout(syncP,800); });
+})();
+
