@@ -606,6 +606,9 @@ const Game = (() => {
     const typed=inputEl.value.trim(); if(!typed) return;
     shootCooldown=15; playSound('laser');
     if(cssBoss && levelData && levelData.isCssBoss){
+      if(enemies.length===0){
+        inputEl.value=''; if(inputEl) inputEl.focus(); updateHUD(); return;
+      }
       const matching=enemies.filter(e=>e.answer.toLowerCase()===typed.toLowerCase());
       if(matching.length>0){
         for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15); e.health=0; }
@@ -787,7 +790,11 @@ const Game = (() => {
       const bw=260; const hp=b?b.health/b.maxHealth:0; ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,58,bw,8); ctx.fillStyle=hp>0.5?'#ab47bc':hp>0.25?'#ffd600':'#ff1744'; ctx.fillRect(W/2-bw/2,58,bw*hp,8); ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.strokeRect(W/2-bw/2,58,bw,8);
     } else if(currentEnemy){ ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.fillText('Destruye → '+currentEnemy.question,W/2,44); } else { ctx.fillStyle='#8af'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('Haz clic izquierdo en una nave para apuntarla',W/2,44); }
     if(levelData&&levelData.isBoss){
-      ctx.fillStyle='#ce93d8'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText('¡El Jefe no avanza! Escribe la etiqueta y presiona ENTER. Fallo = -1 vida',W/2,78);
+      if(cssBoss){
+        ctx.fillStyle='#ce93d8'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText('Escribe la propiedad CSS correcta y presiona ENTER. Fallo = -1 vida',W/2,78);
+      } else {
+        ctx.fillStyle='#ce93d8'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText('¡El Jefe no avanza! Escribe la etiqueta y presiona ENTER. Fallo = -1 vida',W/2,78);
+      }
     } else if(formationCountdown>0){ const secs=Math.ceil(formationCountdown/60); const color=secs<=3?'#ff1744':secs<=8?'#ffd600':'#7ff'; ctx.fillStyle=color; ctx.font='bold 14px monospace'; ctx.textAlign='center'; ctx.fillText('⏱ Las naves bajan en '+secs+'s  (-2s por error)',W/2,64); const bw=160,pct=formationCountdown/(speedrun?SPEEDRUN_COUNTDOWN:FORMATION_COUNTDOWN_FRAMES); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,69,bw,4); ctx.fillStyle=color; ctx.fillRect(W/2-bw/2,69,bw*pct,4); } else if(!levelData.isBoss){ ctx.fillStyle='#f66'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('¡LAS NAVES AVANZAN!',W/2,64); }
     if(speedrun){ ctx.fillStyle='#ffd600'; ctx.font='bold 10px monospace'; ctx.textAlign='left'; const ms=speedrunFinished?speedrunTime:(state==='playing'||state==='intro'?performance.now()-speedrunStart:0); ctx.fillText('SPEEDRUN '+formatTime(ms),12,66); }
     if(comboCount>=3){ const pulse=comboPop>0?1+(comboPop/24)*0.3:1; ctx.save(); ctx.translate(W-12,36); ctx.scale(pulse,pulse); ctx.textAlign='right'; ctx.font=(comboPop>0?'bold 22px':'bold 18px')+' monospace'; ctx.fillStyle=comboPop>0?'#ffd600':'#ffeb3b'; ctx.shadowColor='#ffd600'; ctx.shadowBlur=comboPop>0?18:6; ctx.fillText('🔥 '+comboCount,0,0); ctx.restore(); ctx.fillStyle='#7a8a9a'; ctx.font='bold 9px monospace'; ctx.textAlign='right'; ctx.shadowBlur=0; ctx.fillText('racha',W-12,50); }
@@ -810,7 +817,7 @@ const Game = (() => {
   }
   function drawIntro(){
     const alpha=Math.min(1,(90-levelPause)/30); ctx.globalAlpha=alpha;
-    if(levelData&&levelData.isBoss){ ctx.fillStyle='#ab47bc'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText('👑 JEFE FINAL',W/2,H/2-50); ctx.fillStyle='#fff'; ctx.font='16px monospace'; ctx.fillText('¡Esquiva las etiquetas y derrota al Prof. Froggio!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (con balas)',W/2,H/2+20); ctx.fillText('Recoge 🔫 balas  |  ❓ preguntas  |  💀 trampas',W/2,H/2+40); ctx.fillText(bossHP+' golpes para vencerlo',W/2,H/2+60); }
+    if(levelData&&levelData.isBoss){ ctx.fillStyle='#ab47bc'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText(levelData.isCssBoss?'👑 JEFE CSS':'👑 JEFE FINAL',W/2,H/2-50); ctx.fillStyle='#fff'; ctx.font='16px monospace'; if(levelData.isCssBoss){ ctx.fillText('¡Destruye las naves escribiendo la propiedad CSS correcta!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  Escribe la respuesta y ENTER',W/2,H/2+20); ctx.fillText('Cada respuesta correcta daña al jefe -2 HP',W/2,H/2+40); ctx.fillText(bossHP+' HP para vencerlo',W/2,H/2+60); } else { ctx.fillText('¡Esquiva las etiquetas y derrota al Prof. Froggio!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (con balas)',W/2,H/2+20); ctx.fillText('Recoge 🔫 balas  |  ❓ preguntas  |  💀 trampas',W/2,H/2+40); ctx.fillText(bossHP+' golpes para vencerlo',W/2,H/2+60); } }
     else { ctx.fillStyle=speedrun?'#ffd600':'#0a1'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText((speedrun?'NIVEL 1 ⚡ SPEEDRUN':'NIVEL '+levelData.id),W/2,H/2-30); ctx.fillStyle='#fff'; ctx.font='18px monospace'; ctx.fillText(levelData.title,W/2,H/2+10); ctx.font='13px monospace'; ctx.fillStyle='#aaa'; ctx.fillText(levelData.questions.length+' enemigos'+(speedrun?' • ¡MODO DIFÍCIL!':''),W/2,H/2+45); }
     ctx.globalAlpha=1;
   }
@@ -855,14 +862,22 @@ const Game = (() => {
   }
   function updateHUD(){
     const eLevel=document.getElementById('levelVal'); const eTarget=document.getElementById('targetQuestion');
-    if(eLevel) eLevel.textContent=levelData?(levelData.isBoss?'👑 JEFE':(speedrun?'1 ⚡':levelData.id)):'-';
-    if(levelData&&levelData.isBoss){ if(eTarget) eTarget.textContent=enemies[0]?enemies[0].question:'—'; }
+    if(eLevel) eLevel.textContent=levelData?(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE'):(speedrun?'1 ⚡':levelData.id)):'-';
+    if(levelData&&levelData.isBoss){
+      if(cssBoss && enemies.length>0){
+        const qs=[...new Set(enemies.map(e=>e.question))];
+        if(eTarget) eTarget.textContent=qs.join(' | ');
+      } else {
+        if(eTarget) eTarget.textContent=enemies[0]?enemies[0].question:'—';
+      }
+    }
     else if(currentEnemy){ if(eTarget) eTarget.textContent=currentEnemy.question; } else { if(eTarget) eTarget.textContent=state==='playing'?'clic en una nave':'—'; }
     if(qBannerEl&&qBannerTextEl){
-      if(state==='intro'){ qBannerTextEl.textContent=(levelData&&levelData.isBoss?'👑 Jefe Final: ':'')+'Preparando '+(levelData?levelData.title:'')+'...'; qBannerEl.classList.remove('hidden'); }
+      if(state==='intro'){ qBannerTextEl.textContent=(levelData&&levelData.isBoss?(cssBoss?'👑 Jefe CSS: ':'👑 Jefe Final: '):'')+'Preparando '+(levelData?levelData.title:'')+'...'; qBannerEl.classList.remove('hidden'); }
+      else if(levelData&&levelData.isBoss&&cssBoss&&enemies.length>0){ const qs=[...new Set(enemies.map(e=>e.question))]; qBannerTextEl.textContent=qs.join('  |  '); qBannerEl.classList.remove('hidden'); }
       else if(levelData&&levelData.isBoss&&enemies[0]){ qBannerTextEl.textContent=enemies[0].question; qBannerEl.classList.remove('hidden'); }
       else if(currentEnemy){ qBannerTextEl.textContent=currentEnemy.question; qBannerEl.classList.remove('hidden'); }
-      else if(state==='playing'){ qBannerTextEl.textContent='Haz clic izquierdo en una nave para apuntarla'; qBannerEl.classList.remove('hidden'); }
+      else if(state==='playing'){ qBannerTextEl.textContent=cssBoss?'Escribe la propiedad CSS y presiona ENTER':'Haz clic izquierdo en una nave para apuntarla'; qBannerEl.classList.remove('hidden'); }
       else qBannerEl.classList.add('hidden');
     }
     updateSpeedrunHud();
