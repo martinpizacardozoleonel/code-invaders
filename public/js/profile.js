@@ -144,6 +144,10 @@ const Profile = {
     if(upB) upB.addEventListener('click',()=>bIn&&bIn.click());
     if(bIn) bIn.addEventListener('change',(e)=>this.saveBannerImg(e));
     if(clB) clB.addEventListener('click',()=>this.clearBannerImg());
+    const bkE=document.getElementById('backupExportBtn'); const bkI=document.getElementById('backupImportBtn'); const bkF=document.getElementById('backupFile');
+    if(bkE) bkE.addEventListener('click',()=>this.exportBackup());
+    if(bkI) bkI.addEventListener('click',()=>bkF&&bkF.click());
+    if(bkF) bkF.addEventListener('change',(e)=>this.importBackup(e));
   },
 
   applyTheme(theme) {
@@ -398,6 +402,35 @@ const Profile = {
     g.querySelectorAll('.f-buy').forEach(b=>b.addEventListener('click',()=>this.buyFont(b.dataset.f)));
     g.querySelectorAll('.f-equip').forEach(b=>b.addEventListener('click',()=>this.equipFont(b.dataset.f)));
   },
+  async exportBackup(){
+    if(!this.isLogged()) return;
+    const key=(document.getElementById('backupKey')||{}).value||'';
+    if(!key){ Toast.error('Escribe la clave de admin'); return; }
+    try{
+      Toast.info('Exportando respaldo...');
+      const data=await this.api('/api/admin/export',{method:'POST',body:JSON.stringify({key})});
+      const blob=new Blob([JSON.stringify(data.dump)],{type:'application/json'});
+      const a=document.createElement('a'); const d=new Date().toISOString().slice(0,10);
+      a.href=URL.createObjectURL(blob); a.download='respaldo-codeinvaders-'+d+'.json'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+      Toast.success('Respaldo descargado ('+(data.dump.users||[]).length+' cuentas)');
+    }catch(e){ Toast.error(e.message); }
+  },
+  async importBackup(e){
+    const f=e.target.files[0]; if(!f||!this.isLogged()) return;
+    const key=(document.getElementById('backupKey')||{}).value||'';
+    if(!key){ Toast.error('Escribe la clave de admin'); return; }
+    try{
+      const text=await f.text(); const dump=JSON.parse(text);
+      if(!dump.users||!Array.isArray(dump.users)) throw new Error('Archivo invalido');
+      if(!confirm('Restaurar '+dump.users.length+' cuentas del respaldo? No borra las actuales.')) return;
+      Toast.info('Importando...');
+      const r=await this.api('/api/admin/import',{method:'POST',body:JSON.stringify({key,dump})});
+      Toast.success('Listo: '+r.users+' cuentas');
+      if(typeof Ranked!=='undefined') Ranked.loadRanking();
+    }catch(err){ Toast.error(err.message); }
+    e.target.value='';
+  },
   async loadFxs(){
     try{ const d=await API.getFxs(); this.fxsCatalog=d.fxs||[]; }catch(e){ this.fxsCatalog=[]; }
     this.renderFxs();
@@ -471,7 +504,7 @@ const Profile = {
     const bannerSection = document.getElementById('bannerSection');
     const fontsSection = document.getElementById('fontsSection');
     const fxsSection = document.getElementById('fxsSection');
-    const fontsSection = document.getElementById('fontsSection');
+    const backupSection = document.getElementById('backupSection');
     const dangerZone = document.getElementById('dangerZone');
 
     if (this.isLogged()) {
@@ -495,7 +528,7 @@ const Profile = {
       if (bannerSection) bannerSection.classList.remove('hidden');
       if (fontsSection) fontsSection.classList.remove('hidden');
       if (fxsSection) fxsSection.classList.remove('hidden');
-      if (fontsSection) fontsSection.classList.remove('hidden');
+      if (backupSection) backupSection.classList.remove('hidden');
       this.renderProfileBanner();
       if (dangerZone) dangerZone.classList.remove('hidden');
     } else {
@@ -516,7 +549,7 @@ const Profile = {
       if (bannerSection) bannerSection.classList.add('hidden');
       if (fontsSection) fontsSection.classList.add('hidden');
       if (fxsSection) fxsSection.classList.add('hidden');
-      if (fontsSection) fontsSection.classList.add('hidden');
+      if (backupSection) backupSection.classList.add('hidden');
       if (dangerZone) dangerZone.classList.add('hidden');
     }
   },

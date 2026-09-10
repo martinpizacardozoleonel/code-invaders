@@ -208,4 +208,45 @@ async function endTournament(tournament){ const users=await getAllUsers(); const
 app.get('/api/tournament', async (req,res)=>{ let tournament=await getActiveTournament(); if(!tournament) tournament=await getPendingTournament(); const users=await getAllUsers(); const playerCount=users.length; res.json({tournament: tournament?{id:tournament.id,status:tournament.status,startDate:tournament.startDate,endDate:tournament.endDate,results:tournament.results}:null, playerCount, minPlayers:10, canStart: playerCount>=10}); });
 app.post('/api/tournament/start', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); if(await getActiveTournament()) return res.status(400).json({error:'Ya hay un torneo activo'}); const users=await getAllUsers(); if(users.length<10) return res.status(400).json({error:`Se necesitan 10 jugadores para empezar`}); const tournament=await startTournament(); res.json({tournament}); });
 app.post('/api/tournament/check', async (req,res)=>{ const active=await getActiveTournament(); if(active){ if(new Date(active.endDate)<=new Date()){ await endTournament(active); return res.json({ended:true, tournament:active}); } return res.json({active:true,endDate:active.endDate}); } res.json({active:false}); });
+
+const ADMIN_KEY = process.env.ADMIN_KEY || '';
+async function dumpDb(){
+  if(USE_PG){
+    const users=(await pool.query('SELECT * FROM users')).rows.map(pgRowToUser);
+    const sessions=(await pool.query('SELECT * FROM sessions')).rows.map(x=>({token:x.token,userId:x.user_id}));
+    const notifications=(await pool.query('SELECT * FROM notifications')).rows.map(x=>({id:x.id,userId:x.user_id,title:x.title,body:x.body,type:x.type,read:x.read,createdAt:x.created_at}));
+    const tournaments=(await pool.query('SELECT * FROM tournaments')).rows.map(x=>({id:x.id,status:x.status,startDate:x.start_date,endDate:x.end_date,results:JSON.parse(x.results||'{}')}));
+    const chat=(await pool.query('SELECT * FROM chat_messages')).rows.map(x=>({id:x.id,userId:x.user_id,username:x.username,text:x.text,createdAt:x.created_at}));
+    const friendships=(await pool.query('SELECT * FROM friendships')).rows.map(x=>({id:x.id,requesterId:x.requester_id,addresseeId:x.addressee_id,status:x.status,createdAt:x.created_at}));
+    const privateMessages=(await pool.query('SELECT * FROM private_messages')).rows.map(x=>({id:x.id,senderId:x.sender_id,receiverId:x.receiver_id,text:x.text,createdAt:x.created_at}));
+    return {version:1,exportedAt:new Date().toISOString(),users,sessions,notifications,tournaments,chat,friendships,privateMessages};
+  }
+  return Object.assign({version:1,exportedAt:new Date().toISOString()},JSON.parse(JSON.stringify(fileDb)));
+}
+async function importDb(d){
+  if(!d||!Array.isArray(d.users)) throw new Error('Respaldo invalido');
+  if(USE_PG){
+    for(const u of d.users){ ensureShopFields(u); await pgUpsertUser(u); }
+    for(const s of (d.sessions||[])){ try{ await pool.query('INSERT INTO sessions(token,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[s.token,s.userId]); }catch(e){} }
+    for(const n of (d.notifications||[])){ try{ await pool.query('INSERT INTO notifications(id,user_id,title,body,type,read,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING',[n.id,n.userId,n.title,n.body,n.type,n.read,n.createdAt]); }catch(e){} }
+    for(const t of (d.tournaments||[])){ try{ await pool.query('INSERT INTO tournaments(id,status,start_date,end_date,results) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[t.id,t.status,t.startDate,t.endDate,JSON.stringify(t.results||{})]); }catch(e){} }
+    for(const m of (d.chat||[])){ try{ await pool.query('INSERT INTO chat_messages(id,user_id,username,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,m.userId,m.username,m.text,m.createdAt]); }catch(e){} }
+    for(const f of (d.friendships||[])){ try{ await pool.query('INSERT INTO friendships(id,requester_id,addressee_id,status,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[f.id,f.requesterId,f.addresseeId,f.status,f.createdAt]); }catch(e){} }
+    for(const m of (d.privateMessages||[])){ try{ await pool.query('INSERT INTO private_messages(id,sender_id,receiver_id,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,m.senderId,m.receiverId,m.text,m.createdAt]); }catch(e){} }
+  } else {
+    const byId=(arr)=>(new Map((arr||[]).map(x=>[x.id,x])));
+    const mu=byId(fileDb.users); (d.users||[]).forEach(u=>{ ensureShopFields(u); mu.set(u.id,u); }); fileDb.users=[...mu.values()];
+    const ms=byId(fileDb.sessions); (d.sessions||[]).forEach(s=>ms.set(s.token||s.id,s)); fileDb.sessions=[...ms.values()];
+    const mn=byId(fileDb.notifications); (d.notifications||[]).forEach(n=>mn.set(n.id,n)); fileDb.notifications=[...mn.values()];
+    const mt=byId(fileDb.tournaments); (d.tournaments||[]).forEach(x=>mt.set(x.id,x)); fileDb.tournaments=[...mt.values()];
+    const mc=byId(fileDb.chat); (d.chat||[]).forEach(m=>mc.set(m.id,m)); fileDb.chat=[...mc.values()];
+    const mf=byId(fileDb.friendships); (d.friendships||[]).forEach(f=>mf.set(f.id,f)); fileDb.friendships=[...mf.values()];
+    const mp=byId(fileDb.privateMessages); (d.privateMessages||[]).forEach(m=>mp.set(m.id,m)); fileDb.privateMessages=[...mp.values()];
+    saveDb(fileDb);
+  }
+  return {users:(d.users||[]).length};
+}
+app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const dump=await dumpDb(); res.json({dump}); }catch(e){ res.status(500).json({error:'No se pudo exportar'}); } });
+app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
+
 (async()=>{ await initPg(); app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG]':'[JSON]'}`); }); })();

@@ -355,6 +355,12 @@
         <p class="hint">Compra estilos de letra con puntos. Se ven en chat, ranked y perfil.</p>
         <div class="frames-grid" id="fontsGrid"></div>
       </div>
+      <div class="frames-section" id="backupSection">
+        <h3>Respaldo de cuentas</h3>
+        <p class="hint">Exporta todas las cuentas a un archivo. Si Render borra la base, impórtalo y se recuperan con sus contraseñas, puntos y progreso. Requiere la clave ADMIN_KEY del servidor.</p>
+        <div class="setting-item"><label>Clave de admin</label><input type="password" id="backupKey" placeholder="ADMIN_KEY" autocomplete="off"></div>
+        <div class="btn-row"><button class="btn btn-primary btn-sm" id="backupExportBtn">Descargar respaldo</button><button class="btn btn-ghost btn-sm" id="backupImportBtn">Importar archivo</button><input type="file" id="backupFile" accept="application/json" class="hidden"></div>
+      </div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
         <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
@@ -393,7 +399,7 @@
   <script src="js/docs.js?v=5"></script>
   <script src="js/intro.js?v=2"></script>
   <script src="js/game.js?v=20"></script>
-  <script src="js/profile.js?v=8"></script>
+  <script src="js/profile.js?v=10"></script>
   <script src="js/ranked.js?v=5"></script>
   <script src="js/chat.js?v=3"></script>
   <script src="js/friends.js?v=3"></script>
