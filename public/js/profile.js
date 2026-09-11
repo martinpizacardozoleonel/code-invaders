@@ -386,8 +386,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm b-equip" data-b="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">Comprar '+x.price+'</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
       const anim=x.animated?' banner-leyenda':'';
       return '<div class="frame-card"><div class="banner-preview'+anim+'" style="background:'+x.grad+';border-color:'+x.border+'"></div><p>'+x.name+'</p>'+btn+'</div>';
     }).join('');
@@ -424,8 +424,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm f-equip" data-f="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm f-buy" data-f="'+x.id+'">Comprar '+x.price+'</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm f-buy" data-f="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
       return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#0a0e1a;'+x.css+'"><span>Aa</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.f-buy').forEach(b=>b.addEventListener('click',()=>this.buyFont(b.dataset.f)));
@@ -489,8 +489,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm x-equip" data-x="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm x-buy" data-x="'+x.id+'">Comprar '+x.price+'</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm x-buy" data-x="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
       return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:#0a0e1a;'+x.css+'"><span>Efecto</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.x-buy').forEach(b=>b.addEventListener('click',()=>this.buyFx(b.dataset.x)));
@@ -596,8 +596,8 @@ const Profile = {
       let btn = '';
       if (isActive) btn = '<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if (owned) btn = `<button class="btn btn-primary btn-sm frame-equip" data-frame="${f.id}">Equipar</button>`;
-      else if (canBuy) btn = `<button class="btn btn-primary btn-sm frame-buy" data-frame="${f.id}">Comprar (${f.price})</button>`;
-      else btn = `<button class="btn btn-ghost btn-sm" disabled>${f.price} EXP</button>`;
+      else if (canBuy) btn = `<button class="btn btn-primary btn-sm frame-buy" data-frame="${f.id}">🪙 Comprar ${f.price} pts</button>`;
+      else btn = `<button class="btn btn-ghost btn-sm" disabled>🔒 ${f.price} pts</button>`;
       return `<div class="frame-card${isActive ? ' active' : ''}"><div class="frame-preview frame-${f.id}"></div><p>${f.name}</p>${btn}</div>`;
     }).join('');
     grid.querySelectorAll('.frame-buy').forEach(btn => btn.addEventListener('click', () => this.buyFrame(btn.dataset.frame)));
