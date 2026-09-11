@@ -109,12 +109,14 @@ Ranked.inspectUser=async function(userId){
     const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span> '+(data.online?'En línea':'Desconectado');
     const inner='<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+'">'+pic+'</div><div class="inspect-stats"><p class="inspect-name" style="'+nameSt+'">'+data.username+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
     if(hasBanner){
-      const bgImg=data.bannerImg?("background-image:url('"+data.bannerImg+"');"):'';
+      const isVid=data.bannerImg&&data.bannerImg.startsWith('data:video');
+      const bgImg=(data.bannerImg&&!isVid)?("background-image:url('"+data.bannerImg+"');"):'';
       const bgGrad=(!data.bannerImg&&b&&b.grad)?('background:'+b.grad+';'):'';
       const bcol=(b&&b.border)?b.border:'#333';
+      const vid=isVid?('<video src="'+data.bannerImg+'" autoplay loop muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>'):'';
       if(card){ card.style.borderColor=bcol; }
-      ct.innerHTML='<div class="inspect-fullbanner" style="'+bgGrad+bgImg+'border:2px solid '+bcol+';">'+inner+'</div>';
-    } else {
+      ct.innerHTML='<div class="inspect-fullbanner" style="'+bgGrad+bgImg+'border:2px solid '+bcol+';position:relative;overflow:hidden;">'+vid+inner+'</div>';
+} else {
       ct.innerHTML=inner;
     }
   }catch(e){ ct.innerHTML='<p>Error</p>'; }

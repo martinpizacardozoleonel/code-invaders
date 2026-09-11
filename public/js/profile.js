@@ -321,9 +321,17 @@ const Profile = {
   },
   async saveBannerImg(e){
     const f=e.target.files[0]; if(!f||!this.isLogged()) return;
-    if(f.size>2500000){ Toast.error('Imagen muy grande (max 2.5MB)'); return; }
+    const isGif=(f.type==='image/gif');
+    const isVid=(f.type||'').startsWith('video/');
+    if((isGif||isVid)&&f.size>6000000){ Toast.error('GIF/Video muy grande (max 6MB)'); e.target.value=''; return; }
+    if(!isGif&&!isVid&&f.size>2500000){ Toast.error('Imagen muy grande (max 2.5MB)'); e.target.value=''; return; }
     const r=new FileReader();
     r.onload=()=>{
+      if(isGif||isVid){
+        const out=r.result;
+        this.api('/api/settings',{method:'PUT',body:JSON.stringify({bannerImg:out})}).then(()=>{ if(this.user) this.user.bannerImg=out; this.renderProfileBanner(); Toast.success(isVid?'Video aplicado':'GIF aplicado'); }).catch(()=>Toast.error('No se pudo guardar (muy pesado?)'));
+        return;
+      }
       const img=new Image();
       img.onload=async()=>{
         const c=document.createElement('canvas'); const max=900;
@@ -343,13 +351,17 @@ const Profile = {
   },
   renderProfileBanner(){
     const wrap=document.getElementById('profileBanner'); if(!wrap) return;
-    const im=document.getElementById('bannerImg'); const ph=document.getElementById('bannerPlaceholder'); const cl=document.getElementById('clearBannerImgBtn');
+    const im=document.getElementById('bannerImg'); const vd=document.getElementById('bannerVideo'); const ph=document.getElementById('bannerPlaceholder'); const cl=document.getElementById('clearBannerImgBtn');
     const b=(this.bannersCatalog||[]).find(x=>x.id===((this.user&&this.user.equippedBanner)||'none'));
     wrap.style.background=(b&&b.grad&&b.grad!=='transparent')?b.grad:'';
     wrap.style.borderColor=b?b.border:'#333';
     if(b&&b.id==='leyenda') wrap.classList.add('banner-leyenda'); else wrap.classList.remove('banner-leyenda');
-    if(this.user&&this.user.bannerImg){ if(im){ im.src=this.user.bannerImg; im.classList.remove('hidden'); im.style.display='block'; } if(ph) ph.style.display='none'; if(cl) cl.classList.remove('hidden'); }
-    else { if(im){ im.src=''; im.classList.add('hidden'); im.style.display='none'; } if(ph) ph.style.display=''; if(cl) cl.classList.add('hidden'); }
+    const media=this.user&&this.user.bannerImg;
+    const isVid=media&&media.startsWith('data:video');
+    if(im){ if(media&&!isVid){ im.src=media; im.classList.remove('hidden'); im.style.display='block'; } else { im.src=''; im.classList.add('hidden'); im.style.display='none'; } }
+    if(vd){ if(isVid){ vd.src=media; vd.classList.remove('hidden'); vd.style.display='block'; } else { vd.removeAttribute('src'); vd.classList.add('hidden'); vd.style.display='none'; } }
+    if(ph) ph.style.display=media?'none':'';
+    if(cl) cl.classList.toggle('hidden',!media);
   },
   renderBanners(){
     const g=document.getElementById('bannersGrid'); if(!g) return;
