@@ -268,12 +268,7 @@ const Game = (() => {
   function doExit(){ hideExitConfirm(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){
     if(startBtnEl){
-      try{
-        const prog=(typeof Auth!=='undefined'&&Auth.progress)?Auth.progress.filter(p=>p.solved).length:0;
-        if(prog>0 && prog<LEVELS.length) startBtnEl.textContent='▶ CONTINUAR NIVEL '+(prog+1);
-        else if(prog>=LEVELS.length) startBtnEl.textContent='▶ JUGAR DE NUEVO';
-        else startBtnEl.textContent='▶ NORMAL';
-      }catch(e){ startBtnEl.textContent='▶ NORMAL'; }
+      startBtnEl.textContent='▶ JUGAR';
       startBtnEl.classList.remove('hidden');
     }
     if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
@@ -281,7 +276,7 @@ const Game = (() => {
   function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
-  let sIdx=0; try{ if(typeof Auth!=='undefined'&&Auth.progress){ const solved=Auth.progress.filter(p=>p.solved).length; sIdx=Math.min(solved, LEVELS.length-1); if(solved>=LEVELS.length) sIdx=0; } }catch(e){}
+  let sIdx=0;
   startLevel(sIdx); }
   function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; speedrunStart=performance.now(); 
   score=0; lives=2; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); }

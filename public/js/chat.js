@@ -147,11 +147,13 @@ const Chat={
      if(!wasEmpty && msgs.length===prevCount && !this._chatUserScrolling){
      } else {
        const meId=(typeof Auth!=='undefined'&&Auth.user)?Auth.user.id:null;
-       box.innerHTML=msgs.map(m=>{
-        const own=m.userId===meId;
-        const date=new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-        const del=own?`<button class="chat-del" data-id="${m.id}" title="Borrar">🗑️</button>`:'';
-        return `<div class="chat-msg ${own?'own':''}"><div class="chat-head"><span class="chat-user" style="color:${m.nameColor||"#00e5ff"};${API.fontStyle(m.equippedFont)}${API.fxStyle(m.equippedFx)}">${this.esc(m.username)}</span><span class="chat-time">${date}</span>${del}</div><div class="chat-text">${this.esc(m.text)}</div></div>`;
+        box.innerHTML=msgs.map(m=>{
+         const own=m.userId===meId;
+         const date=new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+         const del=own?`<button class="chat-del" data-id="${m.id}" title="Borrar">🗑️</button>`:'';
+         const frame=m.equippedFrame&&m.equippedFrame!=='none'?` frame-${m.equippedFrame}`:'';
+         const pic=m.profilePic?`<img class="chat-avatar ${frame}" src="${this.esc(m.profilePic)}" alt="">`:`<div class="chat-avatar chat-avatar-placeholder ${frame}">👾</div>`;
+         return `<div class="chat-msg ${own?'own':''}">${pic}<div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:${m.nameColor||"#00e5ff"};${API.fontStyle(m.equippedFont)}${API.fxStyle(m.equippedFx)}">${this.esc(m.username)}</span><span class="chat-time">${date}</span>${del}</div><div class="chat-text">${this.esc(m.text)}</div></div></div>`;
        }).join('');
        box.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',()=>this.del(b.dataset.id)));
        if(atBottom){
