@@ -800,15 +800,15 @@ const Game = (() => {
     const glitch = (Math.floor(frameCount/180)%2===0)? 0 : Math.sin(frameCount*0.08)*1.5;
     const floatY = Math.sin(frameCount*0.06)*4;
     ctx.textAlign='center';
-    ctx.save(); ctx.translate(0,floatY*0.3);
-    ctx.fillStyle='#fff'; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=10+Math.sin(frameCount*0.1)*4; ctx.font='400 20px "Press Start 2P", monospace'; ctx.fillText('CODE INVADERS',W/2+glitch,H/2-88);
-    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('aprende a programar defendiendo la galaxia.',W/2,H/2-64);
+    ctx.save(); ctx.translate(0,floatY*0.5);
+    ctx.fillStyle='#fff'; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=14+Math.sin(frameCount*0.09)*5; ctx.font='800 26px "Segoe UI", system-ui, -apple-system, sans-serif'; ctx.letterSpacing='2px'; ctx.fillText('CODE INVADERS',W/2+glitch,H/2-72);
+    ctx.shadowBlur=0;
+    const grad=ctx.createLinearGradient(W/2-180,H/2-50,W/2+180,H/2-50);
+    grad.addColorStop(0,'#ffd600'); grad.addColorStop(0.5,'#ffea00'); grad.addColorStop(1,'#ffd600');
+    ctx.fillStyle=grad; ctx.font='700 12px "Segoe UI", monospace'; ctx.letterSpacing='1px'; ctx.fillText('aprende a programar defendiendo la galaxia.',W/2,H/2-44);
     ctx.restore();
-    ctx.font='13px monospace'; ctx.fillStyle='#8af'; ctx.fillText('Destruye naves escribiendo la respuesta correcta',W/2,H/2-34);
-    ctx.fillStyle='#ffd600'; ctx.font='400 9px "Press Start 2P", monospace'; ctx.fillText('Elige tu modo:',W/2,H/2+2);
-    ctx.fillStyle='#8af'; ctx.font='11px monospace'; ctx.fillText('NORMAL: 5 niveles | SPEEDRUN: Nivel 1 DIFICIL',W/2,H/2+22);
-    ctx.fillStyle='#ff8a80'; ctx.font='11px monospace'; ctx.fillText('Tienda con tus puntos',W/2,H/2+38);
-    ctx.fillStyle='#555'; ctx.font='11px monospace'; ctx.fillText('Mover Clic ENTER',W/2,H/2+56);
+    ctx.fillStyle='#d6e6ff'; ctx.shadowColor='rgba(0,229,255,.45)'; ctx.shadowBlur=10; ctx.font='700 14px "Segoe UI", system-ui, sans-serif'; ctx.fillText('Destruye naves escribiendo la respuesta correcta',W/2,H/2-18);
+    ctx.shadowBlur=0;
   }
   function drawIntro(){
     const alpha=Math.min(1,(90-levelPause)/30); ctx.globalAlpha=alpha;
