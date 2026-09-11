@@ -360,7 +360,8 @@ const Profile = {
       else if(has) btn='<button class="btn btn-primary btn-sm b-equip" data-b="'+x.id+'">Equipar</button>';
       else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">Comprar '+x.price+'</button>';
       else btn='<button class="btn btn-ghost btn-sm" disabled>'+x.price+'</button>';
-      return '<div class="frame-card"><div class="banner-preview" style="background:'+x.grad+';border-color:'+x.border+'"></div><p>'+x.name+'</p>'+btn+'</div>';
+      const anim=x.animated?' banner-leyenda':'';
+      return '<div class="frame-card"><div class="banner-preview'+anim+'" style="background:'+x.grad+';border-color:'+x.border+'"></div><p>'+x.name+'</p>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.b-buy').forEach(b=>b.addEventListener('click',()=>this.buyBanner(b.dataset.b)));
     g.querySelectorAll('.b-equip').forEach(b=>b.addEventListener('click',()=>this.equipBanner(b.dataset.b)));
