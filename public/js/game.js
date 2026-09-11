@@ -310,9 +310,9 @@ const Game = (() => {
   }
   function buildFormation(){
     if(levelData.isBoss){ buildBoss(); return; }
-    const qs=levelData.questions; const cols=5, spacingX=112;
-    const totalCols=Math.min(qs.length,cols); const startX=CW/2-((totalCols-1)*spacingX)/2; const topY=96;
-    qs.forEach((q,i)=>{ const col=i%cols, row=Math.floor(i/cols); enemies.push({baseX:startX+col*spacingX,baseY:topY+row*52,x:0,y:0,w:74,h:44,health:levelData.enemyHealth,maxHealth:levelData.enemyHealth,question:q.q,answer:q.a,flash:0,wobble:Math.random()*Math.PI*2,wobbleAmp:speedrun?0.9+Math.random()*1.0:0.5+Math.random()*0.4,wobbleSpeed:speedrun?0.07+Math.random()*0.05:0.04}); });
+    const qs=levelData.questions; const cols=5, spacingX=132;
+    const totalCols=Math.min(qs.length,cols); const startX=CW/2-((totalCols-1)*spacingX)/2; const topY=104;
+    qs.forEach((q,i)=>{ const col=i%cols, row=Math.floor(i/cols); enemies.push({baseX:startX+col*spacingX,baseY:topY+row*64,x:0,y:0,w:104,h:62,health:levelData.enemyHealth,maxHealth:levelData.enemyHealth,question:q.q,answer:q.a,flash:0,wobble:Math.random()*Math.PI*2,wobbleAmp:speedrun?0.9+Math.random()*1.0:0.5+Math.random()*0.4,wobbleSpeed:speedrun?0.07+Math.random()*0.05:0.04}); });
     questionsLeft=[]; formationOffset=0; formationDrift=0; formationDir=1;
     if(speedrun){ formationCountdown=SPEEDRUN_COUNTDOWN; formationSway=1.55; formationAdvance=0.45; } else { formationCountdown=FORMATION_COUNTDOWN_FRAMES; formationSway=0.6+levelData.enemySpeed*0.3; formationAdvance=0.08+levelData.enemySpeed*0.12; }
   }
@@ -740,35 +740,36 @@ const Game = (() => {
       if(e.maxHealth>1){ const bw=e.w-8; ctx.fillStyle='#400'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw,4); ctx.fillStyle='#f44'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw*(e.health/e.maxHealth),4); }
       const label=e.question.trim();
       ctx.textAlign='center'; ctx.textBaseline='middle';
-      let fontSize=7.5; ctx.font='700 '+fontSize+'px "Segoe UI", system-ui, monospace';
-      const maxW=e.w-8;
+      let fontSize=10.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
+      const maxW=e.w-10;
       let lines=[label];
       if(ctx.measureText(label).width>maxW){
         const words=label.split(' ');
         if(words.length>1){
           let line1=words[0], line2=words.slice(1).join(' ');
           if(ctx.measureText(line1).width>maxW || ctx.measureText(line2).width>maxW){
-            fontSize=6.8; ctx.font='700 '+fontSize+'px "Segoe UI", system-ui, monospace';
+            fontSize=9.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
           }
-          if(ctx.measureText(line1).width>maxW) line1=line1.slice(0,12);
-          if(ctx.measureText(line2).width>maxW) line2=line2.slice(0,12);
+          if(ctx.measureText(line1).width>maxW) line1=line1.slice(0,14);
+          if(ctx.measureText(line2).width>maxW) line2=line2.slice(0,14);
           lines=[line1, line2];
         } else {
-          fontSize=6.5; ctx.font='700 '+fontSize+'px "Segoe UI", system-ui, monospace';
-          lines=[label.slice(0,14)];
+          fontSize=9.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
+          lines=[label.slice(0,16)];
         }
       }
       lines=lines.slice(0,2);
-      const lineH=8.5, padX=4, padY=2;
+      const lineH=11, padX=6, padY=4;
       let maxLineW=0; for(const ln of lines){ const w=ctx.measureText(ln).width; if(w>maxLineW) maxLineW=w; }
-      const boxW=maxLineW+padX*2, boxH=lines.length*lineH+padY*2;
-      const boxY=lines.length===1? e.y-1 : e.y-2;
-      ctx.fillStyle='rgba(0,0,0,.62)'; ctx.beginPath();
+      const boxW=Math.min(maxLineW+padX*2, e.w-6), boxH=lines.length*lineH+padY*2;
+      const boxY=e.y+2;
+      ctx.fillStyle='rgba(0,0,0,.78)'; ctx.beginPath();
       const bx=e.x-boxW/2, by=boxY-boxH/2;
       const r=4; ctx.moveTo(bx+r,by); ctx.lineTo(bx+boxW-r,by); ctx.quadraticCurveTo(bx+boxW,by,bx+boxW,by+r); ctx.lineTo(bx+boxW,by+boxH-r); ctx.quadraticCurveTo(bx+boxW,by+boxH,bx+boxW-r,by+boxH); ctx.lineTo(bx+r,by+boxH); ctx.quadraticCurveTo(bx,by+boxH,bx,by+boxH-r); ctx.lineTo(bx,by+r); ctx.quadraticCurveTo(bx,by,bx+r,by); ctx.closePath(); ctx.fill();
-      ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=3;
-      if(lines.length===1){ ctx.fillText(lines[0], e.x, boxY+0.5); }
-      else { ctx.fillText(lines[0], e.x, boxY-4); ctx.fillText(lines[1], e.x, boxY+4.5); }
+      ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,1)'; ctx.shadowBlur=4;
+      ctx.strokeStyle='rgba(0,0,0,.65)'; ctx.lineWidth=2.5;
+      if(lines.length===1){ ctx.strokeText(lines[0], e.x, boxY+0.5); ctx.fillText(lines[0], e.x, boxY+0.5); }
+      else { ctx.strokeText(lines[0], e.x, boxY-5); ctx.fillText(lines[0], e.x, boxY-5); ctx.strokeText(lines[1], e.x, boxY+6); ctx.fillText(lines[1], e.x, boxY+6); }
       ctx.shadowBlur=0; ctx.restore();
     }
   }
