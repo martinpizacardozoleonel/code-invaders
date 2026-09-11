@@ -169,8 +169,24 @@ const Profile = {
   async savePicture(e) {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 3500000) { if (typeof Toast !== 'undefined') Toast.error('Imagen muy grande (máx 3.5MB)'); return; }
+    const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
     const reader = new FileReader();
     reader.onload = async () => {
+      if (isGif) {
+        const base64 = reader.result;
+        const avatarImg = document.getElementById('avatarImg');
+        const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+        if (avatarImg) { avatarImg.src = base64; avatarImg.style.display = 'block'; }
+        if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+        if (this.isLogged()) {
+          try { await this.api('/api/settings', { method: 'PUT', body: JSON.stringify({ profilePic: base64 }) }); } catch (e) { }
+          if (this.user) this.user.profilePic = base64;
+          this.renderProfile();
+        }
+        if (typeof Toast !== 'undefined') Toast.success('Foto GIF guardada');
+        return;
+      }
       const img = new Image();
       img.onload = async () => {
         const canvas = document.createElement('canvas');
