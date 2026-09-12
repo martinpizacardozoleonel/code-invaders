@@ -312,12 +312,34 @@ const Game = (() => {
     speedrunHudEl.textContent='⏱ '+formatTime(ms);
     speedrunHudEl.classList.toggle('speedrun-warn', ms>45000);
   }
+  function isMobileFS(){ try{ return window.matchMedia('(max-width:768px)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints>0; }catch(e){ return false; } }
+  function enterMobileFS(){
+    if(!isMobileFS()) return;
+    try{
+      const el=document.documentElement;
+      if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+      else if(!document.webkitFullscreenElement && el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }catch(e){}
+    setTimeout(()=>{ if(inputEl && state!=='title'){ inputEl.disabled=false; inputEl.focus(); } }, 300);
+  }
+  function exitMobileFS(){
+    try{
+      if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+      else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }catch(e){}
+    if(inputEl) inputEl.blur();
+  }
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement && !document.webkitFullscreenElement && state==='title'){
+      if(inputEl) inputEl.blur();
+    }
+  });
   function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable); }
   function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'; }
   function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else exitBtnEl.classList.add('hidden'); if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
-  function doExit(){ hideExitConfirm(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
+  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){
     if(startBtnEl){
       startBtnEl.textContent='▶ JUGAR';
@@ -329,9 +351,9 @@ const Game = (() => {
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
   let sIdx=0;
-  startLevel(sIdx); }
+  startLevel(sIdx); enterMobileFS(); }
   function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; speedrunStart=performance.now(); 
-  score=0; lives=2; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); }
+  score=0; lives=2; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); enterMobileFS(); }
   function startLevel(lvl){
     level=lvl; const base=LEVELS[level];
     if(speedrun && level===0){ levelData={...base,title:base.title+' ⚡ SPEEDRUN',enemySpeed:1.45,spawnInterval:45,enemyHealth:1}; }
