@@ -71,16 +71,24 @@
     }
 
     const views = document.querySelectorAll('.view');
+    const mainEl = document.querySelector('main');
+    function switchView(target){
+      views.forEach(v => v.classList.toggle('active', v.id === 'view-' + target));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === target));
+      if (target === 'ranked' && typeof Ranked !== 'undefined') Ranked.loadRanking();
+      if (target === 'chat' && typeof Chat !== 'undefined') Chat.start();
+      if (target === 'friends' && typeof Friends !== 'undefined') Friends.load();
+      if(mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     document.querySelectorAll('[data-view]').forEach(el => {
-      el.addEventListener('click', () => {
+      const handler = (e) => {
+        e.preventDefault();
         const target = el.dataset.view;
-        views.forEach(v => v.classList.toggle('active', v.id === 'view-' + target));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === target));
-        if (target === 'ranked' && typeof Ranked !== 'undefined') Ranked.loadRanking();
-        if (target === 'chat' && typeof Chat !== 'undefined') Chat.start();
-        if (target === 'friends' && typeof Friends !== 'undefined') Friends.load();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+        switchView(target);
+      };
+      el.addEventListener('click', handler);
+      el.addEventListener('touchend', handler, {passive:false});
     });
 
     (async()=>{ try{ const r=await fetch('/api/status'); const s=await r.json(); const b=document.getElementById('dbBadge'); if(b){ b.classList.remove('hidden'); if(s.storage==='postgres'){ b.textContent='PG '+s.users; b.classList.add('db-ok'); b.title='PostgreSQL conectada ('+s.users+' cuentas). Todo se guarda.'; } else { b.textContent='TEMPORAL'; b.classList.add('db-bad'); b.title='MODO TEMPORAL: sin base de datos. Las cuentas SE BORRAN. Configura DATABASE_URL en Render.'; } } }catch(e){} })();

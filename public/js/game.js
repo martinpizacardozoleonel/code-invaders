@@ -166,6 +166,37 @@ const Game = (() => {
       window.addEventListener('mouseup',up);
     };
     bindHold(tcLeft,'ArrowLeft'); bindHold(tcRight,'ArrowRight');
+    let _lastMobFire=0;
+    if(tcFire){
+      const mobileFire=(e)=>{
+        if(e) e.preventDefault();
+        if(Date.now()-_lastMobFire<450) return;
+        _lastMobFire=Date.now();
+        if(state!=='playing') return;
+        if(bossDodge && !cssBoss){
+          if(!doBossDodgeShoot()) {
+            if(bossBullets<=0) { try{ showToast('🔫 Sin balas, recoge 🔫'); }catch(err){ if(inputEl) inputEl.placeholder='Sin balas, recoge 🔫'; } }
+          }
+          return;
+        }
+        fireAnswer();
+      };
+      tcFire.addEventListener('touchstart',mobileFire,{passive:false});
+      tcFire.addEventListener('click',mobileFire);
+      tcFire.addEventListener('touchend',(e)=>{ e.preventDefault(); },{passive:false});
+    }
+    if(inputEl){
+      inputEl.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); if(bossDodge && !cssBoss) { if(!doBossDodgeShoot()) fireAnswer(); } else fireAnswer(); }
+      });
+    }
+    const answerFireBtn=document.getElementById('answerFireBtn');
+    if(answerFireBtn){
+      let _lastAF=0;
+      const af=(e)=>{ if(e) e.preventDefault(); if(Date.now()-_lastAF<450) return; _lastAF=Date.now(); if(bossDodge && !cssBoss) doBossDodgeShoot(); else fireAnswer(); };
+      answerFireBtn.addEventListener('touchstart',af,{passive:false});
+      answerFireBtn.addEventListener('click',af);
+    }
     const unlockAudio=()=>{ initAudio(); document.body.removeEventListener('click',unlockAudio); document.removeEventListener('keydown',unlockAudio); };
     document.body.addEventListener('click',unlockAudio);
     document.addEventListener('keydown',unlockAudio);
@@ -299,7 +330,7 @@ const Game = (() => {
         cssBoss=false; bossDodge=true; bossDodgeState='playing';
         bossX=CW/2; bossY=100; bossHP=levelData.bossHealth; bossMaxHP=levelData.bossHealth;
         bossVX=1.8+Math.random()*0.8; bossVY=1.2+Math.random()*0.6;
-        bossBullets=0; bossItems=[]; bossTags=[]; bossItemTimer=0; bossTagTimer=0;
+        bossBullets=3; bossItems=[]; bossTags=[]; bossItemTimer=0; bossTagTimer=0;
         invertedTimer=0; bossQuizActive=false; bossQuizData=null; bossQuizLocked=false;
         bossDodgeScore=0;
       }
@@ -358,6 +389,15 @@ const Game = (() => {
   function _tone(freq,t,dur,type,vol){ if(!audioCtx) return; const g=audioCtx.createGain(),o=audioCtx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur); }
   function playSound(type){ if(!audioCtx) initAudio(); if(!audioCtx) return; resumeAudio(); const now=audioCtx.currentTime; switch(type){ case 'laser': _tone(880,now,0.12,'sine',0.18); break; case 'explosion': _tone(180,now,0.35,'sawtooth',0.25); _tone(90,now+0.05,0.3,'square',0.15); break; case 'hit': _tone(130,now,0.3,'sine',0.18); break; case 'combo': _tone(330,now,0.18,'sine',0.15); _tone(440,now+0.1,0.18,'sine',0.15); _tone(660,now+0.2,0.22,'sine',0.18); break; case 'pickup': _tone(440,now,0.2,'sine',0.14); _tone(880,now+0.12,0.25,'sine',0.14); break; } }
   function addCoins(n){ if(!n) return; coins+=n; score+=n; saveShopLocal(); updateHUD(); updateShopUI(); if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged){ API.saveProgress(level+1,1,false,n).catch(()=>{}); } }
+  function doBossDodgeShoot(){
+    if(state!=='playing' || bossQuizActive) return false;
+    if(shootCooldown>0 || bossBullets<=0) return false;
+    shootCooldown=15; bossBullets--;
+    makeLaser(player.x,player.y-22,bossX,bossY,'#ff0');
+    bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion');
+    if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } }
+    updateHUD(); return true;
+  }
   function damagePlayer(){
     lives--; shootCooldown=45;
     comboCount=0; comboTimer=0; comboPop=0; slowTimer=0; fastTimer=0; player.speed=player.baseSpeed;
@@ -405,7 +445,7 @@ const Game = (() => {
     if(bossItemTimer>=5+Math.random()*4){ bossItemTimer=0; spawnBossItem(); }
     for(let i=bossItems.length-1;i>=0;i--){ const it=bossItems[i]; it.y+=it.speed||1.4; it.bob+=dt*2.5; const iy=it.y+Math.sin(it.bob)*10; if(it.y>H+40){ bossItems.splice(i,1); continue; } if(Math.abs(player.x-it.x)<45&&Math.abs(player.y-iy)<45){ collectBossItem(it); bossItems.splice(i,1); } }
     if(bossQuizActive) return;
-    if(keys[' ']&&shootCooldown<=0&&bossBullets>0){ shootCooldown=15; bossBullets--; const dx=bossX-player.x,dy=bossY-player.y,dist=Math.sqrt(dx*dx+dy*dy); const vx=dx/dist*8,vy=dy/dist*8; makeLaser(player.x,player.y-22,bossX,bossY,'#ff0'); bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion'); if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } } }
+    if(keys[' ']&&shootCooldown<=0&&bossBullets>0){ doBossDodgeShoot(); }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
     updateHUD();
   }
@@ -597,7 +637,17 @@ const Game = (() => {
     else if(earned) saveShopLocal();
   }
   function fireAnswer(){
-    if(state!=='playing'||shootCooldown>0||!inputEl) return;
+    if(state!=='playing'||!inputEl) return;
+    if(bossDodge && !cssBoss){
+      if(!doBossDodgeShoot() && inputEl.value.trim()){
+        const t=inputEl.value.trim().toLowerCase();
+        const ok=bossTags.some(x=>x.tag.toLowerCase()===t);
+        if(ok) doBossDodgeShoot();
+        else { playSound('hit'); showToast('💥 Escribe o dispara con 💥'); }
+      }
+      inputEl.value=''; if(inputEl) inputEl.focus(); return;
+    }
+    if(shootCooldown>0) return;
     const typed=inputEl.value.trim(); if(!typed) return;
     shootCooldown=15; playSound('laser');
     if(cssBoss && levelData && levelData.isCssBoss){
