@@ -447,11 +447,10 @@ footer {
   body > main{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
   body > main:has(#view-game.active){ overflow:hidden; }
   main{padding:0 0 calc(4px + env(safe-area-inset-bottom));max-width:100vw; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;}
-  .view{overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; min-height:0;}
-  #view-game{flex:1;display:flex;flex-direction:column; min-height:0;}
-  #view-game.active{display:flex;overflow:hidden; min-height:0;}
-  #view-game:not(.active){ overflow-y:auto; }
-  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ overflow-y:auto !important; padding-bottom:16px; padding-left:4px; padding-right:4px; }
+  .view{ display:none !important; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; min-height:0; }
+  .view.active{ display:block !important; }
+  #view-game.active{ display:flex !important; flex:1; flex-direction:column; min-height:0; overflow:hidden; }
+  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow-y:auto !important; padding-bottom:16px; padding-left:4px; padding-right:4px; }
   .topbar{position:sticky;top:0;padding:8px 12px;gap:8px;}
   .logo{font-size:1rem;}
   .nav-btn{padding:7px 13px;font-size:.84rem; touch-action:manipulation; min-height:36px;}
@@ -500,9 +499,10 @@ footer {
   html,body{ height:auto; min-height:100dvh; overflow:auto; }
   body > main{ overflow-y:auto; }
   main{padding:0 0 calc(4px + env(safe-area-inset-bottom)); overflow-y:auto; overflow-x:hidden;}
-  .view{ overflow-y:auto; }
-  #view-game.active{ overflow:hidden; }
-  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ overflow-y:auto !important; padding-left:4px; padding-right:4px; }
+  .view{ display:none !important; overflow-y:auto; }
+  .view.active{ display:block !important; }
+  #view-game.active{ display:flex !important; overflow:hidden; }
+  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow-y:auto !important; padding-left:4px; padding-right:4px; }
   footer{ padding:8px 6px calc(8px + env(safe-area-inset-bottom)); font-size:.7rem; margin-top:auto; border-top-width:1px; line-height:1.2; }
   .topbar{ gap:6px; padding:6px 8px; }
   .topbar-right{ gap:4px; }
