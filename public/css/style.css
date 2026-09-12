@@ -442,15 +442,16 @@ footer {
   .docs-grid{ grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
 }
 @media (max-width:768px){
-  html,body{ height:auto; min-height:100dvh; overflow:auto; }
-  body{ overflow:auto; }
-  body > main{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
-  body > main:has(#view-game.active){ overflow:hidden; }
-  main{padding:0 0 calc(4px + env(safe-area-inset-bottom));max-width:100vw; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;}
-  .view{ display:none !important; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; min-height:0; }
-  .view.active{ display:block !important; }
+  html{ height:auto; min-height:100dvh; overflow:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  body{ height:auto; min-height:100dvh; overflow:visible; display:flex; flex-direction:column; }
+  body > main{ flex:none; overflow:visible; overflow-x:hidden; min-height:auto; }
+  body > main:has(#view-game.active){ overflow:hidden; flex:1; display:flex; flex-direction:column; min-height:0; }
+  main{padding:0 0 calc(4px + env(safe-area-inset-bottom));max-width:100vw; overflow:visible; overflow-x:hidden; flex:none;}
+  main:has(#view-game.active){ overflow:hidden; flex:1; display:flex; flex-direction:column; min-height:0; }
+  .view{ display:none !important; overflow:visible; overflow-x:hidden; min-height:0; }
+  .view.active{ display:block !important; overflow:visible; }
   #view-game.active{ display:flex !important; flex:1; flex-direction:column; min-height:0; overflow:hidden; }
-  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow-y:auto !important; padding-bottom:16px; padding-left:4px; padding-right:4px; }
+  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow:visible !important; padding-bottom:24px; padding-left:4px; padding-right:4px; }
   .topbar{position:sticky;top:0;padding:8px 12px;gap:8px;}
   .logo{font-size:1rem;}
   .nav-btn{padding:7px 13px;font-size:.84rem; touch-action:manipulation; min-height:36px;}
@@ -496,13 +497,14 @@ footer {
   .nav-btn{ padding:5px 10px; font-size:.78rem; }
 }
 @media (max-width:480px){
-  html,body{ height:auto; min-height:100dvh; overflow:auto; }
-  body > main{ overflow-y:auto; }
-  main{padding:0 0 calc(4px + env(safe-area-inset-bottom)); overflow-y:auto; overflow-x:hidden;}
-  .view{ display:none !important; overflow-y:auto; }
-  .view.active{ display:block !important; }
+  html{ height:auto; min-height:100dvh; overflow:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  body{ height:auto; min-height:100dvh; overflow:visible; }
+  body > main{ overflow:visible; overflow-x:hidden; min-height:auto; flex:none; }
+  main{padding:0 0 calc(4px + env(safe-area-inset-bottom)); overflow:visible; overflow-x:hidden; flex:none;}
+  .view{ display:none !important; overflow:visible; }
+  .view.active{ display:block !important; overflow:visible; }
   #view-game.active{ display:flex !important; overflow:hidden; }
-  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow-y:auto !important; padding-left:4px; padding-right:4px; }
+  #view-ranked.active, #view-chat.active, #view-friends.active, #view-qr.active, #view-docs.active{ display:block !important; overflow:visible !important; padding-left:4px; padding-right:4px; padding-bottom:24px; }
   footer{ padding:8px 6px calc(8px + env(safe-area-inset-bottom)); font-size:.7rem; margin-top:auto; border-top-width:1px; line-height:1.2; }
   .topbar{ gap:6px; padding:6px 8px; }
   .topbar-right{ gap:4px; }
