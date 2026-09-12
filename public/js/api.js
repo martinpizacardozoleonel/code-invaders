@@ -41,10 +41,10 @@ const API = (() => {
   };
   const API_BASE = (location.hostname.includes('github.io') ? 'https://code-invaders-maj5.onrender.com' : '');
   async function request(path,options={}){
-    const url = API_BASE + path;
-    const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
+    const url = API_BASE + path + (path.includes('?')?'&':'?') + '_=' + Date.now();
+    const headers=Object.assign({'Content-Type':'application/json','Cache-Control':'no-cache','Pragma':'no-cache'},options.headers||{});
     const token=localStorage.getItem(TOKEN_KEY); if(token) headers['Authorization']='Bearer '+token;
-    const res=await fetch(url,Object.assign({},options,{headers}));
+    const res=await fetch(url,Object.assign({cache:'no-store'},options,{headers}));
     let data={}; try{ data=await res.json(); }catch(e){}
     if(!res.ok) throw new Error(data.error||'Error en la petición');
     return data;
