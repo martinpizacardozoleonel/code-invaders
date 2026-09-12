@@ -787,7 +787,7 @@ footer {
   .intro-reopen{ right:10px; bottom:10px; padding:9px 14px; font-size:.8rem; }
   .mode-btns{ bottom:14px; gap:8px; padding:0 8px; }
   .mode-btns .btn-start{ font-size:.85rem; padding:10px 12px; white-space:nowrap; }
-
+}
 @media (max-width:768px){
   *{ -webkit-tap-highlight-color:transparent; }
   button, a{ touch-action:manipulation; }
