@@ -59,6 +59,16 @@ async function initPg(){
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS speedrun_best INT`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS speedrun_history TEXT NOT NULL DEFAULT '[]'`);
     console.log('✅ Tablas PG listas');
+    try{
+      const all = await pool.query('SELECT * FROM users');
+      for(const row of all.rows){
+        let u = pgRowToUser(row);
+        if(stripChampion(u)){
+          await pgUpsertUser(u);
+          console.log('🧹 Limpieza campeon para',u.username);
+        }
+      }
+    }catch(e){ console.error('cleanup campeon',e.message); }
     const r = await pool.query('SELECT COUNT(*) FROM users');
     if(parseInt(r.rows[0].count)===0 && fileDb.users.length>0){
       for(const u of fileDb.users){ await pgUpsertUser(u); }
@@ -67,6 +77,14 @@ async function initPg(){
       for(const t of fileDb.tournaments){ try{ await pool.query('INSERT INTO tournaments(id,status,start_date,end_date,results) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[t.id,t.status,t.startDate,t.endDate,JSON.stringify(t.results||{})]); }catch(e){} }
     }
   }catch(e){ console.error('PG init error',e.message); USE_PG=false; }
+}
+function stripChampion(u){
+  let changed=false;
+  if(u.frames && u.frames.includes('campeon')){ u.frames=u.frames.filter(f=>f!=='campeon'); changed=true; }
+  if(u.equippedFrame==='campeon'){ u.equippedFrame='none'; changed=true; }
+  if(u.skins && u.skins.includes('tournament_silver')){ u.skins=u.skins.filter(s=>s!=='tournament_silver'); changed=true; }
+  if(u.equipped==='tournament_silver'){ u.equipped='default'; changed=true; }
+  return changed;
 }
 function ensureShopFields(u){
   if(u.coins===undefined) u.coins=0;
@@ -86,6 +104,7 @@ function ensureShopFields(u){
   if(!u.nameColor) u.nameColor='#ffffff';
   if(!u.ownedNameColors) u.ownedNameColors=[];
   if(u.chatBg===undefined) u.chatBg='';
+  stripChampion(u);
   if(!u.banners) u.banners=['none'];
   if(!u.equippedBanner) u.equippedBanner='none';
   if(!u.banners.includes('none')) u.banners.unshift('none');

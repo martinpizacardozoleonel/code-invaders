@@ -910,6 +910,10 @@ footer {
   padding-top: 16px;
   padding-bottom: 14px;
 }
+.avatar-wrap.champion-active .avatar-frame {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
 .avatar-wrap.champion-active::before {
   content: '';
   position: absolute;
@@ -947,6 +951,8 @@ footer {
   position: relative;
   padding-top: 12px;
   padding-bottom: 10px;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 .ranked-avatar-wrap.champion-active::before, .inspect-avatar-wrap.champion-active::before {
   content: '';

@@ -37,7 +37,8 @@ const Profile = {
     try {
       const data = await this.api('/api/me');
       this.user = data.user;
-      this.expLevel = data.expLevel || 1;
+      const lvl = data.expLevel;
+      this.expLevel = (lvl && typeof lvl === 'object' ? lvl.level : lvl) || 1;
       this.active = true;
       this.applyTheme(this.user.theme || 'dark');
       this.renderProfile();
@@ -85,7 +86,8 @@ const Profile = {
         const data = await this.api('/api/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
         this.token = data.token;
         this.user = data.user;
-        this.expLevel = data.expLevel || 1;
+        const lvl = data.expLevel;
+        this.expLevel = (lvl && typeof lvl === 'object' ? lvl.level : lvl) || 1;
         localStorage.setItem('fx_token', data.token);
         this.active = true;
         this.applyTheme(this.user.theme || 'dark');
@@ -108,7 +110,8 @@ const Profile = {
         const data = await this.api('/api/register', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
         this.token = data.token;
         this.user = data.user;
-        this.expLevel = data.expLevel || 1;
+        const lvl = data.expLevel;
+        this.expLevel = (lvl && typeof lvl === 'object' ? lvl.level : lvl) || 1;
         localStorage.setItem('fx_token', data.token);
         this.active = true;
         this.applyTheme(this.user.theme || 'dark');
@@ -538,7 +541,7 @@ const Profile = {
 
     if (this.isLogged()) {
       if (nameEl) { nameEl.textContent = this.user.username || 'Invitado'; try{ let s=API.fontStyle(this.user.equippedFont)+API.fxStyle(this.user.equippedFx); const c=this.user.nameColor; if(c&&c!=='rainbow'&&c!=='#ffffff') s='color:'+c+';'+s; nameEl.style.cssText=s; if(c==='rainbow'){ nameEl.style.background='linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff)'; nameEl.style.webkitBackgroundClip='text'; nameEl.style.webkitTextFillColor='transparent'; } }catch(e){} }
-      if (levelEl) { levelEl.textContent = `Nivel ${this.expLevel} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
+      if (levelEl) { const lvl = (this.expLevel && typeof this.expLevel === 'object' ? this.expLevel.level : this.expLevel); levelEl.textContent = `Nivel ${lvl||1} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
       if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
       if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
       if (avatarImg && this.user.profilePic) { avatarImg.src = this.user.profilePic; avatarImg.style.display = 'block'; }
