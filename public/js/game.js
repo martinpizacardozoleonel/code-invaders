@@ -262,7 +262,12 @@ const Game = (() => {
       if(r && r.isNewBest){
         speedrunBest=t;
         try{ const st=store(); const pref=`ci_${uid()}_speedrun_best`; st.setItem(pref, String(t)); }catch(e){}
-        try{ if(typeof Toast!=='undefined') Toast.success('⚡ Nuevo récord '+formatTime(t)+' guardado'); else showToast('⚡ Récord '+formatTime(t)+' guardado'); }catch(e){}
+        const savedToDb=r.savedToDb!==false;
+        if(savedToDb){
+          try{ if(typeof Toast!=='undefined') Toast.success('⚡ Nuevo récord '+formatTime(t)+' guardado en ranked'); else showToast('⚡ Récord '+formatTime(t)+' guardado en ranked'); }catch(e){}
+        } else {
+          try{ if(typeof Toast!=='undefined') Toast.warning('⚡ Nuevo récord '+formatTime(t)+' guardado localmente (problema con servidor)'); else showToast('⚡ Récord guardado localmente'); }catch(e){}
+        }
         if(typeof Ranked!=='undefined' && Ranked.loadRanking) try{ await Ranked.loadRanking(); }catch(e){ console.error('Ranked reload fail',e); }
       } else {
         try{ if(typeof Toast!=='undefined') Toast.info('⏱ '+formatTime(t)+' - no superaste tu mejor ('+(speedrunBest?formatTime(speedrunBest):'-')+')'); else showToast('⏱ '+formatTime(t)); }catch(e){}
@@ -272,8 +277,11 @@ const Game = (() => {
       console.error('[pushSpeedrun] save fail',e && e.message, e);
       try{ const st=store(); const pref=`ci_${uid()}_speedrun_best`; const cur=st.getItem(pref); if(cur==null || t < Number(cur)) st.setItem(pref, String(t)); }catch(err){}
       let msg=(e&&e.message)||'Error al guardar';
-      if(msg==='Failed to fetch' || msg.includes('fetch')) msg='Sin conexión al servidor, guardado local';
       if(msg.includes('No autenticado')) msg='Sesión expirada, inicia sesión de nuevo';
+      else if(msg.includes('Tiempo fuera de rango')) msg='Tiempo fuera del rango permitido (1s-10m)';
+      else if(msg.includes('Tiempo inválido')) msg='Error en el tiempo del speedrun';
+      else if(msg.includes('Failed to fetch')||msg.includes('fetch')) msg='Sin conexión al servidor, guardado local';
+      else if(msg.includes('Error interno')) msg='Error del servidor, intentá de nuevo';
       try{ if(typeof Toast!=='undefined') Toast.error(msg); else showToast(msg); }catch(err){}
     }
   }
