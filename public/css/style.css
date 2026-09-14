@@ -897,80 +897,109 @@ footer {
 @keyframes leyendaShine { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 @keyframes tryhardShake { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(0.6px,-0.6px) rotate(0.4deg)} 75%{transform:translate(-0.6px,0.6px) rotate(-0.4deg)} }
 
-/* ============ CHAMPION FRAME (CORONA + LAUREL - COMBINABLE) ============ */
+/* ============ CHAMPION FRAME (LAUREA + CORONA + CINTA - ANIMADO GIF) ============ */
 .frame-campeon {
   border-color: #ffd700 !important;
-  box-shadow: 0 0 12px #ffd700, 0 0 24px #ffae00, 0 0 36px rgba(255,215,0,.4), inset 0 0 10px rgba(255,215,0,.25) !important;
-  animation: campeonPulse 2s ease-in-out infinite;
+  border-width: 4px !important;
+  box-shadow: 0 0 14px #ffd700, 0 0 28px #ffae00, 0 0 42px rgba(255,215,0,.35), inset 0 0 12px rgba(255,215,0,.2) !important;
+  background: linear-gradient(135deg, #0a0e1a 0%, #1a1500 50%, #0a0e1a 100%) !important;
+  animation: campeonGlow 2s ease-in-out infinite, campeonBg 4s ease-in-out infinite !important;
 }
 .avatar-wrap.champion-active {
   position: relative;
-  padding-top: 18px;
+  padding-top: 16px;
+  padding-bottom: 14px;
 }
 .avatar-wrap.champion-active::before {
-  content: '👑';
+  content: '';
   position: absolute;
-  top: -6px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 22px;
+  width: 100px;
+  height: 110px;
   z-index: 10;
-  filter: drop-shadow(0 0 6px #ffd700) drop-shadow(0 0 12px #ffae00);
-  animation: crownBob 1.8s ease-in-out infinite;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23b8860b'/%3E%3Cstop offset='25%25' stop-color='%23ffd700'/%3E%3Cstop offset='50%25' stop-color='%23fff8a0'/%3E%3Cstop offset='75%25' stop-color='%23ffae00'/%3E%3Cstop offset='100%25' stop-color='%23ffd700'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='50' cy='60' rx='38' ry='44' fill='none' stroke='url(%23g)' stroke-width='3'/%3E%3Cpath d='M12 70 Q14 52 22 38 Q26 44 23 55 Q20 62 16 72Z' fill='url(%23g)' opacity='.85'/%3E%3Cpath d='M88 70 Q86 52 78 38 Q74 44 77 55 Q80 62 84 72Z' fill='url(%23g)' opacity='.85'/%3E%3Cpath d='M18 62 Q20 48 28 36 Q31 42 29 52 Q26 58 22 65Z' fill='url(%23g)' opacity='.7'/%3E%3Cpath d='M82 62 Q80 48 72 36 Q69 42 71 52 Q74 58 78 65Z' fill='url(%23g)' opacity='.7'/%3E%3Cpath d='M24 56 Q27 44 34 34 Q36 39 34 48 Q32 53 28 60Z' fill='url(%23g)' opacity='.55'/%3E%3Cpath d='M76 56 Q73 44 66 34 Q64 39 66 48 Q68 53 72 60Z' fill='url(%23g)' opacity='.55'/%3E%3Cpath d='M35 8 Q35 3 40 0 L42 4 L44 0 Q49 3 49 8 L48 16 L46 12 L44 17 L42 12 L40 17 L38 12 L36 16Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.5'/%3E%3Cpath d='M28 14 L26 8 Q26 5 29 4 L31 8Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.4'/%3E%3Cpath d='M56 14 L58 8 Q58 5 55 4 L53 8Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.4'/%3E%3Cellipse cx='42' cy='6' rx='2' ry='2.5' fill='%23ff4444' stroke='%23ffd700' stroke-width='.6'/%3E%3Cpath d='M20 92 Q28 82 50 78 Q72 82 80 92 L76 96 Q68 88 50 85 Q32 88 24 96Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.5'/%3E%3Cpath d='M16 96 L12 108 L24 100 L18 98Z' fill='url(%23g)'/%3E%3Cpath d='M84 96 L88 108 L76 100 L82 98Z' fill='url(%23g)'/%3E%3Cpath d='M24 96 L22 106 L32 99 L28 97Z' fill='url(%23g)' opacity='.8'/%3E%3Cpath d='M76 96 L78 106 L68 99 L72 97Z' fill='url(%23g)' opacity='.8'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+  animation: championLaurelSpin 6s linear infinite, championFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(255,215,0,.7)) drop-shadow(0 0 18px rgba(255,174,0,.4));
 }
 .avatar-wrap.champion-active::after {
   content: '✦';
   position: absolute;
-  top: 4px;
-  right: -4px;
-  font-size: 11px;
+  top: 2px;
+  right: -2px;
+  font-size: 10px;
   color: #ffd700;
-  z-index: 10;
-  animation: sparkleRotate 1.5s linear infinite;
-  text-shadow: 0 0 6px #ffd700, 0 0 12px #ffae00;
+  z-index: 11;
+  animation: sparkleRotate 1.2s linear infinite;
+  text-shadow: 0 0 6px #ffd700, 0 0 14px #ffae00, 0 0 22px #ffd700;
 }
 .ranked-avatar-wrap.frame-campeon, .inspect-avatar-wrap.frame-campeon {
   border-color: #ffd700 !important;
+  border-width: 3px;
   box-shadow: 0 0 14px #ffd700, 0 0 28px #ffae00, inset 0 0 8px rgba(255,215,0,.3) !important;
-  animation: campeonPulse 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #0a0e1a 0%, #1a1500 50%, #0a0e1a 100%) !important;
+  animation: campeonGlow 2s ease-in-out infinite, campeonBg 4s ease-in-out infinite !important;
 }
 .ranked-avatar-wrap.champion-active, .inspect-avatar-wrap.champion-active {
   position: relative;
-  padding-top: 14px;
+  padding-top: 12px;
+  padding-bottom: 10px;
 }
 .ranked-avatar-wrap.champion-active::before, .inspect-avatar-wrap.champion-active::before {
-  content: '👑';
+  content: '';
   position: absolute;
-  top: -6px;
+  top: -8px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 16px;
+  width: 76px;
+  height: 86px;
   z-index: 10;
-  filter: drop-shadow(0 0 4px #ffd700);
-  animation: crownBob 1.8s ease-in-out infinite;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23b8860b'/%3E%3Cstop offset='25%25' stop-color='%23ffd700'/%3E%3Cstop offset='50%25' stop-color='%23fff8a0'/%3E%3Cstop offset='75%25' stop-color='%23ffae00'/%3E%3Cstop offset='100%25' stop-color='%23ffd700'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='50' cy='60' rx='38' ry='44' fill='none' stroke='url(%23g)' stroke-width='3'/%3E%3Cpath d='M12 70 Q14 52 22 38 Q26 44 23 55 Q20 62 16 72Z' fill='url(%23g)' opacity='.85'/%3E%3Cpath d='M88 70 Q86 52 78 38 Q74 44 77 55 Q80 62 84 72Z' fill='url(%23g)' opacity='.85'/%3E%3Cpath d='M18 62 Q20 48 28 36 Q31 42 29 52 Q26 58 22 65Z' fill='url(%23g)' opacity='.7'/%3E%3Cpath d='M82 62 Q80 48 72 36 Q69 42 71 52 Q74 58 78 65Z' fill='url(%23g)' opacity='.7'/%3E%3Cpath d='M24 56 Q27 44 34 34 Q36 39 34 48 Q32 53 28 60Z' fill='url(%23g)' opacity='.55'/%3E%3Cpath d='M76 56 Q73 44 66 34 Q64 39 66 48 Q68 53 72 60Z' fill='url(%23g)' opacity='.55'/%3E%3Cpath d='M35 8 Q35 3 40 0 L42 4 L44 0 Q49 3 49 8 L48 16 L46 12 L44 17 L42 12 L40 17 L38 12 L36 16Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.5'/%3E%3Cpath d='M28 14 L26 8 Q26 5 29 4 L31 8Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.4'/%3E%3Cpath d='M56 14 L58 8 Q58 5 55 4 L53 8Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.4'/%3E%3Cellipse cx='42' cy='6' rx='2' ry='2.5' fill='%23ff4444' stroke='%23ffd700' stroke-width='.6'/%3E%3Cpath d='M20 92 Q28 82 50 78 Q72 82 80 92 L76 96 Q68 88 50 85 Q32 88 24 96Z' fill='url(%23g)' stroke='%23b8860b' stroke-width='.5'/%3E%3Cpath d='M16 96 L12 108 L24 100 L18 98Z' fill='url(%23g)'/%3E%3Cpath d='M84 96 L88 108 L76 100 L82 98Z' fill='url(%23g)'/%3E%3Cpath d='M24 96 L22 106 L32 99 L28 97Z' fill='url(%23g)' opacity='.8'/%3E%3Cpath d='M76 96 L78 106 L68 99 L72 97Z' fill='url(%23g)' opacity='.8'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+  animation: championLaurelSpin 6s linear infinite, championFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px rgba(255,215,0,.6));
 }
 .inspect-avatar-wrap.champion-active::before {
-  font-size: 20px;
-  top: -8px;
+  width: 100px;
+  height: 112px;
+  top: -10px;
 }
 .chat-avatar.frame-campeon {
   border-color: #ffd700 !important;
   box-shadow: 0 0 10px #ffd700, 0 0 20px #ffae00 !important;
-  animation: campeonPulse 2s ease-in-out infinite;
+  animation: campeonGlow 2s ease-in-out infinite !important;
 }
 .frame-preview.frame-campeon {
   border-color: #ffd700;
   box-shadow: 0 0 8px #ffd700, 0 0 16px #ffae00;
+  animation: campeonGlow 2s ease-in-out infinite;
 }
-@keyframes campeonPulse {
-  0%, 100% { box-shadow: 0 0 12px #ffd700, 0 0 24px #ffae00, 0 0 36px rgba(255,215,0,.4); }
-  50% { box-shadow: 0 0 20px #ffd700, 0 0 40px #ffae00, 0 0 60px rgba(255,215,0,.6), 0 0 80px rgba(255,174,0,.3); }
+@keyframes campeonGlow {
+  0%, 100% { box-shadow: 0 0 14px #ffd700, 0 0 28px #ffae00, 0 0 42px rgba(255,215,0,.35); filter: brightness(1); }
+  25% { box-shadow: 0 0 20px #ffd700, 0 0 38px #ffae00, 0 0 56px rgba(255,215,0,.5); filter: brightness(1.15); }
+  50% { box-shadow: 0 0 26px #ffd700, 0 0 50px #ffae00, 0 0 72px rgba(255,215,0,.6), 0 0 90px rgba(255,174,0,.25); filter: brightness(1.3); }
+  75% { box-shadow: 0 0 20px #ffd700, 0 0 38px #ffae00, 0 0 56px rgba(255,215,0,.5); filter: brightness(1.15); }
 }
-@keyframes crownBob {
-  0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
-  25% { transform: translateX(-50%) translateY(-2px) rotate(3deg); }
-  50% { transform: translateX(-50%) translateY(-4px) rotate(0deg); }
-  75% { transform: translateX(-50%) translateY(-2px) rotate(-3deg); }
+@keyframes campeonBg {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes championFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateX(-50%) translateY(-2px) rotate(1.5deg) scale(1.01); }
+  50% { transform: translateX(-50%) translateY(-4px) rotate(0deg) scale(1.02); }
+  75% { transform: translateX(-50%) translateY(-2px) rotate(-1.5deg) scale(1.01); }
+}
+@keyframes championLaurelSpin {
+  0% { filter: drop-shadow(0 0 6px rgba(255,215,0,.5)) brightness(0.9) hue-rotate(0deg); }
+  25% { filter: drop-shadow(0 0 10px rgba(255,215,0,.8)) brightness(1.2) hue-rotate(5deg); }
+  50% { filter: drop-shadow(0 0 14px rgba(255,215,0,1)) brightness(1.4) hue-rotate(0deg); }
+  75% { filter: drop-shadow(0 0 10px rgba(255,215,0,.8)) brightness(1.2) hue-rotate(-5deg); }
+  100% { filter: drop-shadow(0 0 6px rgba(255,215,0,.5)) brightness(0.9) hue-rotate(0deg); }
 }
 @keyframes sparkleRotate {
   0% { transform: rotate(0deg) scale(1); opacity: 1; }
@@ -1299,10 +1328,10 @@ main{ padding:20px 24px 44px; }
 .profile-banner img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block}
 .profile-banner span{position:relative;z-index:1;background:rgba(0,0,0,.45);padding:4px 12px;border-radius:999px}
 .banner-preview{height:46px;border-radius:8px;border:2px solid #333;background-size:cover!important;background-position:center!important}
-.banner-leyenda{animation:bannerPulse 3s ease-in-out infinite;background-size:300% 100%!important}
-.banner-preview.banner-leyenda{animation:bannerPulse 3s ease-in-out infinite;background-size:300% 100%!important}
+.banner-leyenda{animation:bannerLeyendaShine 3s ease-in-out infinite;background-size:300% 100%!important}
+.banner-preview.banner-leyenda{animation:bannerLeyendaShine 3s ease-in-out infinite;background-size:300% 100%!important}
 
-@keyframes bannerPulse{
+@keyframes bannerLeyendaShine{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}

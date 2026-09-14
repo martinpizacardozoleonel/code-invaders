@@ -601,7 +601,8 @@ const Profile = {
       const isActive = f.id === equipped;
       const canBuy = !owned && coins >= f.price;
       let btn = '';
-      if (isActive) btn = '<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
+      if (f.exclusive) btn = '<button class="btn btn-ghost btn-sm" disabled>🏆 Solo para campeones</button>';
+      else if (isActive) btn = '<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if (owned) btn = `<button class="btn btn-primary btn-sm frame-equip" data-frame="${f.id}">Equipar</button>`;
       else if (canBuy) btn = `<button class="btn btn-primary btn-sm frame-buy" data-frame="${f.id}">🪙 Comprar ${f.price} pts</button>`;
       else btn = `<button class="btn btn-ghost btn-sm" disabled>🔒 ${f.price} pts</button>`;
