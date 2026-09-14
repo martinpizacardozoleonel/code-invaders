@@ -546,6 +546,13 @@ const Profile = {
       if (avatarFrame) {
         avatarFrame.className = 'avatar-frame';
         if (this.user.equippedFrame && this.user.equippedFrame !== 'none') avatarFrame.classList.add('frame-' + this.user.equippedFrame);
+        const avatarWrap = avatarFrame.parentElement;
+        if (avatarWrap) {
+          avatarWrap.classList.remove('champion-active');
+          if (this.user.frames && this.user.frames.includes('campeon') && this.user.equippedFrame !== 'campeon') {
+            avatarWrap.classList.add('champion-active');
+          }
+        }
       }
       if (loginFields) loginFields.classList.add('hidden');
       if (guestNote) guestNote.classList.add('hidden');
