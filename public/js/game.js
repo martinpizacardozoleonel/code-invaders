@@ -249,25 +249,31 @@ const Game = (() => {
   async function pushSpeedrun(time){
     if(typeof API==='undefined' || typeof API.saveSpeedrun!=='function') return;
     const t=Math.round(Number(time)||0);
+    if(!Number.isFinite(t)||t<=0){ console.error('[pushSpeedrun] tiempo invalido',time); return; }
     if(!isLogged()){
-      try{ const st=store(); const pref=`ci_${uid()}_`; const cur=st.getItem(pref+'speedrun_best'); if(cur==null || t < Number(cur)) st.setItem(pref+'speedrun_best', String(t)); }catch(e){}
+      try{ const st=store(); const pref=`ci_guest_speedrun_best`; const cur=st.getItem(pref); if(cur==null || t < Number(cur)) st.setItem(pref, String(t)); }catch(e){}
       try{ if(typeof Toast!=='undefined') Toast.error('Inicia sesión para guardar tu récord en el ranked'); else showToast('Inicia sesión para guardar récord'); }catch(e){}
       return;
     }
     try{
+      console.log('[pushSpeedrun] enviando',t,'ms token',!!localStorage.getItem('fx_token'));
       const r=await API.saveSpeedrun(t);
+      console.log('[pushSpeedrun] respuesta',r);
       if(r && r.isNewBest){
         speedrunBest=t;
-        try{ const st=store(); const pref=`ci_${uid()}_`; st.setItem(pref+'speedrun_best', String(t)); }catch(e){}
+        try{ const st=store(); const pref=`ci_${uid()}_speedrun_best`; st.setItem(pref, String(t)); }catch(e){}
         try{ if(typeof Toast!=='undefined') Toast.success('⚡ Nuevo récord '+formatTime(t)+' guardado'); else showToast('⚡ Récord '+formatTime(t)+' guardado'); }catch(e){}
-        if(typeof Ranked!=='undefined' && Ranked.loadRanking) try{ Ranked.loadRanking(); }catch(e){}
+        if(typeof Ranked!=='undefined' && Ranked.loadRanking) try{ await Ranked.loadRanking(); }catch(e){ console.error('Ranked reload fail',e); }
       } else {
         try{ if(typeof Toast!=='undefined') Toast.info('⏱ '+formatTime(t)+' - no superaste tu mejor ('+(speedrunBest?formatTime(speedrunBest):'-')+')'); else showToast('⏱ '+formatTime(t)); }catch(e){}
+        if(typeof Ranked!=='undefined' && Ranked.loadRanking) try{ await Ranked.loadRanking(); }catch(e){}
       }
     }catch(e){
-      console.error('speedrun save fail',e);
-      try{ const st=store(); const pref=`ci_${uid()}_`; const cur=st.getItem(pref+'speedrun_best'); if(cur==null || t < Number(cur)) st.setItem(pref+'speedrun_best', String(t)); }catch(err){}
-      const msg=(e&&e.message)||'Error al guardar';
+      console.error('[pushSpeedrun] save fail',e && e.message, e);
+      try{ const st=store(); const pref=`ci_${uid()}_speedrun_best`; const cur=st.getItem(pref); if(cur==null || t < Number(cur)) st.setItem(pref, String(t)); }catch(err){}
+      let msg=(e&&e.message)||'Error al guardar';
+      if(msg==='Failed to fetch' || msg.includes('fetch')) msg='Sin conexión al servidor, guardado local';
+      if(msg.includes('No autenticado')) msg='Sesión expirada, inicia sesión de nuevo';
       try{ if(typeof Toast!=='undefined') Toast.error(msg); else showToast(msg); }catch(err){}
     }
   }
