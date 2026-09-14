@@ -203,6 +203,14 @@
           <select id="privFriendSelect" style="width:100%;margin-bottom:8px"><option value="">-- elige amigo --</option></select>
           <div class="chat-messages" id="privMessages" style="height:280px"><p class="hint">Selecciona un amigo</p></div>
           <div class="chat-input-bar"><input type="text" id="privInput" placeholder="Mensaje privado..." maxlength="500"><button class="btn btn-primary btn-sm" id="privSendBtn">Enviar</button></div>
+          <h3 style="margin-top:16px">🎁 Enviar obsequio</h3>
+          <div id="giftSection">
+            <select id="giftFriendSelect" style="width:100%;margin-bottom:8px"><option value="">-- elige amigo --</option></select>
+            <div class="btn-row" style="margin-bottom:8px"><input type="number" id="giftAmountInput" placeholder="Pts (10-5000)" min="10" max="5000" style="width:120px"><input type="text" id="giftMsgInput" placeholder="Mensaje opcional..." maxlength="100" style="flex:1"><button class="btn btn-primary btn-sm" id="giftSendBtn">Enviar 🎁</button></div>
+            <p class="hint" id="giftHint">Tus puntos: <span id="giftCoinsDisplay">0</span></p>
+          </div>
+          <h3 style="margin-top:16px">📜 Historial de obsequios</h3>
+          <div id="giftHistory"><p class="hint">Sin obsequios aún</p></div>
         </div>
       </div>
       <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
@@ -326,6 +334,11 @@
               <input type="text" id="changeNameInput" placeholder="Nuevo nombre" maxlength="20">
               <button class="btn btn-primary btn-sm" id="saveNameBtn">Guardar</button>
             </div>
+          </div>
+          <div class="setting-item">
+            <label>Descripción del perfil</label>
+            <textarea id="profileDescInput" maxlength="200" rows="3" placeholder="Cuéntanos algo sobre ti..." style="width:100%;resize:vertical;font-family:inherit;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);"></textarea>
+            <div class="btn-row"><span class="hint" id="descCharCount">0/200</span><button class="btn btn-primary btn-sm" id="saveDescBtn">Guardar</button></div>
           </div>
         </div>
       </div>

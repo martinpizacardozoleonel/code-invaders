@@ -85,6 +85,8 @@ const API = (() => {
     async removeFriend(id){ return request('/api/friends/'+id,{method:'DELETE'}); },
     async getPrivate(friendId){ return request('/api/friends/private/'+friendId); },
     async sendPrivate(friendId,text){ return request('/api/friends/private/'+friendId,{method:'POST',body:JSON.stringify({text})}); },
+    async sendGift(friendId,amount,message){ return request('/api/friends/gift',{method:'POST',body:JSON.stringify({friendId,amount,message})}); },
+    async getGifts(){ return request('/api/friends/gifts'); },
     async getNameColors(){ return request('/api/name-colors'); },
     async buyNameColor(colorId){ return request('/api/name-colors/buy',{method:'POST',body:JSON.stringify({colorId})}); },
     async getBanners(){ return request('/api/banners'); },

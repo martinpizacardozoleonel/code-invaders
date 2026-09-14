@@ -18,6 +18,8 @@ const Friends={
    const sendInp=document.getElementById('privInput');
    if(sendBtn) sendBtn.addEventListener('click',()=>this.sendPriv());
    if(sendInp) sendInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendPriv(); }});
+   const giftBtn=document.getElementById('giftSendBtn');
+   if(giftBtn) giftBtn.addEventListener('click',()=>this.sendGift());
  },
  async heartbeat(){ try{ await API.heartbeat(); }catch(e){} },
  async load(){
@@ -45,9 +47,11 @@ const Friends={
      list.querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',()=>this.reject(b.dataset.cancel)));
      list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>this.remove(b.dataset.del)));
      list.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>this.openPriv(b.dataset.open)));
-     list.querySelectorAll('.friend-open').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('button')) return; this.openPriv(c.dataset.fid); }));
-     this.updatePrivList(accepted);
-   }catch(e){ list.innerHTML='<p class="lead">Debes iniciar sesión</p>'; }
+      list.querySelectorAll('.friend-open').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('button')) return; this.openPriv(c.dataset.fid); }));
+      this.updatePrivList(accepted);
+      this.updateGiftList(accepted);
+      this.loadGifts();
+    }catch(e){ list.innerHTML='<p class="lead">Debes iniciar sesión</p>'; }
  },
  updatePrivList(accepted){
    const sel=document.getElementById('privFriendSelect');
@@ -101,6 +105,54 @@ const Friends={
    const inp=document.getElementById('privInput');
    const t=(inp.value||'').trim(); if(!t) return;
    try{ await API.sendPrivate(this.sel,t); inp.value=''; await this.loadPriv(); }catch(e){ Toast.error(e.message); }
+ },
+ async sendGift(){
+   const sel=document.getElementById('giftFriendSelect');
+   const friendId=sel?sel.value:'';
+   if(!friendId) return Toast.info('Elige un amigo');
+   const amtInp=document.getElementById('giftAmountInput');
+   const msgInp=document.getElementById('giftMsgInput');
+   const amount=Number(amtInp?amtInp.value:0);
+   const message=msgInp?msgInp.value.trim():'';
+   if(!amount||amount<10) return Toast.info('Monto mínimo: 10 pts');
+   if(amount>5000) return Toast.info('Monto máximo: 5000 pts');
+   try{
+     const res=await API.sendGift(friendId,amount,message);
+     if(amtInp) amtInp.value='';
+     if(msgInp) msgInp.value='';
+     Toast.success('¡Obsequio enviado!');
+     if(typeof Profile!=='undefined'&&Profile.user) Profile.user.coins=res.coins;
+     this.loadGifts();
+   }catch(e){ Toast.error(e.message); }
+ },
+ async loadGifts(){
+   const box=document.getElementById('giftHistory');
+   const coinsEl=document.getElementById('giftCoinsDisplay');
+   if(!box) return;
+   try{
+     if(typeof Profile!=='undefined'&&Profile.user&&coinsEl) coinsEl.textContent=Profile.user.coins||0;
+     const res=await API.getGifts();
+     const gifts=res.gifts||[];
+     if(!gifts.length){ box.innerHTML='<p class="hint">Sin obsequios aún</p>'; return; }
+     const me=(typeof Auth!=='undefined'&&Auth.user)?Auth.user.id:null;
+     box.innerHTML=gifts.map(g=>{
+       const isSent=g.senderId===me;
+       const otherName=isSent?g.receiverName:g.senderName;
+       const icon=isSent?'➡️':'⬅️';
+       const color=isSent?'var(--text-dim,#aaa)':'var(--accent,#43a047)';
+       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border,#333)"><span>${icon}</span><span style="flex:1"><strong style="color:${color}">${otherName}</strong> <span class="hint">${g.message?'"'+g.message+'"':''}</span></span><span style="font-weight:700;${isSent?'color:#ff5252':'color:#43a047'}">${isSent?'-':'+'} ${g.amount} pts</span><span class="hint" style="font-size:11px">${new Date(g.createdAt).toLocaleDateString('es-AR')}</span></div>`;
+     }).join('');
+     const giftSel=document.getElementById('giftFriendSelect');
+     if(giftSel){
+       const accepted=(typeof this._lastAccepted!=='undefined')?this._lastAccepted:[];
+       giftSel.innerHTML='<option value="">-- elige amigo --</option>'+accepted.map(f=>`<option value="${f.otherId}">${f.username}</option>`).join('');
+     }
+   }catch(e){ box.innerHTML='<p class="hint">Error</p>'; }
+ },
+ updateGiftList(accepted){
+   this._lastAccepted=accepted;
+   const giftSel=document.getElementById('giftFriendSelect');
+   if(giftSel) giftSel.innerHTML='<option value="">-- elige amigo --</option>'+accepted.map(f=>`<option value="${f.otherId}">${f.username}</option>`).join('');
  },
  esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 };

@@ -141,6 +141,11 @@ const Profile = {
     if (uploadPicBtn) uploadPicBtn.addEventListener('click', () => picInput && picInput.click());
     if (picInput) picInput.addEventListener('change', (e) => this.savePicture(e));
     if (saveNameBtn) saveNameBtn.addEventListener('click', () => this.saveName());
+    const saveDescBtn=document.getElementById('saveDescBtn');
+    const descInp=document.getElementById('profileDescInput');
+    const descCount=document.getElementById('descCharCount');
+    if(saveDescBtn) saveDescBtn.addEventListener('click',()=>this.saveDesc());
+    if(descInp) descInp.addEventListener('input',()=>{ if(descCount) descCount.textContent=descInp.value.length+'/200'; });
     const deleteBtn=document.getElementById('deleteAccountBtn');
     if(deleteBtn) deleteBtn.addEventListener('click', ()=> this.deleteAccount());
     const upB=document.getElementById('uploadBannerBtn'); const bIn=document.getElementById('bannerInput'); const clB=document.getElementById('clearBannerImgBtn');
@@ -249,6 +254,18 @@ const Profile = {
         nameInput.value = '';
         this.renderProfile();
       } catch (e) { }
+    }
+  },
+
+  async saveDesc() {
+    const descInp = document.getElementById('profileDescInput');
+    const desc = descInp ? descInp.value.trim() : '';
+    if (this.isLogged()) {
+      try {
+        await this.api('/api/settings', { method: 'PUT', body: JSON.stringify({ description: desc }) });
+        if (this.user) this.user.description = desc;
+        Toast.success('Descripción guardada');
+      } catch (e) { Toast.error('Error al guardar'); }
     }
   },
 
@@ -544,6 +561,9 @@ const Profile = {
       if (levelEl) { const lvl = (this.expLevel && typeof this.expLevel === 'object' ? this.expLevel.level : this.expLevel); levelEl.textContent = `Nivel ${lvl||1} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
       if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
       if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
+      const descInp = document.getElementById('profileDescInput');
+      const descCount = document.getElementById('descCharCount');
+      if (descInp) { descInp.value = this.user.description || ''; if(descCount) descCount.textContent = (this.user.description||'').length + '/200'; }
       if (avatarImg && this.user.profilePic) { avatarImg.src = this.user.profilePic; avatarImg.style.display = 'block'; }
       if (avatarPH && this.user.profilePic) avatarPH.style.display = 'none';
       if (avatarFrame) {
