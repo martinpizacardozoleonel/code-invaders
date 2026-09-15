@@ -1,5 +1,5 @@
 const MultiUI={
- open:false, timer:null, ready:false, lastKey:'',
+ open:false, timer:null, ready:false, lastKey:'', fetching:false, failCount:0, picCache:{},
  init(){
   const mb=document.getElementById('multiBtn'); if(mb) mb.addEventListener('click',()=>this.openLobby());
   const nb=document.getElementById('navMultiBtn'); if(nb) nb.addEventListener('click',()=>{ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-game')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b===nb)); this.openLobby(); });
@@ -19,9 +19,10 @@ const MultiUI={
   this.open=true; this.ready=false;
   try{ await API.multiJoin(); }catch(e){ Toast.error(e.message); return; }
   this.show('lobby');
+  this.failCount=0;
   this.poll(true);
   if(this.timer) clearInterval(this.timer);
-  this.timer=setInterval(()=>this.poll(),2000);
+  this.timer=setInterval(()=>this.poll(),3000);
  },
  close(){
   document.getElementById('multiOverlay').classList.add('hidden');
@@ -46,16 +47,24 @@ const MultiUI={
  },
  esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; },
  catColor(c){ return c==='HTML'?'#ff7043':(c==='CSS'?'#40c4ff':'#ffd600'); },
+ picHtml(p){
+  if(p.profilePic) this.picCache[p.userId]=p.profilePic;
+  const src=p.profilePic||this.picCache[p.userId]||'';
+  const pic=src?'<img src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" alt="">':'<span>👾</span>';
+  return pic;
+ },
  async poll(force){
-  if(!this.open) return;
-  let d; try{ d=await API.multiState(); }catch(e){ return; }
+  if(!this.open||this.fetching) return;
+  this.fetching=true;
+  let d; try{ d=await API.multiState(); this.failCount=0; }catch(e){ this.fetching=false; this.failCount=(this.failCount||0)+1; if(this.failCount===2) Toast.error('Internet lento... reintentando'); return; }
+  this.fetching=false;
   const me=d.me;
   const lobby=d.lobby||[]; const match=d.match; const chat=d.chat||[];
   const lp=document.getElementById('multiPlayers');
   if(lp){
     if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">Lobby vacío. ¡Invita a tus amigos!</p>';
     else lp.innerHTML=lobby.map(p=>{
-      const pic=p.profilePic?'<img src="'+p.profilePic.replace(/"/g,'&quot;')+'" alt="">':'<span>👾</span>';
+      const pic=this.picHtml(p);
       return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+'</div>';
     }).join('');
   }
@@ -80,7 +89,7 @@ const MultiUI={
       this.lastKey=key;
       cols.innerHTML=match.players.map(p=>{
         const isMe=p.userId===me;
-        const pic=p.profilePic?'<img src="'+p.profilePic.replace(/"/g,'&quot;')+'" alt="">':'<span>👾</span>';
+        const pic=this.picHtml(p);
         const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
         const ens=p.enemies.map(e=>'<div class="multi-enemy cat-'+e.cat+'"><span class="enemy-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="enemy-q">'+this.esc(e.q)+'</span><span class="enemy-a">'+this.esc(e.a)+'</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
         return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div><div class="multi-ship">'+(p.alive?'🚀':'💥')+'</div></div>';
@@ -101,7 +110,7 @@ const MultiUI={
     const arr=[...match.players].sort((a,b)=>(b.wave-a.wave)||(b.hits-a.hits)||(a.misses-b.misses));
     document.getElementById('multiTable').innerHTML='<div class="multi-table">'+arr.map((p,i)=>{
       const medal=i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+'°'));
-      const pic=p.profilePic?'<img src="'+p.profilePic.replace(/"/g,'&quot;')+'" alt="">':'<span>👾</span>';
+      const pic=this.picHtml(p);
       return '<div class="multi-row'+(i===0?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">✅ '+p.hits+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">🌊 '+p.wave+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
     }).join('')+'</div>';
     this.ready=false;
@@ -113,14 +122,17 @@ const MultiUI={
   try{ await API.multiChatSend(t); i.value=''; this.poll(true); }catch(e){ Toast.error(e.message); }
  },
  async sendAnswer(){
+  if(this.sending) return;
   const i=document.getElementById('multiAnswer'); const t=(i.value||'').trim(); if(!t) return;
   const fb=document.getElementById('multiFeedback');
+  i.value=''; this.sending=true;
   try{
     const r=await API.multiAnswer(t);
     if(r.hit){ fb.textContent='💥 ¡Destruido! Oleada '+r.wave+' · racha '+r.streak; fb.style.color='#00e676'; if(r.waveUp) Toast.success('¡Hornada superada! Oleada '+r.wave); }
     else { fb.textContent='❌ Fallo ('+r.misses+')'; fb.style.color='#ff5252'; }
-    i.value=''; this.poll(true);
+    this.poll(true);
   }catch(e){ fb.textContent='💀 '+(e.message||'Error'); fb.style.color='#ff5252'; this.poll(true); }
+  finally{ this.sending=false; const ai=document.getElementById('multiAnswer'); if(ai&&!ai.disabled) ai.focus(); }
  }
 };
 document.addEventListener('DOMContentLoaded',()=>MultiUI.init());

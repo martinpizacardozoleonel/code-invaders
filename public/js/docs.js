@@ -136,9 +136,11 @@ const Docs = {
   render(){
     const grid=document.getElementById('docsGrid');
     if(!grid) return;
-    grid.innerHTML=this.sections.map(s=>`
-      <div class="doc-card">
-        <h3>${s.icon} ${s.title}</h3>
+    const tags=['01 · CONCEPTO','02 · MODOS','03 · JEFE FINAL','04 · JEFE CSS','05 · SPEEDRUN','06 · CONTROLES','07 · SOCIAL','08 · TIENDA','09 · RANKING','10 · NIVELES','11 · CUENTA','12 · TECH'];
+    grid.innerHTML=this.sections.map((s,i)=>`
+      <div class="doc-card doc-anim" style="animation-delay:${Math.min(i*0.06,0.6)}s">
+        <p class="doc-kicker">${tags[i]||'MANUAL'}</p>
+        <h3><span class="doc-ico">${s.icon}</span><span>${s.title}</span><span class="doc-num">${String(i+1).padStart(2,'0')}</span></h3>
         <div class="manual-content">${s.content}</div>
       </div>
     `).join('');

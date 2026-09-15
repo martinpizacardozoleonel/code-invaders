@@ -58,18 +58,22 @@ const Chat={
  handlePhoto(file){
   if(!file) return;
   if(!file.type.startsWith('image/')){ Toast.error('Solo imágenes'); return; }
-  if(file.size>3_000_000){ Toast.error('Máx 3MB'); return; }
   const isGif=file.type==='image/gif';
+  if(isGif && file.size>1_500_000){ Toast.error('GIF máx 1.5MB (usa uno más liviano)'); return; }
+  if(!isGif && file.size>3_000_000){ Toast.error('Máx 3MB'); return; }
   const r=new FileReader();
   r.onload=()=>{
     if(isGif){ this.showPreview(r.result); return; }
     const img=new Image();
     img.onload=()=>{
-      const c=document.createElement('canvas'); const max=800; let w=img.width,h=img.height;
+      const c=document.createElement('canvas'); const max=640; let w=img.width,h=img.height;
       if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
       c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
-      this.showPreview(c.toDataURL('image/jpeg',0.72));
+      const out=c.toDataURL('image/jpeg',0.65);
+      if(out.length>600000){ Toast.error('Foto muy pesada, probá otra más chica'); return; }
+      this.showPreview(out);
     };
+    img.onerror=()=>Toast.error('No se pudo leer la imagen');
     img.src=r.result;
   };
   r.readAsDataURL(file);
@@ -81,18 +85,31 @@ const Chat={
   document.getElementById('chatPreview').classList.remove('hidden');
  },
  clearPreview(){ this.pendingImg=null; document.getElementById('chatPreview').classList.add('hidden'); },
+ optimistic(raw){
+  const box=document.getElementById('chatMessages'); if(!box) return;
+  const em=box.querySelector('.empty-chat'); if(em) em.remove();
+  const d=document.createElement('div'); d.className='chat-msg own optimistic';
+  d.innerHTML='<div class="chat-avatar chat-avatar-placeholder">👾</div><div class="chat-body"><div class="chat-head"><span class="chat-user">Tú</span><span class="chat-time">enviando...</span></div><div class="chat-text">'+this.renderBody(raw)+'</div></div>';
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+ },
  async sendPhoto(){
-  if(!this.pendingImg) return;
-  try{ await API.sendChat('[img]'+this.pendingImg); this.clearPreview(); document.getElementById('chatGifPanel').classList.add('hidden'); await this.load(true); }
+  if(!this.pendingImg||this._sending) return;
+  const raw='[img]'+this.pendingImg; this.clearPreview(); document.getElementById('chatGifPanel').classList.add('hidden');
+  this.optimistic(raw); this._sending=true;
+  try{ await API.sendChat(raw); await this.load(true); }
   catch(e){ Toast.error(e.message); }
+  finally{ this._sending=false; }
  },
  async sendGif(url){
-  url=(url||'').trim(); if(!url) return;
-  try{ await API.sendChat('[gif]'+url); document.getElementById('chatGifPanel').classList.add('hidden'); await this.load(true); }
+  url=(url||'').trim(); if(!url||this._sending) return;
+  document.getElementById('chatGifPanel').classList.add('hidden');
+  this.optimistic('[gif]'+url); this._sending=true;
+  try{ await API.sendChat('[gif]'+url); await this.load(true); }
   catch(e){ Toast.error(e.message); }
+  finally{ this._sending=false; }
  },
  sendGifUrl(){ const i=document.getElementById('chatGifUrl'); const v=(i.value||'').trim(); if(!v) return Toast.info('Pega una URL'); if(!/^https?:\/\//.test(v)) return Toast.error('URL inválida'); i.value=''; this.sendGif(v); },
- async sendSticker(s){ try{ await API.sendChat('[sticker]'+s); document.getElementById('chatStickerPanel').classList.add('hidden'); await this.load(true); }catch(e){ Toast.error(e.message); } },
+ async sendSticker(s){ if(this._sending) return; document.getElementById('chatStickerPanel').classList.add('hidden'); this.optimistic('[sticker]'+s); this._sending=true; try{ await API.sendChat('[sticker]'+s); await this.load(true); }catch(e){ Toast.error(e.message); } finally{ this._sending=false; } },
   initBg(){
    const picker=document.getElementById('chatBgPicker');
    if(!picker) return;
@@ -200,12 +217,14 @@ const Chat={
   _chatUserScrolling:false,
   renderBody(raw){
    if(!raw) return '';
-   if(raw.startsWith('[img]')){ const src=raw.slice(5); const safe=this.escAttr(src.slice(0,700000)); return '<img class="chat-img" src="'+safe+'" loading="lazy" alt="foto">'; }
-   if(raw.startsWith('[gif]')){ const src=raw.slice(5,600); const safe=this.escAttr(src); return '<img class="chat-img chat-gif" src="'+safe+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
+   if(raw.startsWith('[img]')){ const src=raw.slice(5,700000); if(!src.startsWith('data:image')) return '<span>⚠️ Foto no disponible</span>'; const safe=this.escAttr(src); return '<img class="chat-img" src="'+safe+'" loading="lazy" alt="foto">'; }
+   if(raw.startsWith('[gif]')){ const src=raw.slice(5,600).trim(); if(!/^https?:\/\//.test(src)) return '<span>⚠️ GIF no disponible</span>'; const safe=this.escAttr(src); return '<img class="chat-img chat-gif" src="'+safe+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
    if(raw.startsWith('[sticker]')){ const s=raw.slice(9,20); return '<div class="chat-sticker">'+this.esc(s)+'</div>'; }
    let h=this.esc(raw);
-   h=h.replace(/(https?:\/\/[^\s<]+?\.(?:gif|png|jpe?g|webp)(\?[^\s<]*)?)/gi,'<br><img class="chat-img" src="$1" loading="lazy">');
+   const imgs=[];
+   h=h.replace(/(https?:\/\/[^\s<]+?\.(?:gif|png|jpe?g|webp)(\?[^\s<]*)?)/gi,(m)=>{ imgs.push(m); return '%%IMG'+(imgs.length-1)+'%%'; });
    h=h.replace(/(https?:\/\/[^\s<]+)/gi,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+   h=h.replace(/%%IMG(\d+)%%/g,(m,i)=>'<br><img class="chat-img" src="'+imgs[Number(i)]+'" loading="lazy" onerror="this.style.display=\'none\'">');
    return h;
   },
   async load(force){

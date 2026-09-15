@@ -16,7 +16,7 @@ const Game = (() => {
     {id:5,title:'👑 JEFE CSS',isBoss:true,isCssBoss:true,bossHealth:10,questions:[{q:'Color de texto',a:'color'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde',a:'border'},{q:'Ancho',a:'width'},{q:'Altura',a:'height'},{q:'Posición',a:'position'},{q:'Alinear ítems',a:'align-items'},{q:'Justificar contenido',a:'justify-content'}],enemySpeed:0,spawnInterval:0,enemyHealth:1}
   ];
   let canvas,ctx,W,H;
-  let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
+  let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
   let qBannerEl,qBannerTextEl;
   let state='title';
   let score=0,lives=2,level=0;
@@ -92,6 +92,7 @@ const Game = (() => {
     startBtnEl=document.getElementById('startBtn');
     fireBtnEl=document.getElementById('fireBtn');
     speedrunBtnEl=document.getElementById('speedrunBtn');
+    multiBtnEl=document.getElementById('multiBtn');
     speedrunHudEl=document.getElementById('speedrunHud');
     exitBtnEl=document.getElementById('exitBtn');
     exitOverlayEl=document.getElementById('exitOverlay');
@@ -359,9 +360,9 @@ const Game = (() => {
       startBtnEl.textContent='▶ JUGAR';
       startBtnEl.classList.remove('hidden');
     }
-    if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); updateExitBtn(); }
+    if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
   let sIdx=0;
@@ -466,6 +467,7 @@ const Game = (() => {
       const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
       if(startBtnEl) startBtnEl.classList.remove('hidden');
       if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+      if(multiBtnEl) multiBtnEl.classList.remove('hidden');
       if(retryBtnEl) retryBtnEl.classList.add('hidden');
       if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
       saveProgress(false);
@@ -564,6 +566,7 @@ const Game = (() => {
       const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
       if(startBtnEl) startBtnEl.classList.remove('hidden');
       if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+      if(multiBtnEl) multiBtnEl.classList.remove('hidden');
       saveProgress(false);
     }
     updateHUD();
@@ -803,7 +806,7 @@ const Game = (() => {
           enemies.splice(i,1); if(e===currentEnemy) currentEnemy=null;
           lives=0; state='gameover'; if(inputEl) inputEl.disabled=true; speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; pushSpeedrun(speedrunTime);
           const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
-          if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+          if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
           saveProgress(false); continue;
         }
         if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20); damagePlayer(); } }

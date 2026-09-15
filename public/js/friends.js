@@ -51,17 +51,20 @@ const Friends={
  handlePrivPhoto(file){
    if(!file) return; if(!this.sel) return Toast.info('Elige un amigo');
    if(!file.type.startsWith('image/')) return Toast.error('Solo imágenes');
-   if(file.size>3000000) return Toast.error('Máx 3MB');
    const isGif=file.type==='image/gif';
+   if(isGif && file.size>1500000) return Toast.error('GIF máx 1.5MB');
+   if(!isGif && file.size>3000000) return Toast.error('Máx 3MB');
    const r=new FileReader();
    r.onload=()=>{
      if(isGif){ this.showPrivPreview(r.result); return; }
      const img=new Image();
-     img.onload=()=>{
-       const c=document.createElement('canvas'); const max=800; let w=img.width,h=img.height;
+      img.onload=()=>{
+       const c=document.createElement('canvas'); const max=640; let w=img.width,h=img.height;
        if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
        c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
-       this.showPrivPreview(c.toDataURL('image/jpeg',0.72));
+       const out=c.toDataURL('image/jpeg',0.65);
+       if(out.length>600000) return Toast.error('Foto muy pesada, probá otra más chica');
+       this.showPrivPreview(out);
      };
      img.src=r.result;
    };
@@ -71,18 +74,31 @@ const Friends={
  showPrivPreview(d){ this.pendingImg=d; document.getElementById('privPreviewImg').src=d; document.getElementById('privPreview').classList.remove('hidden'); },
  clearPrivPreview(){ this.pendingImg=null; const p=document.getElementById('privPreview'); if(p) p.classList.add('hidden'); },
  async sendPrivPhoto(){ if(!this.pendingImg) return; const d=this.pendingImg; this.clearPrivPreview(); await this.sendPrivMedia('[img]'+d); },
+ optimisticPriv(raw){
+   const box=document.getElementById('privMessages'); if(!box) return;
+   const em=box.querySelector('.empty-chat'); if(em) em.remove();
+   const d=document.createElement('div'); d.className='chat-msg own optimistic';
+   d.innerHTML='<div class="chat-body"><div class="chat-text">'+this.renderPrivBody(raw)+'</div><div class="chat-time">enviando...</div></div>';
+   box.appendChild(d); box.scrollTop=box.scrollHeight; box.dataset.userAtBottom='1';
+ },
  async sendPrivMedia(text){
    if(!this.sel) return Toast.info('Elige un amigo');
-   try{ await API.sendPrivate(this.sel,text); document.getElementById('privGifPanel').classList.add('hidden'); document.getElementById('privStickerPanel').classList.add('hidden'); await this.loadPriv(); }catch(e){ Toast.error(e.message); }
+   if(this._sendingPriv) return; this._sendingPriv=true;
+   document.getElementById('privGifPanel').classList.add('hidden'); document.getElementById('privStickerPanel').classList.add('hidden');
+   this.optimisticPriv(text);
+   try{ await API.sendPrivate(this.sel,text); await this.loadPriv(true); }catch(e){ Toast.error(e.message); }
+   finally{ this._sendingPriv=false; }
  },
  renderPrivBody(raw){
    if(!raw) return '';
-   if(raw.startsWith('[img]')){ const src=raw.slice(5).replace(/"/g,'&quot;'); return '<img class="chat-img" src="'+src+'" loading="lazy" alt="foto">'; }
-   if(raw.startsWith('[gif]')){ const src=raw.slice(5,600).replace(/"/g,'&quot;'); return '<img class="chat-img chat-gif" src="'+src+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
+   if(raw.startsWith('[img]')){ const src=raw.slice(5,700000); if(!src.startsWith('data:image')) return '<span>⚠️ Foto no disponible</span>'; return '<img class="chat-img" src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" alt="foto">'; }
+   if(raw.startsWith('[gif]')){ const src=raw.slice(5,600).trim(); if(!/^https?:\/\//.test(src)) return '<span>⚠️ GIF no disponible</span>'; return '<img class="chat-img chat-gif" src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
    if(raw.startsWith('[sticker]')){ return '<div class="chat-sticker">'+this.esc(raw.slice(9,20))+'</div>'; }
    let h=this.esc(raw);
-   h=h.replace(/(https?:\/\/[^\s<]+?\.(?:gif|png|jpe?g|webp)(\?[^\s<]*)?)/gi,'<br><img class="chat-img" src="$1" loading="lazy">');
+   const imgs=[];
+   h=h.replace(/(https?:\/\/[^\s<]+?\.(?:gif|png|jpe?g|webp)(\?[^\s<]*)?)/gi,(m)=>{ imgs.push(m); return '%%IMG'+(imgs.length-1)+'%%'; });
    h=h.replace(/(https?:\/\/[^\s<]+)/gi,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+   h=h.replace(/%%IMG(\d+)%%/g,(m,i)=>'<br><img class="chat-img" src="'+imgs[Number(i)]+'" loading="lazy" onerror="this.style.display=\'none\'">');
    return h;
  },
  async heartbeat(){ try{ await API.heartbeat(); }catch(e){} },
