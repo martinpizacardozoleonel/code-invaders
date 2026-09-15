@@ -71,15 +71,18 @@ const Ranked={
  startClock(end){ this.stopClock(); const upd=()=>{ const el=document.getElementById('tournamentClock'); if(!el){ this.stopClock(); return; } const n=new Date(); el.textContent=`🕐 ${n.toLocaleTimeString('es-AR')} — ${n.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}`; }; upd(); this.clockInterval=setInterval(upd,1000); },
  stopClock(){ if(this.clockInterval){ clearInterval(this.clockInterval); this.clockInterval=null; } },
  startCountdown(end){ if(this._cdInterval) clearInterval(this._cdInterval); const upd=()=>{ const diff=end-new Date(); if(diff<=0){ clearInterval(this._cdInterval); return; } const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000); const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=String(v).padStart(2,'0'); }; set('cdDays',d); set('cdHours',h); set('cdMins',m); set('cdSecs',s); }; upd(); this._cdInterval=setInterval(upd,1000); },
- async inspectUser(userId){
-  const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML='<p>Cargando...</p>'; ov.classList.remove('hidden');
+  loadingHTML(){
+   return `<div class="inspect-loading"><div class="arcade-invaders"><span>👾</span><span>👾</span><span>👾</span></div><div class="arcade-spinner"></div><p class="arcade-load-title">CARGANDO PERFIL<span class="arcade-dots"><i>.</i><i>.</i><i>.</i></span></p><div class="arcade-bar"><div class="arcade-bar-fill"></div></div><p class="arcade-load-sub">CONECTANDO CON LA GALAXIA…</p></div>`;
+  },
+  async inspectUser(userId){
+   const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML=this.loadingHTML(); ov.classList.remove('hidden');
   try{
    const data=await API.getUserProfile(userId);
    const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:''; const pic=data.profilePic?`<img src="${data.profilePic}" alt="${data.username}" class="inspect-avatar">`:`<span class="inspect-avatar-placeholder">👾</span>`;
    const expLevel=Math.floor((data.exp||0)/100)+1; const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido'; const speedrunHtml=data.speedrunBest?`<p class="inspect-speedrun">⚡ Speedrun: <strong>${this.formatTime(data.speedrunBest)}</strong></p>`:'<p class="inspect-speedrun muted">⚡ Sin speedrun</p>';
    const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx); const onlineDot=`<span class="dot ${data.online?'online':'offline'}"></span> ${data.online?'En línea':'Desconectado'}`;
    ct.innerHTML=`<div class="inspect-head"><div class="inspect-avatar-wrap${frameClass}">${pic}</div><div class="inspect-stats"><p class="inspect-name" style="${nameSt}">${data.username} ${onlineDot}</p><p class="inspect-level">Nivel ${expLevel} · ${data.exp||0} EXP</p><p class="inspect-hours">⏱ ${data.hoursPlayed||0} h</p><p class="inspect-coins">🪙 ${data.coins||0}</p>${speedrunHtml}</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">${data.solved}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">${data.attempts}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">${created}</span></div></div>`;
-  }catch(e){ ct.innerHTML='<p>Error</p>'; }
+   }catch(e){ ct.innerHTML='<div class="inspect-loading"><div style="font-size:2.2rem">🛸</div><p class="arcade-load-title" style="color:#ff5252">ERROR DE SEÑAL</p><p class="arcade-load-sub">No se pudo cargar el perfil. Reintenta.</p></div>'; }
  }
 };
 
@@ -95,7 +98,7 @@ Ranked._bannerById=async function(id){
   }catch(e){ return {id:'none',name:'',grad:'',border:'#333'}; }
 };
 Ranked.inspectUser=async function(userId){
-  const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML='<p>Cargando...</p>'; ov.classList.remove('hidden');
+  const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML=(Ranked.loadingHTML?Ranked.loadingHTML():this.loadingHTML()); ov.classList.remove('hidden');
   const card=ov.querySelector('.inspect-card'); if(card){ card.style.background=''; card.style.borderColor=''; }
   try{
     const data=await API.getUserProfile(userId);
@@ -119,8 +122,8 @@ Ranked.inspectUser=async function(userId){
       if(card){ card.style.borderColor=bcol; }
       ct.innerHTML='<div class="inspect-fullbanner" style="'+bgGrad+bgImg+'border:2px solid '+bcol+';position:relative;overflow:hidden;">'+vid+inner+'</div>';
     } else {
-      ct.innerHTML=inner;
-    }
-  }catch(e){ ct.innerHTML='<p>Error</p>'; }
+       ct.innerHTML=inner;
+     }
+   }catch(e){ ct.innerHTML='<div class="inspect-loading"><div style="font-size:2.2rem">🛸</div><p class="arcade-load-title" style="color:#ff5252">ERROR DE SEÑAL</p><p class="arcade-load-sub">No se pudo cargar el perfil. Reintenta.</p></div>'; }
 };
 
