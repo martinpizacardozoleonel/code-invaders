@@ -1154,6 +1154,19 @@ body.light .tool-btn { background: #fff; border-color: #cbd5e1; color: #0f172a; 
 body.light .inspect-card h2, body.light .inspect-title { background: #f8fafc!important; color: #0f172a!important; text-shadow: none!important; border-bottom-color: rgba(15,23,42,.06)!important; }
 body.light .inspect-loading { background: #f8fafc!important; }
 body.light .arcade-load-title { color: #0288d1!important; text-shadow: none!important; }
+/* ===== MODO CLARO: juego combina (pantalla oscura + marco claro) ===== */
+body.light #view-game.active { background: #eef2f7; }
+body.light .canvas-wrap { background: #080c18!important; border: 1.5px solid rgba(2,136,209,.22)!important; border-radius: 14px!important; margin: 6px 6px 0!important; width: auto!important; max-width: none!important; box-shadow: 0 10px 28px rgba(15,23,42,.16), inset 0 0 0 1px rgba(0,0,0,.6)!important; overflow: hidden; }
+body.light #gameCanvas { background: #080c18!important; }
+body.light .hud-item { background: #fff!important; border: 1px solid rgba(15,23,42,.08)!important; box-shadow: 0 2px 8px rgba(15,23,42,.05)!important; }
+body.light .q-banner { background: #fff!important; border: 2px solid rgba(2,136,209,.28)!important; box-shadow: 0 4px 14px rgba(2,136,209,.1)!important; }
+body.light .q-banner-text, body.light .hud-target { color: #0288d1!important; }
+body.light .input-bar { background: #fff!important; border: 1px solid rgba(15,23,42,.08)!important; box-shadow: 0 4px 14px rgba(15,23,42,.06)!important; backdrop-filter: none!important; }
+body.light .input-bar input { background: #f8fafc!important; border: 2px solid #cbd5e1!important; color: #0f172a!important; }
+body.light .input-bar input:focus { border-color: #0288d1!important; box-shadow: 0 0 0 3px rgba(2,136,209,.15)!important; }
+body.light .input-bar input::placeholder { color: #94a3b8!important; }
+body.light .ranked-tab { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+body.light .ranked-tab.active { background: linear-gradient(135deg,#0288d1,#00acc1); color: #fff; border-color: transparent; }
 
 /* ============ RANKED ============ */
 .ranked-tabs{ display:flex; gap:10px; margin:16px 0 12px; }
