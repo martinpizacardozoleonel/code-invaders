@@ -57,31 +57,62 @@ body > main:has(#view-game.active) {
 .logo span { color: var(--accent); }
 .logo--alien{
   width:46px; height:46px; border-radius:50%; padding:0; justify-content:center;
-  background: rgba(124,77,255,.14); border:1.5px solid rgba(124,77,255,.45);
-  box-shadow: 0 0 14px rgba(124,77,255,.35), 0 2px 10px rgba(0,0,0,.3);
-  transition: all .2s;
+  background: radial-gradient(circle at 50% 30%,rgba(124,77,255,.35),rgba(10,14,26,.9));
+  border:1.5px solid rgba(0,229,255,.5);
+  box-shadow: 0 0 14px rgba(0,229,255,.35), 0 0 14px rgba(124,77,255,.35), 0 2px 10px rgba(0,0,0,.4);
+  transition: all .2s; position:relative; overflow:visible;
 }
-.logo--alien:hover{ background: rgba(124,77,255,.22); border-color:#7c4dff; box-shadow:0 0 20px rgba(124,77,255,.5); transform:scale(1.04); }
-.logo--alien:active{ transform:scale(.96); }
-.logo-alien{ display:flex; align-items:center; justify-content:center; font-size:1.7rem; line-height:1; filter: drop-shadow(0 0 8px rgba(124,77,255,.7)) hue-rotate(265deg) saturate(2.2); }
+.logo--alien:hover{ border-color:#00e5ff; box-shadow:0 0 22px rgba(0,229,255,.6); transform:scale(1.06) rotate(-4deg); }
+.logo--alien:active{ transform:scale(.94); }
+.logo-wrap.open .logo--alien{ border-color:#00e5ff; box-shadow:0 0 26px rgba(0,229,255,.7); animation:alienPulse 1.2s ease-in-out infinite; }
+.logo-wrap.open .logo-alien{ animation:alienJump .45s ease; }
+@keyframes alienPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes alienJump{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-6px) scale(1.15) rotate(8deg)}100%{transform:translateY(0) scale(1)}}
+.logo-alien{ display:flex; align-items:center; justify-content:center; font-size:1.7rem; line-height:1; filter: drop-shadow(0 0 8px rgba(0,229,255,.8)); z-index:1; }
+.logo-ring{position:absolute;inset:-4px;border-radius:50%;border:2px dashed rgba(0,229,255,.35);animation:ringSpin 8s linear infinite;pointer-events:none;}
+.logo-wrap.open .logo-ring{border-color:rgba(0,229,255,.8);animation-duration:2.5s;}
+@keyframes ringSpin{to{transform:rotate(360deg)}}
 .logo-caret{ font-size:.9rem; color:var(--accent); transition:transform .2s; margin-left:2px; }
 .logo-wrap{ position:relative; }
 .logo-wrap.open .logo-caret{ transform:rotate(180deg); }
-.logo-wrap.open .logo--alien{ border-color:#7c4dff; box-shadow:0 0 22px rgba(124,77,255,.6); }
+.logo-backdrop{position:fixed;inset:0;background:rgba(2,6,16,.45);backdrop-filter:blur(2px);z-index:690;opacity:1;visibility:visible;transition:opacity .22s,visibility .22s;}
+.logo-backdrop.hidden{display:block!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
 .logo-menu{
-  position:absolute; top:calc(100% + 10px); left:0; min-width:220px;
-  background: linear-gradient(180deg, rgba(17,24,39,.98), rgba(10,14,26,.98));
-  border:1.5px solid rgba(0,229,255,.3); border-radius:12px;
-  box-shadow:0 12px 32px rgba(0,0,0,.5), 0 0 18px rgba(0,229,255,.15);
-  padding:6px; z-index:700; display:flex; flex-direction:column; gap:4px;
+  position:absolute; top:calc(100% + 12px); left:0; min-width:250px;
+  background: linear-gradient(180deg, rgba(20,30,48,.98), rgba(8,12,24,.98));
+  border:1.5px solid rgba(0,229,255,.4); border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 24px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.08);
+  padding:10px; z-index:700; display:flex; flex-direction:column; gap:6px; overflow:hidden;
 }
-.logo-menu.hidden{ display:none !important; }
+.logo-menu::before{content:'';position:absolute;top:0;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,#00e5ff,#7c4dff,transparent);}
+.logo-menu::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.014) 3px 4px);border-radius:14px;}
+.logo-menu.hidden{ display:flex!important; opacity:0; visibility:hidden; transform-origin:top left; transform:scale(.85) translateY(-12px); pointer-events:none!important; }
+.arcade-menu{opacity:1;transform:scale(1) translateY(0);transition:opacity .22s ease,transform .28s cubic-bezier(.2,1.4,.4,1);}
+.arcade-menu.closing{opacity:0!important;transform:scale(.9) translateY(-8px)!important;transition:opacity .16s,transform .18s ease-in;}
+.arcade-menu .logo-menu-item{opacity:0;transform:translateX(-14px);}
+.arcade-menu:not(.hidden) .logo-menu-item{animation:itemSlide .32s cubic-bezier(.2,1.2,.4,1) forwards;}
+.arcade-menu:not(.hidden) .logo-menu-item:nth-child(2){animation-delay:.04s}
+.arcade-menu:not(.hidden) .logo-menu-item:nth-child(3){animation-delay:.09s}
+.arcade-menu:not(.hidden) .logo-menu-item:nth-child(4){animation-delay:.14s}
+.arcade-menu:not(.hidden) .logo-menu-item:nth-child(5){animation-delay:.19s}
+.arcade-menu:not(.hidden) .logo-menu-item:nth-child(6){animation-delay:.24s}
+@keyframes itemSlide{to{opacity:1;transform:translateX(0)}}
+.arcade-menu-title{margin:2px 2px 6px!important;text-align:center;font-family:monospace;font-size:.68rem;font-weight:900;letter-spacing:2px;color:#00e5ff;text-shadow:0 0 10px rgba(0,229,255,.6);}
+.blink-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e676;box-shadow:0 0 8px #00e676;margin-right:6px;animation:pulse 1.2s infinite;}
+.arcade-menu-foot{margin:6px 2px 0!important;text-align:center;font-size:.64rem;color:#5b6b82;font-family:monospace;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px!important;}
 .logo-menu-item{
-  border:0; background:rgba(255,255,255,.04); color:#e0e0e0; text-align:left;
-  padding:10px 14px; border-radius:8px; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .15s;
-  display:flex; align-items:center; justify-content:space-between;
+  border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.045); color:#e0e0e0; text-align:left;
+  padding:11px 12px; border-radius:10px; font-size:.88rem; font-weight:700; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:10px; position:relative; overflow:hidden;
 }
-.logo-menu-item:hover{ background:rgba(0,229,255,.12); color:#fff; transform:translateX(2px); }
+.logo-menu-item::after{content:'';position:absolute;top:0;bottom:0;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(0,229,255,.18),transparent);transform:skewX(-18deg);transition:left .4s;}
+.logo-menu-item:hover{ background:linear-gradient(90deg,rgba(0,229,255,.18),rgba(124,77,255,.14)); border-color:rgba(0,229,255,.5); color:#fff; transform:translateX(4px) scale(1.015); box-shadow:0 0 14px rgba(0,229,255,.25); }
+.logo-menu-item:hover::after{left:120%;}
+.logo-menu-item:active{transform:translateX(4px) scale(.98);}
+.mi-ico{font-size:1.05rem;filter:drop-shadow(0 0 4px rgba(0,229,255,.5));width:24px;text-align:center;}
+.mi-txt{flex:1;}
+.mi-arrow{font-size:.62rem;color:#00e5ff;opacity:0;transform:translateX(-6px);transition:.18s;}
+.logo-menu-item:hover .mi-arrow{opacity:1;transform:none;animation:arcadeBlink 1s steps(2) infinite;}
 .nav { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
 .nav-btn {
   border: 0; border-radius: 999px; padding: 8px 16px;
@@ -1238,13 +1269,22 @@ body.light .tournament-reward { background: rgba(0,0,0,0.03); }
 body.light .tournament-progress-bar { background: rgba(0,0,0,0.08); }
 body.light .tournament-progress-fill { background: linear-gradient(90deg, #ffc107, #ff9800); }
 
-/* ============ CHAT ============ */
-.chat-card{ max-width:720px; margin:0 auto; background:linear-gradient(135deg,#111827,#0d1b2a); border:1px solid rgba(0,229,255,.18); border-radius:16px; padding:18px; box-shadow:0 8px 30px rgba(0,0,0,.4); display:flex; flex-direction:column; gap:14px; }
-.chat-messages{ height:380px; overflow-y:auto; background:rgba(0,0,0,.2); border:1px solid rgba(0,229,255,.12); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth; }
-.chat-msg{ display:flex; gap:10px; align-items:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; }
-.chat-msg.own{ background:rgba(0,229,255,.08); border-color:rgba(0,229,255,.25); }
-.chat-avatar{ width:36px; height:36px; border-radius:50%; border:2px solid var(--accent); object-fit:cover; flex-shrink:0; background:var(--bg-dark); }
-.chat-avatar-placeholder{ display:flex; align-items:center; justify-content:center; font-size:1.2rem; background:rgba(0,229,255,.1); }
+/* ============ CHAT GLOBAL — arcade perfecto ============ */
+.chat-card{ max-width:760px; margin:0 auto; background:linear-gradient(180deg,#141e30,#0a1120)!important; border:1.5px solid rgba(0,229,255,.22)!important; border-radius:18px!important; padding:20px!important; box-shadow:0 10px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)!important; display:flex; flex-direction:column; gap:12px; position:relative; overflow:hidden;}
+.chat-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,#00e5ff,transparent);opacity:.7;}
+.chat-toolbar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.14);border-radius:12px;padding:8px 10px;}
+.tool-btn{border:1.5px solid rgba(0,229,255,.28);background:rgba(0,229,255,.1);color:#e8f6ff;border-radius:10px;padding:7px 12px;font-size:.8rem;font-weight:800;cursor:pointer;transition:.15s;}
+.tool-btn:hover{background:rgba(0,229,255,.2);box-shadow:0 0 12px rgba(0,229,255,.35);transform:translateY(-1px);}
+.tool-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.chat-count{margin-left:auto;font-family:monospace;font-size:.75rem;color:#8b95a7;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);padding:4px 10px;border-radius:999px;}
+.chat-messages{ height:380px; overflow-y:auto; background:rgba(0,0,0,.28); border:1.5px solid rgba(0,229,255,.18); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth; position:relative;}
+.chat-messages.global{min-height:320px;}
+.chat-messages::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.012) 3px 4px);border-radius:12px;}
+.chat-msg{ display:flex; gap:10px; align-items:flex-start; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:10px 12px; animation:msgIn .2s ease-out;}
+@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.chat-msg.own{ background:rgba(0,229,255,.09); border-color:rgba(0,229,255,.28); box-shadow:0 0 12px rgba(0,229,255,.08);}
+.chat-avatar{ width:38px; height:38px; border-radius:50%; border:2px solid var(--accent); object-fit:cover; flex-shrink:0; background:#0a0e1a; }
+.chat-avatar-placeholder{ display:flex; align-items:center; justify-content:center; font-size:1.25rem; background:rgba(0,229,255,.1); }
 .chat-avatar.frame-bronce{ border-color:#cd7f32; box-shadow:0 0 8px rgba(205,127,50,.5); }
 .chat-avatar.frame-plata{ border-color:#c0c0c0; box-shadow:0 0 8px rgba(192,192,192,.5); }
 .chat-avatar.frame-oro{ border-color:#ffd600; box-shadow:0 0 8px rgba(255,214,0,.5); }
@@ -1252,33 +1292,99 @@ body.light .tournament-progress-fill { background: linear-gradient(90deg, #ffc10
 .chat-avatar.frame-diamante{ border-color:#40c4ff; box-shadow:0 0 8px rgba(64,196,255,.5); }
 .chat-body{ flex:1; min-width:0; }
 .chat-head{ display:flex; align-items:center; gap:8px; font-size:.78rem; margin-bottom:4px; }
-.chat-user{ font-weight:800; color:var(--accent); }
-.chat-time{ color:var(--text-dim); font-family:monospace; font-size:.72rem; }
-.chat-del{ margin-left:auto; background:none; border:0; cursor:pointer; font-size:.85rem; opacity:.6; }
+.chat-user{ font-weight:800; color:var(--accent); max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-time{ color:var(--text-dim); font-family:monospace; font-size:.7rem; }
+.chat-del{ margin-left:auto; background:none; border:0; cursor:pointer; font-size:.85rem; opacity:.55; }
 .chat-del:hover{ opacity:1; }
-.chat-text{ font-size:.9rem; color:#e0e0e0; word-break:break-word; white-space:pre-wrap; line-height:1.4; }
+.chat-text{ font-size:.9rem; color:#e0e0e0; word-break:break-word; white-space:pre-wrap; line-height:1.45; }
+.chat-text a{color:#00e5ff;word-break:break-all;}
+.chat-img{max-width:min(240px,100%);max-height:260px;border-radius:10px;border:1.5px solid rgba(0,229,255,.3);cursor:zoom-in;display:block;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.chat-img:hover{box-shadow:0 0 14px rgba(0,229,255,.35);}
+.chat-gif{border-color:rgba(255,214,0,.4);}
+.chat-sticker{font-size:3.2rem;line-height:1;padding:4px 0;filter:drop-shadow(0 0 8px rgba(0,229,255,.4));animation:invHop .9s ease-in-out infinite;}
 .chat-input-bar{ display:flex; gap:10px; align-items:center; }
 .chat-input-bar input{ flex:1; }
 .chat-bg-picker{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:rgba(0,0,0,.2); border-radius:8px; border:1px solid rgba(255,255,255,.06); }
 .chat-bg-picker label{ font-size:.8rem; color:var(--text-dim); font-weight:700; }
 .bg-opt{ border:1.5px solid rgba(255,255,255,.15); border-radius:8px; padding:6px 10px; font-size:.78rem; font-weight:700; cursor:pointer; color:#fff; opacity:.7; }
 .bg-opt.active{ opacity:1; border-color:var(--accent); box-shadow:0 0 8px rgba(0,229,255,.4); }
-@media(max-width:480px){ .chat-messages{ height:52vh; } }
-/* ============ FRIENDS — centrado pro responsive ============ */
-.friends-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:920px; margin:0 auto; align-items:start; justify-items:stretch; }
-.friends-col{ background:linear-gradient(135deg,#111827,#0d1b2a); border:1px solid rgba(0,229,255,.15); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:12px; align-items:stretch; text-align:center; }
-.friends-col h3,.friends-col h4{ text-align:center; width:100%; margin-left:auto; margin-right:auto; }
-.friends-col .btn-row{ justify-content:center; align-items:center; }
-#friendReqs,#friendsList{ display:flex; flex-direction:column; align-items:stretch; gap:8px; width:100%; }
-.friend-card{ display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; text-align:center; flex-wrap:wrap; margin-left:auto; margin-right:auto; width:100%; max-width:380px; }
-.friend-card .hint{ margin-left:auto; margin-right:auto; }
-.friend-req{ display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(0,229,255,.06); border:1px solid rgba(0,229,255,.18); border-radius:10px; padding:10px 12px; margin-bottom:6px; text-align:center; flex-wrap:wrap; width:100%; max-width:380px; margin-left:auto; margin-right:auto; }
-.friend-req .btn-row{ margin-left:auto !important; margin-right:auto; justify-content:center; }
-#privMessages{ text-align:left; }
-@media(max-width:768px){ .friends-grid{ grid-template-columns:1fr; justify-items:center; } .friends-col{ width:100%; max-width:520px; margin-left:auto; margin-right:auto; } }
-.dot{ width:10px; height:10px; border-radius:50%; display:inline-block; border:1.5px solid rgba(0,0,0,.3); }
-.dot.online{ background:#00e676; box-shadow:0 0 6px #00e676; }
-.dot.offline{ background:#ff1744; box-shadow:0 0 4px #ff1744; }
+.chat-media-panel{background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:10px;}
+.chat-media-panel.hidden{display:none!important;}
+.media-title{margin:0 0 8px!important;text-align:center;font-size:.78rem;font-weight:900;letter-spacing:1px;color:#00e5ff;}
+.media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:190px;overflow-y:auto;}
+.media-grid img{width:100%;height:70px;object-fit:cover;border-radius:8px;border:1.5px solid rgba(255,255,255,.12);cursor:pointer;transition:.15s;background:#000;}
+.media-grid img:hover{transform:scale(1.05);border-color:#00e5ff;box-shadow:0 0 10px rgba(0,229,255,.4);}
+.media-grid.stickers{grid-template-columns:repeat(6,1fr);}
+.media-grid.stickers button{font-size:1.8rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 4px;cursor:pointer;transition:.15s;}
+.media-grid.stickers button:hover{transform:scale(1.15);border-color:#00e5ff;background:rgba(0,229,255,.12);}
+.chat-preview{display:flex;align-items:center;gap:10px;background:rgba(0,230,118,.06);border:1.5px dashed rgba(0,230,118,.4);border-radius:12px;padding:10px;}
+.chat-preview.hidden{display:none!important;}
+.chat-preview img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,230,118,.4);}
+.chat-preview-actions{display:flex;gap:8px;margin-left:auto;}
+@media(max-width:480px){ .chat-messages{ height:52vh; } .media-grid{grid-template-columns:repeat(3,1fr);} .media-grid.stickers{grid-template-columns:repeat(4,1fr);} }
+.priv-toolbar{padding:6px 8px!important;}
+.tool-sm{padding:5px 10px!important;font-size:.82rem!important;}
+#privMessages .chat-msg{padding:8px 10px;}
+#privMessages .chat-text a{color:#00e5ff;}
+/* ============ FRIENDS — arcade perfecto centrado ============ */
+.friends-view{max-width:1060px;margin:0 auto;}
+.friends-head{text-align:center;margin-bottom:18px;}
+.arcade-h1{font-size:1.9rem;font-weight:900;letter-spacing:2px;color:#00e5ff;text-shadow:0 0 14px rgba(0,229,255,.6),0 2px 0 #013;margin:0;}
+.arcade-h1-icon{filter:drop-shadow(0 0 8px rgba(0,229,255,.8));}
+.friends-sub{max-width:640px;margin:8px auto 0!important;line-height:1.7;}
+.mini-badge{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);padding:1px 8px;border-radius:999px;font-size:.78rem;white-space:nowrap;}
+.friends-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:980px;margin:0 auto;align-items:start;}
+.arcade-panel{background:linear-gradient(180deg,#141e30 0%,#0d1526 60%,#0a1120 100%)!important;border:1.5px solid rgba(0,229,255,.22)!important;border-radius:18px!important;padding:20px!important;display:flex;flex-direction:column;gap:18px!important;box-shadow:0 10px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)!important;position:relative;overflow:hidden;}
+.arcade-panel::before{content:'';position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,#00e5ff,transparent);opacity:.7;}
+.friends-sec{display:flex;flex-direction:column;gap:10px;}
+.panel-sec-title{text-align:center!important;font-size:.88rem!important;font-weight:900;letter-spacing:1.6px;color:#fff!important;margin:0!important;padding:10px 12px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.14);border-radius:10px;text-shadow:0 0 8px rgba(0,229,255,.4);}
+.friends-stack{display:flex;flex-direction:column;gap:8px;width:100%;align-items:stretch;}
+.arcade-form-row{display:flex;gap:8px;align-items:center;justify-content:center;}
+.arcade-input{flex:1;background:#080d1a!important;border:1.5px solid rgba(0,229,255,.22)!important;border-radius:10px!important;padding:10px 12px!important;color:#e8f6ff!important;font-size:.88rem;text-align:center;transition:.2s;min-width:0;}
+.arcade-input::placeholder{color:#5b6b82;}
+.arcade-input:focus{outline:none!important;border-color:#00e5ff!important;box-shadow:0 0 0 2px rgba(0,229,255,.18),0 0 14px rgba(0,229,255,.3)!important;background:#0a1326!important;}
+.arcade-select{width:100%;background:#080d1a!important;border:1.5px solid rgba(0,229,255,.22)!important;color:#e8f6ff!important;border-radius:10px!important;padding:10px 12px!important;text-align:center;font-weight:700;cursor:pointer;}
+.arcade-select:focus{border-color:#00e5ff!important;box-shadow:0 0 12px rgba(0,229,255,.3);}
+.arcade-btn{white-space:nowrap;box-shadow:0 0 14px rgba(0,229,255,.35)!important;}
+.arcade-btn-xs{font-size:.78rem!important;padding:6px 10px!important;}
+.friend-card{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px;background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:12px!important;padding:10px 12px!important;width:100%!important;max-width:100%!important;transition:.18s;cursor:pointer;}
+.friend-card:hover{transform:translateY(-1px);border-color:rgba(0,229,255,.4)!important;box-shadow:0 4px 18px rgba(0,229,255,.15);}
+.friend-card.is-online{border-left:3px solid #00e676!important;}
+.friend-card.is-offline{border-left:3px solid #ff1744!important;}
+.friend-card.sent{cursor:default;}
+.friend-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:flex-start;}
+.friend-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+.friend-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.icon-btn{width:32px;height:32px;border-radius:9px;border:1px solid rgba(0,229,255,.25);background:rgba(0,229,255,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:.15s;color:#fff;}
+.icon-btn:hover{transform:scale(1.08);box-shadow:0 0 10px rgba(0,229,255,.4);}
+.icon-btn.danger{border-color:rgba(255,82,82,.35);background:rgba(255,82,82,.08);color:#ff7070;}
+.friend-req{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(124,77,255,.08))!important;border:1px solid rgba(0,229,255,.28)!important;border-radius:12px!important;padding:10px 12px!important;animation:reqGlow 2s ease-in-out infinite;}
+@keyframes reqGlow{0%,100%{box-shadow:0 0 0 rgba(0,229,255,0)}50%{box-shadow:0 0 16px rgba(0,229,255,.2)}}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:800;letter-spacing:.3px;padding:3px 9px;border-radius:999px;text-transform:lowercase;white-space:nowrap;}
+.status-pill.online{background:rgba(0,230,118,.13);color:#00e676;border:1px solid rgba(0,230,118,.35);}
+.status-pill.offline{background:rgba(255,23,68,.1);color:#ff6b81;border:1px solid rgba(255,23,68,.28);}
+.status-pill.pending{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.3);}
+.status-pill .dot{width:7px;height:7px;}
+.friends-count{margin:6px 0 2px!important;text-align:center;font-size:.8rem!important;letter-spacing:1px;color:#8b95a7!important;font-weight:800;}
+.empty-hint{text-align:center;color:#5b6b82!important;padding:10px!important;}
+.empty-chat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:28px 12px;text-align:center;}
+.empty-chat-icon{font-size:2rem;filter:drop-shadow(0 0 8px rgba(0,229,255,.4));animation:invHop .9s ease-in-out infinite;}
+.arcade-chat{background:rgba(0,0,0,.28)!important;border:1.5px solid rgba(0,229,255,.18)!important;border-radius:12px!important;height:280px!important;position:relative;}
+.arcade-chat::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.012) 3px 4px);border-radius:12px;}
+.arcade-chat-bar{display:flex;gap:8px;}
+.arcade-chat-bar .arcade-input{text-align:left;}
+.gift-box{display:flex;flex-direction:column;gap:8px;}
+.gift-row{display:flex;gap:8px;}
+.gift-pts{max-width:110px;flex-shrink:0;}
+.gift-coins{text-align:center!important;background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.18);border-radius:8px;padding:6px!important;}
+.gift-history{max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;background:rgba(0,0,0,.2);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,255,255,.06);}
+.arcade-mini-load{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;color:#00e5ff;font-family:monospace;font-size:.75rem;letter-spacing:1.5px;}
+.arcade-spinner.small{width:28px;height:28px;border-width:2.5px;}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;border:1.5px solid rgba(0,0,0,.3);}
+.dot.online{background:#00e676;box-shadow:0 0 8px #00e676;animation:pulse 1.6s infinite;}
+.dot.offline{background:#ff1744;box-shadow:0 0 4px #ff1744;}
+#privMessages{text-align:left;}
+@media(max-width:820px){.friends-grid{grid-template-columns:1fr;max-width:520px;justify-items:stretch;}.arcade-panel{width:100%;}.friend-name{max-width:110px;}.arcade-h1{font-size:1.5rem;}}
 .tournament-finished{ background:linear-gradient(135deg,#0f0c29 0%,#302b63 35%,#24243e 100%); border:2.5px solid #ffd600; box-shadow:0 0 50px rgba(255,214,0,.35), 0 0 80px rgba(255,107,0,.15), inset 0 1px 0 rgba(255,255,255,.15); overflow:hidden; position:relative; animation:bannerPulse 3s ease-in-out infinite; }
 .tournament-finished-anim{ position:relative; text-align:center; padding:22px 18px; overflow:hidden; background:linear-gradient(180deg, rgba(255,214,0,.08), transparent); }
 .tournament-finished-title{ font-size:1.75rem; font-weight:900; letter-spacing:1px; background:linear-gradient(90deg,#ffd600 0%,#ff8c00 25%,#ffd600 50%,#ff6d00 75%,#ffd600 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-size:300% 100%; animation:shine 2s linear infinite; filter:drop-shadow(0 0 12px rgba(255,214,0,.6)); }

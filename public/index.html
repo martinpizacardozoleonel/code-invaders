@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -34,13 +34,17 @@
     <div class="logo-wrap" id="logoWrap">
       <button class="logo logo--alien" id="logoMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menú">
         <span class="logo-alien" aria-hidden="true">👾</span>
+        <span class="logo-ring" aria-hidden="true"></span>
       </button>
-      <div class="logo-menu hidden" id="logoMenu" role="menu">
-        <button class="logo-menu-item" id="menuTutorial" role="menuitem">📖 Tutorial</button>
-        <button class="logo-menu-item" id="shopBtn" role="menuitem">🛒 Tienda <span class="badge-shop" id="coinVal">0</span></button>
-        <button class="logo-menu-item" data-view="docs" role="menuitem">📖 Manual de uso</button>
-        <button class="logo-menu-item" data-view="qr" role="menuitem">📷 QR</button>
-        <button class="logo-menu-item" id="menuSettings" role="menuitem">⚙️ Ajustes</button>
+      <div class="logo-backdrop hidden" id="logoBackdrop"></div>
+      <div class="logo-menu arcade-menu hidden" id="logoMenu" role="menu">
+        <p class="arcade-menu-title"><span class="blink-dot"></span> INSERT COIN · MENÚ</p>
+        <button class="logo-menu-item" id="menuTutorial" role="menuitem"><span class="mi-ico">📖</span><span class="mi-txt">Tutorial</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" id="shopBtn" role="menuitem"><span class="mi-ico">🛒</span><span class="mi-txt">Tienda</span><span class="badge-shop" id="coinVal">0</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" data-view="docs" role="menuitem"><span class="mi-ico">📚</span><span class="mi-txt">Manual de uso</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" data-view="qr" role="menuitem"><span class="mi-ico">📷</span><span class="mi-txt">QR</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" id="menuSettings" role="menuitem"><span class="mi-ico">⚙️</span><span class="mi-txt">Ajustes</span><span class="mi-arrow">▶</span></button>
+        <p class="arcade-menu-foot">👾 CODE INVADERS v2 · ESC para cerrar</p>
       </div>
     </div>
     <nav class="nav">
@@ -165,55 +169,104 @@
     </section>
 
     <!-- ============ SECCIÓN CHAT ============ -->
-    <section id="view-chat" class="view">
+    <section id="view-chat" class="view friends-view">
       <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
-      <h1>💬 Chat Global</h1>
-      <p class="lead">Habla con todos los jugadores. Los mensajes se guardan y no se borran al refrescar.</p>
-      <div class="chat-card" id="chatCard">
+      <div class="friends-head">
+        <h1 class="arcade-h1"><span class="arcade-h1-icon">💬</span> CHAT GLOBAL</h1>
+        <p class="lead friends-sub">Habla con todos los jugadores 👾 Los mensajes se guardan y no se borran al refrescar.</p>
+      </div>
+      <div class="chat-card arcade-panel" id="chatCard" style="max-width:760px">
         <div class="chat-bg-picker hidden" id="chatBgPicker" style="display:none !important">
           <input type="file" id="chatBgInput" accept="image/*" class="hidden">
           <button class="btn btn-ghost btn-sm hidden" id="chatBgUploadBtn">📷 Foto</button>
           <button class="btn btn-ghost btn-sm hidden" id="chatBgClearBtn">✕ Quitar</button>
         </div>
-        <div class="chat-messages" id="chatMessages"><p class="lead">Cargando mensajes...</p></div>
-        <div class="chat-input-bar">
-          <input type="text" id="chatInput" placeholder="Escribe un mensaje... (500)" maxlength="500" autocomplete="off">
-          <button class="btn btn-primary btn-sm" id="chatSendBtn">Enviar</button>
+        <div class="chat-toolbar">
+          <button class="tool-btn" id="chatPhotoBtn" title="Enviar foto">📷 Foto</button>
+          <button class="tool-btn" id="chatGifBtn" title="Enviar GIF">🎞️ GIF</button>
+          <button class="tool-btn" id="chatStickerBtn" title="Stickers">😎 Sticker</button>
+          <span class="chat-count" id="chatCount">👾 0</span>
+          <input type="file" id="chatFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" style="display:none">
+        </div>
+        <div class="chat-media-panel hidden" id="chatGifPanel">
+          <p class="media-title">🎞️ Elige un GIF arcade</p>
+          <div class="media-grid" id="chatGifGrid"></div>
+          <div class="arcade-form-row" style="margin-top:8px"><input type="url" id="chatGifUrl" class="arcade-input" placeholder="...o pega URL de GIF https://"><button class="btn btn-primary btn-sm arcade-btn" id="chatGifSendUrl">Enviar</button></div>
+        </div>
+        <div class="chat-media-panel hidden" id="chatStickerPanel">
+          <p class="media-title">😎 Toca un sticker para enviar</p>
+          <div class="media-grid stickers" id="chatStickerGrid"></div>
+        </div>
+        <div class="chat-preview hidden" id="chatPreview"><img id="chatPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="chatPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="chatPreviewSend">📤 Enviar foto</button></div></div>
+        <div class="chat-messages arcade-chat global" id="chatMessages"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>CARGANDO MENSAJES...</p></div></div>
+        <div class="chat-input-bar arcade-chat-bar">
+          <input type="text" id="chatInput" class="arcade-input" placeholder="Escribe un mensaje... (Enter ↵)" maxlength="500" autocomplete="off">
+          <button class="btn btn-primary btn-sm arcade-btn" id="chatSendBtn">Enviar</button>
         </div>
         <p class="hint hidden" id="chatHint"></p>
       </div>
-      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button></div>
     </section>
     <!-- ============ SECCIÓN AMIGOS ============ -->
-    <section id="view-friends" class="view">
+    <section id="view-friends" class="view friends-view">
       <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
-      <h1>👥 Amigos</h1>
-      <p class="lead">Añade amigos, acepta solicitudes (campanita) y chatea en privado. Punto verde = en línea (5 min), rojo = desconectado.</p>
+      <div class="friends-head">
+        <h1 class="arcade-h1"><span class="arcade-h1-icon">👥</span> AMIGOS</h1>
+        <p class="lead friends-sub">Añade amigos, acepta solicitudes <span class="mini-badge">🔔 campanita</span> y chatea en privado. <span class="status-pill online"><i class="dot online"></i> en línea</span> <span class="status-pill offline"><i class="dot offline"></i> desconectado</span></p>
+      </div>
       <div class="friends-grid">
-        <div class="friends-col">
-          <h3>➕ Añadir amigo</h3>
-          <div class="btn-row"><input type="text" id="friendAddInput" placeholder="Nombre exacto" maxlength="20"><button class="btn btn-primary btn-sm" id="friendAddBtn">Enviar</button></div>
-          <h3 style="margin-top:16px">📩 Solicitudes</h3>
-          <div id="friendReqs"><p class="hint">Sin solicitudes</p></div>
-          <h3 style="margin-top:16px">📋 Lista</h3>
-          <div id="friendsList"></div>
-        </div>
-        <div class="friends-col">
-          <h3>💬 Chat privado</h3>
-          <select id="privFriendSelect" style="width:100%;margin-bottom:8px"><option value="">-- elige amigo --</option></select>
-          <div class="chat-messages" id="privMessages" style="height:280px"><p class="hint">Selecciona un amigo</p></div>
-          <div class="chat-input-bar"><input type="text" id="privInput" placeholder="Mensaje privado..." maxlength="500"><button class="btn btn-primary btn-sm" id="privSendBtn">Enviar</button></div>
-          <h3 style="margin-top:16px">🎁 Enviar obsequio</h3>
-          <div id="giftSection">
-            <select id="giftFriendSelect" style="width:100%;margin-bottom:8px"><option value="">-- elige amigo --</option></select>
-            <div class="btn-row" style="margin-bottom:8px"><input type="number" id="giftAmountInput" placeholder="Pts (10-5000)" min="10" max="5000" style="width:120px"><input type="text" id="giftMsgInput" placeholder="Mensaje opcional..." maxlength="100" style="flex:1"><button class="btn btn-primary btn-sm" id="giftSendBtn">Enviar 🎁</button></div>
-            <p class="hint" id="giftHint">Tus puntos: <span id="giftCoinsDisplay">0</span></p>
+        <div class="friends-col arcade-panel">
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>➕</span> AÑADIR AMIGO</h3>
+            <div class="arcade-form-row"><input type="text" id="friendAddInput" class="arcade-input" placeholder="Nombre exacto..." maxlength="20" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="friendAddBtn">Enviar</button></div>
           </div>
-          <h3 style="margin-top:16px">📜 Historial de obsequios</h3>
-          <div id="giftHistory"><p class="hint">Sin obsequios aún</p></div>
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>📩</span> SOLICITUDES</h3>
+            <div id="friendReqs" class="friends-stack"><p class="hint empty-hint">📭 Sin solicitudes</p></div>
+          </div>
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>📋</span> LISTA</h3>
+            <div id="friendsList" class="friends-stack"></div>
+          </div>
+        </div>
+        <div class="friends-col arcade-panel">
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>💬</span> CHAT PRIVADO</h3>
+            <select id="privFriendSelect" class="arcade-select"><option value="">-- elige amigo --</option></select>
+            <div class="chat-toolbar priv-toolbar">
+              <button class="tool-btn tool-sm" id="privPhotoBtn" title="Enviar foto">📷</button>
+              <button class="tool-btn tool-sm" id="privGifBtn" title="Enviar GIF">🎞️</button>
+              <button class="tool-btn tool-sm" id="privStickerBtn" title="Stickers">😎</button>
+              <input type="file" id="privFileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
+            </div>
+            <div class="chat-media-panel hidden" id="privGifPanel">
+              <p class="media-title">🎞️ GIF rápido</p>
+              <div class="media-grid" id="privGifGrid"></div>
+              <div class="arcade-form-row" style="margin-top:8px"><input type="url" id="privGifUrl" class="arcade-input" placeholder="Pega URL https://...gif"><button class="btn btn-primary btn-sm arcade-btn" id="privGifSendUrl">OK</button></div>
+            </div>
+            <div class="chat-media-panel hidden" id="privStickerPanel">
+              <p class="media-title">😎 Sticker</p>
+              <div class="media-grid stickers" id="privStickerGrid"></div>
+            </div>
+            <div class="chat-preview hidden" id="privPreview"><img id="privPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="privPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="privPreviewSend">📤</button></div></div>
+            <div class="chat-messages arcade-chat" id="privMessages"><div class="empty-chat"><span class="empty-chat-icon">💬</span><p class="hint">Selecciona un amigo para chatear</p></div></div>
+            <div class="chat-input-bar arcade-chat-bar"><input type="text" id="privInput" class="arcade-input" placeholder="Mensaje privado... (Enter ↵)" maxlength="500" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="privSendBtn">Enviar</button></div>
+          </div>
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>🎁</span> ENVIAR OBSEQUIO</h3>
+            <div id="giftSection" class="gift-box">
+              <select id="giftFriendSelect" class="arcade-select"><option value="">-- elige amigo --</option></select>
+              <div class="arcade-form-row gift-row"><input type="number" id="giftAmountInput" class="arcade-input gift-pts" placeholder="Pts 10-5000" min="10" max="5000"><input type="text" id="giftMsgInput" class="arcade-input" placeholder="Mensaje opcional..." maxlength="100" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="giftSendBtn">🎁</button></div>
+              <p class="hint gift-coins" id="giftHint">🪙 Tus puntos: <strong id="giftCoinsDisplay">0</strong></p>
+            </div>
+          </div>
+          <div class="friends-sec">
+            <h3 class="panel-sec-title"><span>📜</span> HISTORIAL</h3>
+            <div id="giftHistory" class="gift-history"><p class="hint empty-hint">Sin obsequios aún</p></div>
+          </div>
         </div>
       </div>
-      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button></div>
     </section>
 
     <!-- ============ SECCIÓN QR ============ -->
@@ -416,8 +469,8 @@
   <script src="js/game.js?v=23"></script>
   <script src="js/profile.js?v=13"></script>
   <script src="js/ranked.js?v=8"></script>
-  <script src="js/chat.js?v=3"></script>
-  <script src="js/friends.js?v=3"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/chat.js?v=4"></script>
+  <script src="js/friends.js?v=6"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

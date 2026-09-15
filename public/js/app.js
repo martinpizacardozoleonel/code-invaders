@@ -12,57 +12,57 @@
     const logoBtn = document.getElementById('logoMenuBtn');
     const logoWrap = document.getElementById('logoWrap');
     const logoMenu = document.getElementById('logoMenu');
+    const logoBackdrop = document.getElementById('logoBackdrop');
     const menuTutorial = document.getElementById('menuTutorial');
+    function openMenu(){
+      logoMenu.classList.remove('hidden','closing');
+      void logoMenu.offsetWidth;
+      if (logoWrap) logoWrap.classList.add('open');
+      if (logoBackdrop) logoBackdrop.classList.remove('hidden');
+      logoBtn.setAttribute('aria-expanded','true');
+    }
+    function closeMenu(instant){
+      if (logoMenu.classList.contains('hidden')) return;
+      if (instant){ logoMenu.classList.add('hidden'); }
+      else {
+        logoMenu.classList.add('closing');
+        setTimeout(()=>{ logoMenu.classList.add('hidden'); logoMenu.classList.remove('closing'); },170);
+      }
+      if (logoWrap) logoWrap.classList.remove('open');
+      if (logoBackdrop) logoBackdrop.classList.add('hidden');
+      logoBtn.setAttribute('aria-expanded', 'false');
+    }
     if (logoBtn && logoMenu) {
       logoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isHidden = logoMenu.classList.contains('hidden');
-        logoMenu.classList.toggle('hidden', !isHidden);
-        if (logoWrap) logoWrap.classList.toggle('open', isHidden);
-        logoBtn.setAttribute('aria-expanded', String(isHidden));
+        const isHidden = logoMenu.classList.contains('hidden') || logoMenu.classList.contains('closing');
+        if (isHidden) openMenu(); else closeMenu();
       });
+      if (logoBackdrop) logoBackdrop.addEventListener('click', ()=>closeMenu());
       document.addEventListener('click', (e) => {
-        if (!logoWrap.contains(e.target)) {
-          logoMenu.classList.add('hidden');
-          if (logoWrap) logoWrap.classList.remove('open');
-          logoBtn.setAttribute('aria-expanded', 'false');
-        }
+        if (!logoWrap.contains(e.target)) closeMenu();
       });
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          logoMenu.classList.add('hidden');
-          if (logoWrap) logoWrap.classList.remove('open');
-          logoBtn.setAttribute('aria-expanded', 'false');
-        }
+        if (e.key === 'Escape') closeMenu();
       });
       if (menuTutorial) menuTutorial.addEventListener('click', () => {
-        logoMenu.classList.add('hidden');
-        if (logoWrap) logoWrap.classList.remove('open');
-        logoBtn.setAttribute('aria-expanded', 'false');
-        if (typeof Intro !== 'undefined') Intro.open();
+        closeMenu();
+        setTimeout(()=>{ if (typeof Intro !== 'undefined') Intro.open(); },120);
       });
       const menuSettings=document.getElementById('menuSettings');
       if(menuSettings) menuSettings.addEventListener('click',()=>{
-        logoMenu.classList.add('hidden');
-        if(logoWrap) logoWrap.classList.remove('open');
-        logoBtn.setAttribute('aria-expanded','false');
-        const ov=document.getElementById('settingsOverlay');
-        if(ov) ov.classList.remove('hidden');
-        if(typeof Profile!=='undefined') Profile.renderProfile();
+        closeMenu();
+        setTimeout(()=>{
+          const ov=document.getElementById('settingsOverlay');
+          if(ov) ov.classList.remove('hidden');
+          if(typeof Profile!=='undefined') Profile.renderProfile();
+        },120);
       });
       logoMenu.querySelectorAll('[data-view]').forEach(el => {
-        el.addEventListener('click', () => {
-          logoMenu.classList.add('hidden');
-          if (logoWrap) logoWrap.classList.remove('open');
-          logoBtn.setAttribute('aria-expanded', 'false');
-        });
+        el.addEventListener('click', () => closeMenu());
       });
       const shopBtn = document.getElementById('shopBtn');
-      if (shopBtn) shopBtn.addEventListener('click', () => {
-        logoMenu.classList.add('hidden');
-        if (logoWrap) logoWrap.classList.remove('open');
-        logoBtn.setAttribute('aria-expanded', 'false');
-      });
+      if (shopBtn) shopBtn.addEventListener('click', () => closeMenu());
       const shopBack = document.getElementById('shopBack');
       if (shopBack) shopBack.addEventListener('click', () => {
         const m = document.getElementById('shopModal');
