@@ -280,5 +280,142 @@ async function importDb(d){
 app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const dump=await dumpDb(); res.json({dump}); }catch(e){ res.status(500).json({error:'No se pudo exportar'}); } });
 app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
 
+/* ============ MULTIPLAYER (lobby + battle por oleadas, polling) ============ */
+const Multi={ lobby:new Map(), chat:[], match:null };
+function multiWaveTime(w){ return Math.max(12, 32 - w*1.2); }
+function multiPickEnemies(){
+  const pools=[];
+  try{
+    const html=(LEVELS[0]&&LEVELS[0].questions)||[]; const css=(LEVELS[1]&&LEVELS[1].questions)||[]; const js=(LEVELS[2]&&LEVELS[2].questions)||[];
+    html.forEach(q=>pools.push({cat:'HTML',q:q.q,a:q.a})); css.forEach(q=>pools.push({cat:'CSS',q:q.q,a:q.a})); js.forEach(q=>pools.push({cat:'JS',q:q.q,a:q.a}));
+  }catch(e){}
+  if(!pools.length) pools.push({cat:'HTML',q:'Párrafo',a:'<p>'},{cat:'CSS',q:'Color de texto',a:'color'},{cat:'JS',q:'Variable mutable',a:'let'});
+  const out=[];
+  for(let i=0;i<3;i++){ const p=pools[Math.floor(Math.random()*pools.length)]; out.push({id:crypto.randomUUID().slice(0,8),cat:p.cat,q:p.q,a:p.a}); }
+  return out;
+}
+function multiWaveDesc(w,enemies){
+  const c={HTML:0,CSS:0,JS:0}; enemies.forEach(e=>{ if(c[e.cat]!==undefined) c[e.cat]++; });
+  const parts=[]; if(c.HTML) parts.push(c.HTML+' HTML'); if(c.CSS) parts.push(c.CSS+' CSS'); if(c.JS) parts.push(c.JS+' JS');
+  return 'HORNADA '+w+' · '+parts.join(' + ');
+}
+function multiPublicState(){
+  const now=Date.now();
+  for(const [id,p] of [...Multi.lobby]){ if(now-p.lastSeen>45000) Multi.lobby.delete(id); }
+  if(Multi.match && Multi.match.status==='finished' && now-Multi.match.finishedAt>90000){ Multi.match=null; for(const p of Multi.lobby.values()) p.ready=false; }
+  if(Multi.match && Multi.match.status==='playing'){
+    let changed=false;
+    for(const pid of Object.keys(Multi.match.players)){
+      const ps=Multi.match.players[pid];
+      if(ps.alive && now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.alive=false; ps.streak=0; changed=true; }
+    }
+    const ids=Object.keys(Multi.match.players);
+    const alive=ids.filter(id=>Multi.match.players[id].alive);
+    if(ids.length>=2 && alive.length<=1 && !Multi.match.finishing){
+      Multi.match.finishing=true;
+      (async()=>{
+        try{
+          const m=Multi.match; const pls=ids.map(id=>m.players[id]);
+          pls.sort((a,b)=> (b.alive-a.alive) || (b.wave-a.wave) || (b.hits-a.hits) || (a.misses-b.misses));
+          const win=pls[0];
+          for(const p of pls){
+            const u=await getUserById(p.userId); if(!u) continue; ensureShopFields(u);
+            const isWin=p.userId===win.userId;
+            const expGain=isWin?(300+p.wave*20+p.hits*5):(p.hits*5);
+            const coinGain=isWin?(500+ids.length*100+p.hits*5):(p.hits*10);
+            u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
+            await updateUser(u);
+            p.expWon=expGain; p.coinsWon=coinGain;
+            try{ await pushNotification(u.id, isWin?'🏆 ¡Ganaste el Multiplayer!':'💀 Multiplayer terminado', isWin?('Oleada '+p.wave+' · +'+expGain+' EXP +'+coinGain+' pts'):('Oleada '+p.wave+' · '+p.hits+' aciertos'), isWin?'success':'info'); }catch(e){}
+          }
+          m.status='finished'; m.finishedAt=Date.now(); m.winnerId=win.userId;
+        }catch(e){ console.error('[multi finish]',e.message); if(Multi.match){ Multi.match.status='finished'; Multi.match.finishedAt=Date.now(); } }
+      })();
+    }
+  }
+  if(!Multi.match || Multi.match.status==='finished'){
+    const l=[...Multi.lobby.values()];
+    if(l.length>=2 && l.every(p=>p.ready)){
+      const players={};
+      l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',nameColor:p.nameColor||'#ffffff',alive:true,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
+      Multi.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players};
+      Multi.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
+    }
+  }
+}
+app.get('/api/multi/state', async (req,res)=>{
+  try{
+    const user=await findUserByToken(req);
+    multiPublicState();
+    const lobby=[...Multi.lobby.values()].map(p=>({userId:p.userId,username:p.username,profilePic:p.profilePic,frame:p.frame,nameColor:p.nameColor,ready:!!p.ready,online:true}));
+    let match=null;
+    if(Multi.match){
+      const now=Date.now();
+      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:p.profilePic,frame:p.frame,nameColor:p.nameColor,alive:p.alive,wave:p.wave,enemies:p.enemies,desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
+      match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players};
+    }
+    res.json({lobby,match,chat:Multi.chat.slice(-30),me:user?user.id:null});
+  }catch(e){ res.status(500).json({error:'multi state error'}); }
+});
+app.post('/api/multi/join', async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  ensureShopFields(user);
+  Multi.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',nameColor:user.nameColor||'#ffffff',ready:(Multi.lobby.get(user.id)||{}).ready||false,lastSeen:Date.now()});
+  multiPublicState();
+  res.json({ok:true});
+});
+app.post('/api/multi/leave', async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  Multi.lobby.delete(user.id);
+  if(Multi.match && Multi.match.status==='playing' && Multi.match.players[user.id]){ Multi.match.players[user.id].alive=false; Multi.match.players[user.id].streak=0; }
+  multiPublicState();
+  res.json({ok:true});
+});
+app.post('/api/multi/ready', async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  const {ready}=req.body||{};
+  const p=Multi.lobby.get(user.id);
+  if(!p) return res.status(400).json({error:'Únete al lobby primero'});
+  p.ready=!!ready; p.lastSeen=Date.now();
+  multiPublicState();
+  res.json({ok:true,ready:p.ready});
+});
+app.get('/api/multi/chat', async (req,res)=>{ multiPublicState(); res.json({messages:Multi.chat.slice(-30)}); });
+app.post('/api/multi/chat', async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'});
+  const isSt=t.startsWith('[sticker]');
+  if(!isSt && t.length>300) return res.status(400).json({error:'Máx 300'});
+  if(isSt && t.length>120) return res.status(400).json({error:'Sticker inválido'});
+  const m={id:crypto.randomUUID(),userId:user.id,username:user.username,text:t.slice(0,300),createdAt:new Date().toISOString()};
+  Multi.chat.push(m); if(Multi.chat.length>100) Multi.chat=Multi.chat.slice(-100);
+  res.json({message:m});
+});
+app.post('/api/multi/answer', async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Vacío'});
+  multiPublicState();
+  const m=Multi.match;
+  if(!m || m.status!=='playing') return res.status(400).json({error:'Sin partida'});
+  const ps=m.players[user.id];
+  if(!ps) return res.status(400).json({error:'No estás en la partida'});
+  if(!ps.alive) return res.status(400).json({error:'Estás eliminado'});
+  const now=Date.now();
+  if(now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.alive=false; ps.streak=0; multiPublicState(); return res.status(400).json({error:'¡Te alcanzaron!'}); }
+  const norm=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
+  const idx=ps.enemies.findIndex(e=>norm(e.a)===norm(t));
+  if(idx>=0){
+    const killed=ps.enemies.splice(idx,1)[0];
+    ps.hits++; ps.streak++; if(ps.streak>ps.best) ps.best=ps.streak;
+    let waveUp=false;
+    if(!ps.enemies.length){ ps.wave++; const en=multiPickEnemies(); ps.enemies=en; ps.waveStart=now; ps.desc=multiWaveDesc(ps.wave,en); waveUp=true; }
+    multiPublicState();
+    return res.json({hit:true,killed:{cat:killed.cat,q:killed.q},waveUp,wave:ps.wave,enemies:ps.enemies,desc:ps.desc,hits:ps.hits,streak:ps.streak});
+  } else {
+    ps.misses++; ps.streak=0;
+    return res.json({hit:false,misses:ps.misses});
+  }
+});
+
 app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json-temporal',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });
 (async()=>{ await initPg(); try{ const _u=await getUserByUsername('guguslu'); if(_u){ const _t=15020; _u.speedrunBest=_t; if(!_u.speedrunHistory) _u.speedrunHistory=[]; if(!_u.speedrunHistory.some(h=>h.time===_t)) _u.speedrunHistory.push({time:_t,at:new Date().toISOString()}); await updateUser(_u); console.log(`[fix] guguslu speedrun forced ${_t}ms`); } }catch(e){ console.log('fix guguslu',e.message); } try{ const _p=await getUserByUsername('piza'); if(_p){ const _t2=12020; _p.speedrunBest=_t2; if(!_p.speedrunHistory) _p.speedrunHistory=[]; if(!_p.speedrunHistory.some(h=>h.time===_t2)) _p.speedrunHistory.push({time:_t2,at:new Date().toISOString()}); await updateUser(_p); console.log(`[fix] piza speedrun forced ${_t2}ms`); } }catch(e){ console.log('fix piza',e.message); } try{ const _e=await getUserByUsername('enzo'); if(_e && _e.frames && _e.frames.includes('campeon')){ _e.frames=_e.frames.filter(f=>f!=='campeon'); if(_e.equippedFrame==='campeon') _e.equippedFrame='none'; await updateUser(_e); console.log(`[fix] Removed campeon frame from enzo`); } }catch(e){ console.log('fix enzo campeon',e.message); } app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG]':'[JSON]'}`); }); })();

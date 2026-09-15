@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=14">
+  <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -49,6 +49,7 @@
     </div>
     <nav class="nav">
       <button class="nav-btn active" data-view="game">🎮 Juego</button>
+      <button class="nav-btn" id="navMultiBtn">🌐 Multi</button>
       <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
       <button class="nav-btn" data-view="chat">💬 Chat Global</button>
       <button class="nav-btn" data-view="friends">👥 Amigos</button>
@@ -116,6 +117,7 @@
           <div class="mode-btns" id="modeBtns">
             <button class="btn-start hidden" id="startBtn">▶ NORMAL</button>
             <button class="btn-start btn-speedrun hidden" id="speedrunBtn">⚡ SPEEDRUN</button>
+            <button class="btn-start btn-multi" id="multiBtn">🌐 MULTIPLAYER</button>
           </div>
           <button class="btn-start hidden" id="retryBtn">↺ REINTENTAR</button>
           <div class="touch-controls" id="touchControls" aria-hidden="true">
@@ -150,6 +152,43 @@
         <!-- Input para responder -->
         <div class="input-bar">
           <input type="text" id="answerInput" placeholder="Escribe la respuesta y presiona ENTER..." autocomplete="off" spellcheck="false" enterkeyhint="send" inputmode="text">
+        </div>
+      </div>
+      <!-- ============ MULTIPLAYER OVERLAY ============ -->
+      <div class="multi-overlay hidden" id="multiOverlay">
+        <div class="multi-panel arcade-panel">
+          <div class="multi-head">
+            <h2 class="arcade-h1" style="font-size:1.2rem">🌐 MULTIPLAYER ONLINE</h2>
+            <button class="btn btn-ghost btn-sm" id="multiCloseBtn">✕ Cerrar</button>
+          </div>
+          <!-- LOBBY -->
+          <div id="multiLobby">
+            <p class="lead friends-sub" style="text-align:center">Lobby de espera estilo Left 4 Dead · marca LISTO y cuando todos estén listos arranca · 2+ jugadores</p>
+            <div class="multi-players" id="multiPlayers"></div>
+            <div class="multi-lobby-actions">
+              <button class="btn btn-primary" id="multiReadyBtn">✅ ¡LISTO!</button>
+              <button class="btn btn-ghost btn-sm" id="multiLeaveBtn">Salir del lobby</button>
+            </div>
+            <h3 class="panel-sec-title"><span>💬</span> CHAT DEL LOBBY</h3>
+            <div class="chat-messages arcade-chat" id="multiChatBox" style="height:150px"></div>
+            <div class="chat-input-bar arcade-chat-bar"><input type="text" id="multiChatInput" class="arcade-input" placeholder="Escribe... (Enter)" maxlength="300" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiChatSend">Enviar</button></div>
+          </div>
+          <!-- BATALLA -->
+          <div id="multiBattle" class="hidden">
+            <div class="multi-wave-banner" id="multiWaveBanner">HORNADA 1</div>
+            <div class="multi-columns" id="multiColumns"></div>
+            <div class="chat-input-bar arcade-chat-bar" style="margin-top:10px"><input type="text" id="multiAnswer" class="arcade-input" placeholder="Escribe la etiqueta para disparar... (Enter)" autocomplete="off" spellcheck="false"><button class="btn btn-primary btn-sm arcade-btn" id="multiAnswerBtn">💥</button></div>
+            <p class="hint" id="multiFeedback" style="text-align:center;min-height:20px"></p>
+          </div>
+          <!-- RESULTADOS -->
+          <div id="multiResults" class="hidden">
+            <h3 class="panel-sec-title">🏆 RESULTADOS — gana EXP y monedas</h3>
+            <div id="multiTable"></div>
+            <div class="multi-lobby-actions">
+              <button class="btn btn-primary" id="multiStayBtn">🔄 Volver al lobby</button>
+              <button class="btn btn-ghost btn-sm" id="multiQuitBtn">Salir</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -471,6 +510,7 @@
   <script src="js/ranked.js?v=8"></script>
   <script src="js/chat.js?v=4"></script>
   <script src="js/friends.js?v=6"></script>
+  <script src="js/multi.js?v=1"></script>
   <script src="js/app.js?v=9"></script>
 </body>
 </html>
