@@ -1077,50 +1077,83 @@ footer {
 
 /* ============ TEMA CLARO ============ */
 body.light {
-  --bg-dark: #f4f9ee;
-  --bg-card: #fff;
-  --accent: #2e7d32;
-  --accent-dark: #1b5e20;
-  --text: #1a2e1a;
-  --text-dim: #5a6a5a;
-  background: #f4f9ee;
+  --bg-dark: #eef2f7;
+  --bg-card: #ffffff;
+  --accent: #0288d1;
+  --accent-dark: #01579b;
+  --text: #0f172a;
+  --text-dim: #5b6b82;
+  --shadow: 0 4px 18px rgba(15,23,42,.08);
+  background: #eef2f7;
+  color: #0f172a;
 }
 body.light .topbar {
-  background: linear-gradient(135deg, #2e7d32, #1b5e20);
-  border-bottom-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(2,136,209,.14);
+  box-shadow: 0 2px 14px rgba(15,23,42,.06);
+  color: #0f172a;
 }
+body.light .nav-btn { background: #e8eef5; color: #0f172a; }
+body.light .nav-btn:hover { background: #dbe7f3; }
+body.light .nav-btn.active { background: linear-gradient(135deg,#0288d1,#00acc1); color: #fff; }
+body.light .logo--alien { background: #fff; border-color: rgba(2,136,209,.4); box-shadow: 0 2px 10px rgba(2,136,209,.18); }
 body.light .card, body.light .card-lg, body.light .card-quiz {
   background: #fff;
-  border-color: rgba(46,125,50,0.2);
+  border-color: rgba(15,23,42,.08);
+  box-shadow: 0 4px 18px rgba(15,23,42,.06);
+  color: #0f172a;
 }
 body.light .hud {
-  background: rgba(255,255,255,0.9);
-  border-color: rgba(46,125,50,0.15);
+  background: rgba(255,255,255,.95);
+  border-color: rgba(15,23,42,.08);
 }
-body.light .hud-label { color: #5a6a5a; }
-body.light .hud-val { color: #1a2e1a; }
-body.light .overlay { background: rgba(0,0,0,0.4); }
-body.light .frame-card { background: #fff; border-color: rgba(46,125,50,0.15); }
-body.light .frame-preview { background: #e8f5e9; }
-body.light .theme-btn { background: #e8f5e9; border-color: rgba(46,125,50,0.2); color: #1a2e1a; }
-body.light .theme-btn.active { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+body.light .hud-label { color: #5b6b82; }
+body.light .hud-val { color: #0f172a; }
+body.light .overlay { background: rgba(15,23,42,.45); }
+body.light .frame-card { background: #fff; border-color: rgba(15,23,42,.08); }
+body.light .frame-preview { background: #f1f5f9; }
+body.light .theme-btn { background: #f1f5f9; border-color: rgba(15,23,42,.1); color: #0f172a; }
+body.light .theme-btn.active { background: linear-gradient(135deg,#0288d1,#00acc1); border-color: transparent; color: #fff; }
 body.light .field-group input, body.light .setting-item input {
-  background: #e8f5e9; border-color: rgba(46,125,50,0.2); color: #1a2e1a;
+  background: #fff; border-color: #cbd5e1; color: #0f172a;
 }
-body.light .tips { background: rgba(255,255,255,0.8); color: #1a2e1a; border-color: rgba(46,125,50,0.15); }
-body.light .q-banner { background: rgba(255,255,255,0.9); color: #1a2e1a; border-color: rgba(46,125,50,0.15); }
-body.light footer { background: #e8f5e9; border-top-color: rgba(46,125,50,0.15); }
-body.light .input-bar input { background: #e8f5e9; border-color: rgba(46,125,50,0.2); color: #1a2e1a; }
-body.light .btn-primary { background: #2e7d32; }
-body.light .btn-primary:hover { background: #1b5e20; }
-body.light .modal { background: #fff; border-color: rgba(46,125,50,0.2); }
-body.light .logo-menu { background: rgba(255,255,255,0.98); border-color: rgba(46,125,50,0.3); }
-body.light .logo-menu-item:hover { background: #e8f5e9; }
-body.light .table th { background: #e8f5e9; color: #1a2e1a; }
-body.light .table td { border-color: rgba(46,125,50,0.1); }
-body.light .leaderboard { background: rgba(255,255,255,0.9); }
-body.light .leaderboard h2 { color: #1a2e1a; }
-body.light .shop-hint { color: #5a6a5a; }
+body.light .tips { background: #fff; color: #0f172a; border-color: rgba(15,23,42,.08); }
+body.light .q-banner { background: #fff; color: #0f172a; border-color: rgba(15,23,42,.08); }
+body.light footer { background: #fff; border-top: 1px solid rgba(15,23,42,.08); color: #5b6b82; }
+body.light .input-bar input { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+body.light .btn-primary { background: linear-gradient(135deg,#0288d1,#00acc1); color: #fff; border: 0; }
+body.light .btn-primary:hover { filter: brightness(1.07); background: linear-gradient(135deg,#0288d1,#00acc1); }
+body.light .btn-ghost { border-color: #cbd5e1; color: #0f172a; background: #fff; }
+body.light .modal { background: #fff; border-color: rgba(15,23,42,.08); color: #0f172a; }
+body.light .logo-menu { background: rgba(255,255,255,.98); border-color: rgba(2,136,209,.2); box-shadow: 0 14px 36px rgba(15,23,42,.14); }
+body.light .logo-menu-item { background: #f8fafc; border-color: rgba(15,23,42,.06); color: #0f172a; }
+body.light .logo-menu-item:hover { background: #e1f5fe; border-color: rgba(2,136,209,.3); color: #01579b; }
+body.light .arcade-menu-title { color: #0288d1; text-shadow: none; }
+body.light .arcade-menu-foot { color: #94a3b8; border-top-color: rgba(15,23,42,.06); }
+body.light .mi-arrow { color: #0288d1; }
+body.light .table th { background: #f1f5f9; color: #0f172a; }
+body.light .table td { border-color: rgba(15,23,42,.06); color: #0f172a; }
+body.light .leaderboard { background: #fff; border-color: rgba(15,23,42,.08); }
+body.light .leaderboard h2 { color: #0f172a; }
+body.light .shop-hint { color: #5b6b82; }
+/* paneles arcade en claro: blancos, sin degradado oscuro */
+body.light .arcade-panel, body.light .friends-col, body.light .chat-card { background: #fff!important; border-color: rgba(15,23,42,.08)!important; box-shadow: 0 4px 18px rgba(15,23,42,.06)!important; color: #0f172a; }
+body.light .arcade-panel::before, body.light .chat-card::before { opacity: .35; }
+body.light .panel-sec-title { background: #f1f5f9!important; border-color: rgba(15,23,42,.06)!important; color: #0f172a!important; text-shadow: none!important; }
+body.light .arcade-h1 { color: #0288d1; text-shadow: none; }
+body.light .friends-sub, body.light .lead { color: #475569; }
+body.light .arcade-input, body.light .arcade-select { background: #fff!important; border-color: #cbd5e1!important; color: #0f172a!important; }
+body.light .chat-messages, body.light .arcade-chat { background: #f8fafc!important; border-color: rgba(15,23,42,.08)!important; }
+body.light .chat-msg { background: #fff!important; border-color: rgba(15,23,42,.07)!important; }
+body.light .chat-msg.own { background: #e1f5fe!important; border-color: rgba(2,136,209,.25)!important; }
+body.light .chat-text { color: #0f172a; }
+body.light .friend-card { background: #fff!important; border-color: rgba(15,23,42,.08)!important; }
+body.light .chat-toolbar, body.light .chat-media-panel, body.light .gift-history { background: #f8fafc!important; border-color: rgba(15,23,42,.08)!important; }
+body.light .tool-btn { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+body.light .inspect-card h2, body.light .inspect-title { background: #f8fafc!important; color: #0f172a!important; text-shadow: none!important; border-bottom-color: rgba(15,23,42,.06)!important; }
+body.light .inspect-loading { background: #f8fafc!important; }
+body.light .arcade-load-title { color: #0288d1!important; text-shadow: none!important; }
 
 /* ============ RANKED ============ */
 .ranked-tabs{ display:flex; gap:10px; margin:16px 0 12px; }
@@ -1184,12 +1217,12 @@ body.light .shop-hint { color: #5a6a5a; }
 .inspect-detail-label { color: var(--text-dim); }
 .inspect-detail-val { font-weight: bold; }
 
-body.light .ranked-card { background: #fff; border-color: rgba(46,125,50,0.15); }
-body.light .ranked-name { color: #1a2e1a; }
-body.light .ranked-stats { color: #5a6a5a; }
-body.light .inspect-card { background: #fff; border-color: rgba(46,125,50,0.2); }
-body.light .inspect-name { color: #1a2e1a; }
-body.light .inspect-detail-label { color: #5a6a5a; }
+body.light .ranked-card { background: #fff; border-color: rgba(15,23,42,.08); }
+body.light .ranked-name { color: #0f172a; }
+body.light .ranked-stats { color: #5b6b82; }
+body.light .inspect-card { background: #fff; border-color: rgba(15,23,42,.08); }
+body.light .inspect-name { color: #0f172a; }
+body.light .inspect-detail-label { color: #5b6b82; }
 
 /* ============ TORNEO RANKED ============ */
 .tournament-banner {
@@ -1260,14 +1293,15 @@ body.light .inspect-detail-label { color: #5a6a5a; }
 .ranked-pos-2 { background: rgba(192,192,192,0.2); color: #c0c0c0; border: 1px solid rgba(192,192,192,0.4); }
 .ranked-pos-3 { background: rgba(205,127,50,0.2); color: #cd7f32; border: 1px solid rgba(205,127,50,0.4); }
 
-body.light .tournament-active { border-color: #2e7d32; box-shadow: 0 0 20px rgba(46,125,50,0.1); }
-body.light .tournament-pending { background: #fff; border-color: rgba(255,193,7,0.4); }
-body.light .tournament-clock { background: rgba(0,0,0,0.05); border-color: rgba(46,125,50,0.15); }
-body.light .countdown-unit { background: rgba(0,0,0,0.05); border-color: rgba(46,125,50,0.15); }
-body.light .countdown-val { color: #2e7d32; }
-body.light .tournament-reward { background: rgba(0,0,0,0.03); }
-body.light .tournament-progress-bar { background: rgba(0,0,0,0.08); }
-body.light .tournament-progress-fill { background: linear-gradient(90deg, #ffc107, #ff9800); }
+body.light .tournament-active, body.light .tournament-pending { background: #fff; border-color: rgba(2,136,209,.2); box-shadow: 0 4px 18px rgba(15,23,42,.06); }
+body.light .tournament-clock { background: #f1f5f9; border-color: rgba(15,23,42,.08); color: #0f172a; }
+body.light .countdown-unit { background: #f8fafc; border-color: rgba(15,23,42,.08); }
+body.light .countdown-val { color: #0288d1; }
+body.light .tournament-reward { background: #f8fafc; border-color: rgba(15,23,42,.06); }
+body.light .tournament-rewards-title, body.light .tournament-end-date, body.light .reward-item { color: #475569; }
+body.light .tournament-end-date strong { color: #0f172a; }
+body.light .tournament-progress-bar { background: rgba(15,23,42,.08); }
+body.light .tournament-progress-fill { background: linear-gradient(90deg, #0288d1, #00acc1); }
 
 /* ============ CHAT GLOBAL — arcade perfecto ============ */
 .chat-card{ max-width:760px; margin:0 auto; background:linear-gradient(180deg,#141e30,#0a1120)!important; border:1.5px solid rgba(0,229,255,.22)!important; border-radius:18px!important; padding:20px!important; box-shadow:0 10px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)!important; display:flex; flex-direction:column; gap:12px; position:relative; overflow:hidden;}
