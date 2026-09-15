@@ -337,7 +337,7 @@ function multiPublicState(){
     const l=[...Multi.lobby.values()];
     if(l.length>=2 && l.every(p=>p.ready)){
       const players={};
-      l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',nameColor:p.nameColor||'#ffffff',alive:true,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
+      l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',nameColor:p.nameColor||'#ffffff',alive:true,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
       Multi.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players};
       Multi.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
     }
@@ -349,11 +349,11 @@ app.get('/api/multi/state', async (req,res)=>{
     const user=await findUserByToken(req);
     if(user && Multi.lobby.has(user.id)) Multi.lobby.get(user.id).lastSeen=Date.now();
     multiPublicState();
-    const lobby=[...Multi.lobby.values()].map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,nameColor:p.nameColor,ready:!!p.ready,online:true}));
+    const lobby=[...Multi.lobby.values()].map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,ready:!!p.ready,online:true}));
     let match=null;
     if(Multi.match){
       const now=Date.now();
-      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),frame:p.frame,nameColor:p.nameColor,alive:p.alive,wave:p.wave,enemies:p.enemies,desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
+      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,wave:p.wave,enemies:p.enemies,desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
       match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players};
     }
     res.set('Cache-Control','no-store');
@@ -363,7 +363,7 @@ app.get('/api/multi/state', async (req,res)=>{
 app.post('/api/multi/join', async (req,res)=>{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
   ensureShopFields(user);
-  Multi.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',nameColor:user.nameColor||'#ffffff',ready:(Multi.lobby.get(user.id)||{}).ready||false,lastSeen:Date.now()});
+  Multi.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:(Multi.lobby.get(user.id)||{}).ready||false,lastSeen:Date.now()});
   multiPublicState();
   res.json({ok:true});
 });

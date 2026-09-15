@@ -1,3 +1,4 @@
+const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},{id:'crimson',body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},{id:'gold',body:'#ffd600',accent:'#fff176',glow:'#ffea00'},{id:'neon',body:'#00e676',accent:'#69f0ae',glow:'#00e676'},{id:'violet',body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},{id:'pixel',body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'},{id:'tournament_silver',body:'#c0c0c0',accent:'#e0e0e0',glow:'#e0e0e0'}];
 const MultiUI={
  open:false, timer:null, ready:false, lastKey:'', fetching:false, failCount:0, picCache:{},
  init(){
@@ -47,6 +48,12 @@ const MultiUI={
  },
  esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; },
  catColor(c){ return c==='HTML'?'#ff7043':(c==='CSS'?'#40c4ff':'#ffd600'); },
+ skinById(id){ return MultiSkins.find(s=>s.id===id)||MultiSkins[0]; },
+ shipHtml(skinId, alive){
+  if(!alive) return '<div class="multi-ship dead">💥</div>';
+  const sk=this.skinById(skinId||'default');
+  return '<div class="multi-ship alive" title="'+this.esc(skinId||'default')+'"><svg width="44" height="38" viewBox="-22 -22 44 44" style="filter:drop-shadow(0 0 8px '+sk.glow+')"><path d="M0,-22 L-20,18 L-7,10 L0,16 L7,10 L20,18 Z" fill="'+sk.body+'" stroke="rgba(255,255,255,.85)" stroke-width="1.2"/><circle cx="0" cy="-4" r="4.5" fill="'+sk.accent+'" stroke="#fff" stroke-width=".8"/><path d="M-6,14 L0,22 L6,14 Z" fill="#ff6d00" opacity=".95"/></svg></div>';
+ },
  picHtml(p){
   if(p.profilePic) this.picCache[p.userId]=p.profilePic;
   const src=p.profilePic||this.picCache[p.userId]||'';
@@ -91,8 +98,8 @@ const MultiUI={
         const isMe=p.userId===me;
         const pic=this.picHtml(p);
         const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
-        const ens=p.enemies.map(e=>'<div class="multi-enemy cat-'+e.cat+'"><span class="enemy-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="enemy-q">'+this.esc(e.q)+'</span><span class="enemy-a">'+this.esc(e.a)+'</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
-        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div><div class="multi-ship">'+(p.alive?'🚀':'💥')+'</div></div>';
+        const ens=p.enemies.map(e=>'<div class="multi-enemy ship cat-'+e.cat+'" title="'+this.esc(e.q)+' → '+this.esc(e.a)+'"><span class="ship-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="ship-q">'+this.esc(e.q)+'</span><span class="ship-a">'+this.esc(e.a)+'</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
+        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
       }).join('');
     } else {
       match.players.forEach(p=>{

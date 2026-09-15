@@ -1622,13 +1622,24 @@ main{ padding:20px 24px 44px; }
 .dead-tag{margin-left:auto;font-size:1.2rem;}
 .multi-timer{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;}
 .multi-timer-fill{height:100%;background:linear-gradient(90deg,#00e676,#ffd600,#ff1744);transition:width 1s linear;}
-.multi-enemies{display:flex;flex-direction:column;gap:6px;flex:1;}
-.multi-enemy{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 8px;display:flex;align-items:center;gap:6px;animation:invHop 2s ease-in-out infinite;}
-.multi-enemy.cat-HTML{border-left:3px solid #ff7043;}.multi-enemy.cat-CSS{border-left:3px solid #40c4ff;}.multi-enemy.cat-JS{border-left:3px solid #ffd600;}
+.multi-enemies{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:10px 10px;flex:1;padding:12px 4px 8px;background:radial-gradient(ellipse at 50% 0%, rgba(0,229,255,.06), transparent 65%), radial-gradient(ellipse at center, rgba(255,255,255,.02), transparent 70%);}
+.multi-enemy.ship{position:relative;width:108px;height:68px;min-width:108px;max-width:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px 6px 8px;text-align:center;background:linear-gradient(180deg,#ff5252 0%,#c62828 55%,#8e0000 100%);clip-path:polygon(50% 100%, 0 0, 25% 25%, 50% 7%, 75% 25%, 100% 0);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)) drop-shadow(0 0 6px rgba(255,23,68,.35));animation:invHop 2s ease-in-out infinite;transition:transform .15s, filter .15s;}
+.multi-enemy.ship:nth-child(2){animation-delay:.25s}.multi-enemy.ship:nth-child(3){animation-delay:.5s}.multi-enemy.ship:nth-child(4){animation-delay:.15s}.multi-enemy.ship:nth-child(5){animation-delay:.4s}.multi-enemy.ship:nth-child(6){animation-delay:.65s}
+.multi-enemy.ship:hover{transform:translateY(-3px) scale(1.04);filter:drop-shadow(0 6px 14px rgba(0,0,0,.7)) drop-shadow(0 0 10px rgba(255,255,255,.25));}
+.multi-enemy.ship.cat-CSS{background:linear-gradient(180deg,#42a5f5 0%,#1565c0 55%,#0d47a1 100%);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)) drop-shadow(0 0 6px rgba(64,196,255,.4));}
+.multi-enemy.ship.cat-JS{background:linear-gradient(180deg,#ffeb3b 0%,#f9a825 55%,#f57f17 100%);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6)) drop-shadow(0 0 6px rgba(255,214,0,.45));}
+.multi-enemy.ship.cat-JS .ship-q{color:#1a1a00;text-shadow:none;}
+.multi-enemy.ship.cat-JS .ship-a{color:#1a1a00;background:rgba(0,0,0,.18);}
+.ship-cat{position:absolute;top:3px;left:50%;transform:translateX(-50%);font-size:.52rem;font-weight:900;padding:1px 5px;border-radius:999px;color:#000;line-height:1;letter-spacing:.3px;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.ship-q{font-size:.68rem;font-weight:800;color:#fff;line-height:1.15;max-width:92px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 4px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.6);margin-top:6px;word-break:break-word;}
+.ship-a{font-family:monospace;font-weight:800;font-size:.62rem;color:#fff;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px;line-height:1;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:inset 0 1px 3px rgba(0,0,0,.4);}
 .enemy-cat{font-size:.62rem;font-weight:900;padding:2px 6px;border-radius:6px;color:#000;}
 .enemy-q{flex:1;font-size:.78rem;color:#cbd5e1;}
 .enemy-a{font-family:monospace;font-weight:800;color:#fff;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;font-size:.78rem;}
-.multi-ship{text-align:center;font-size:2rem;filter:drop-shadow(0 0 8px rgba(0,229,255,.6));}
+.multi-ship{text-align:center;display:flex;align-items:center;justify-content:center;min-height:38px;filter:drop-shadow(0 0 8px rgba(0,229,255,.4));}
+.multi-ship.alive svg{animation:shipBob 1.6s ease-in-out infinite;}
+.multi-ship.dead{font-size:1.8rem;animation:invHop .6s ease-in-out infinite;}
+@keyframes shipBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .multi-table{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
 .multi-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;flex-wrap:wrap;}
 .multi-row.winner{border-color:rgba(255,214,0,.5);background:rgba(255,214,0,.06);box-shadow:0 0 16px rgba(255,214,0,.15);}
