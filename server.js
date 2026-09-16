@@ -193,19 +193,19 @@ const CHAT_BUBBLES=[
  {id:'exclusive_00',name:'👑 Burbuja Maestra 00',price:0,css:'',rarity:'mythic',exclusive:true,gif:true}
 ];
 const LUCKY_ITEMS=[
- {id:'coins_500',type:'coins',amount:500,weight:30,name:'500 pts',rarity:'common'},
- {id:'coins_1000',type:'coins',amount:1000,weight:20,name:'1000 pts',rarity:'common'},
- {id:'exp_1000',type:'exp',amount:1000,weight:15,name:'1000 EXP',rarity:'common'},
- {id:'bubble_neon_blue',type:'bubble',bubbleId:'neon_blue',weight:12,rarity:'rare'},
- {id:'bubble_emerald',type:'bubble',bubbleId:'emerald',weight:8,rarity:'rare'},
- {id:'bubble_gold',type:'bubble',bubbleId:'gold',weight:6,rarity:'rare'},
- {id:'bubble_fire',type:'bubble',bubbleId:'fire',weight:4,rarity:'epic'},
+ {id:'coins_500',type:'coins',amount:500,weight:24,name:'500 pts',rarity:'common'},
+ {id:'coins_1000',type:'coins',amount:1000,weight:24,name:'1000 pts',rarity:'common'},
+ {id:'exp_1000',type:'exp',amount:1000,weight:24,name:'1000 EXP',rarity:'common'},
+ {id:'bubble_neon_blue',type:'bubble',bubbleId:'neon_blue',weight:4,rarity:'rare'},
+ {id:'bubble_emerald',type:'bubble',bubbleId:'emerald',weight:4,rarity:'rare'},
+ {id:'bubble_gold',type:'bubble',bubbleId:'gold',weight:4,rarity:'rare'},
+ {id:'bubble_fire',type:'bubble',bubbleId:'fire',weight:3,rarity:'epic'},
  {id:'bubble_galaxy',type:'bubble',bubbleId:'galaxy',weight:3,rarity:'epic'},
- {id:'bubble_void',type:'bubble',bubbleId:'void',weight:2,rarity:'epic'},
- {id:'bubble_rainbow',type:'bubble',bubbleId:'rainbow',weight:1.5,rarity:'legendary'},
- {id:'bubble_diamond',type:'bubble',bubbleId:'diamond',weight:1,rarity:'legendary'},
- {id:'bubble_glitch',type:'bubble',bubbleId:'glitch',weight:0.8,rarity:'legendary'},
- {id:'bubble_exclusive_00',type:'bubble',bubbleId:'exclusive_00',weight:0.1,rarity:'mythic'}
+ {id:'bubble_void',type:'bubble',bubbleId:'void',weight:3,rarity:'epic'},
+ {id:'bubble_rainbow',type:'bubble',bubbleId:'rainbow',weight:2,rarity:'legendary'},
+ {id:'bubble_diamond',type:'bubble',bubbleId:'diamond',weight:2,rarity:'legendary'},
+ {id:'bubble_glitch',type:'bubble',bubbleId:'glitch',weight:2,rarity:'legendary'},
+ {id:'bubble_exclusive_00',type:'bubble',bubbleId:'exclusive_00',weight:1,rarity:'mythic'}
 ];
 
 const ACHIEVEMENTS=[
@@ -629,10 +629,11 @@ app.get('/api/achievements', async (req,res)=>{
 app.get('/api/achievements/redeem', async (req,res)=>{
  try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const id=req.query.id; const ach=ACHIEVEMENTS.find(a=>a.id===id); if(!ach) return res.status(404).json({error:'Logro no existe'}); if(!user.achievements.includes(id)) return res.status(400).json({error:'No tienes este logro'}); if(id==='triple_champion'){ if(!user.frames.includes('universo')) user.frames.push('universo'); await pushNotification(user.id,'🌌 Marco Universo activado','¡Ya puedes equipar tu Marco Universo desde la tienda!','success'); } if(id==='speed_demon'){ if(!user.banners.includes('aurora')) user.banners.push('aurora'); await pushNotification(user.id,'🌠 Banner Aurora activado','¡Ya puedes equipar tu Banner Aurora desde la tienda!','success'); } if(id==='centurion'){ if(!user.fonts.includes('phantom')) user.fonts.push('phantom'); user.coins=(user.coins||0)+100000; await pushNotification(user.id,'👻 Letra Fantasma + 100.000 pts','¡Recompensa canjeada!','success'); } await updateUser(user); res.json({coins:user.coins,frames:user.frames,banners:user.banners,fonts:user.fonts}); }catch(e){ res.status(500).json({error:'redeem error'}); }
 });
-app.get('/api/lucky/pool', (req,res)=>{ res.json({items:LUCKY_ITEMS.map(i=>({id:i.id,type:i.type,name:i.name||'',rarity:i.rarity,amount:i.amount,bubbleId:i.bubbleId}))}); });
+function luckyOdds(){ const total=LUCKY_ITEMS.reduce((s,i)=>s+i.weight,0); return LUCKY_ITEMS.map(i=>({id:i.id,type:i.type,name:i.name||'',rarity:i.rarity,amount:i.amount,bubbleId:i.bubbleId,chance:+(i.weight/total*100).toFixed(1)})); }
+app.get('/api/lucky/pool', (req,res)=>{ res.json({items:luckyOdds()}); });
 const LUCKY_PACKS={1:1000,5:3000,10:5000};
 app.post('/api/lucky/spin', async (req,res)=>{
- try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const count=Number((req.body||{}).count)||1; if(!LUCKY_PACKS[count]) return res.status(400).json({error:'Pack inválido (1, 5 o 10 giros)'}); const cost=LUCKY_PACKS[count]; if((user.coins||0)<cost) return res.status(400).json({error:'Puntos insuficientes (necesitas '+cost+' pts)'}); user.coins-=cost; const items=[]; for(let k=0;k<count;k++){ const item=pickLuckyItem(); items.push(item); if(item.type==='coins'){ user.coins=(user.coins||0)+item.amount; } else if(item.type==='exp'){ user.exp=(user.exp||0)+item.amount; } else if(item.type==='bubble'){ if(!user.chatBubbles.includes(item.bubbleId)) user.chatBubbles.push(item.bubbleId); } } user.luckySpins=(user.luckySpins||0)+count; await updateUser(user); const summary=items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '); await pushNotification(user.id,'🎰 Lucky Coders x'+count,`Ganaste: ${summary}`,'success'); res.json({item:items[0],items,coins:user.coins,exp:user.exp,chatBubbles:user.chatBubbles,luckySpins:user.luckySpins,count,cost}); }catch(e){ res.status(500).json({error:'spin error'}); }
+ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const count=Number((req.body||{}).count)||1; if(!LUCKY_PACKS[count]) return res.status(400).json({error:'Pack inválido (1, 5 o 10 giros)'}); const cost=LUCKY_PACKS[count]; if((user.coins||0)<cost) return res.status(400).json({error:'Puntos insuficientes (necesitas '+cost+' pts)'}); user.coins-=cost; const items=[]; for(let k=0;k<count;k++){ const item=pickLuckyItem(); items.push(item); if(item.type==='coins'){ user.coins=(user.coins||0)+item.amount; } else if(item.type==='exp'){ user.exp=(user.exp||0)+item.amount; } else if(item.type==='bubble'){ if(!user.chatBubbles.includes(item.bubbleId)) user.chatBubbles.push(item.bubbleId); } } user.luckySpins=(user.luckySpins||0)+count; await updateUser(user); const summary=items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '); await pushNotification(user.id,'🎰 Lucky Coders x'+count,`Ganaste: ${summary}`,'success'); const RV={common:0,rare:1,epic:2,legendary:3,mythic:4}; let best=items[0]; for(const it of items){ if((RV[it.rarity]||0)>(RV[best.rarity]||0)) best=it; } res.json({item:items[0],items,winId:best.id,pool:luckyOdds(),coins:user.coins,exp:user.exp,chatBubbles:user.chatBubbles,luckySpins:user.luckySpins,count,cost}); }catch(e){ res.status(500).json({error:'spin error'}); }
 });
 app.use((err,req,res,next)=>{ console.error('[server]',err.message||err); if(!res.headersSent) res.status(500).json({error:'Error interno del servidor'}); });
 app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json-temporal',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -443,6 +443,7 @@
             <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">★ 5 GIROS — 3.000 PTS<small>AHORRAS 2.000</small></button>
             <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">👑 10 GIROS — 5.000 PTS<small>AHORRAS 5.000</small></button>
           </div>
+          <div class="lucky-odds" id="luckyOdds"><p class="hint">🎁 Cargando lo que te puede tocar...</p></div>
         </div>
         <div class="lucky-side"><div class="shop-grid" id="luckyGrid"></div></div>
       </div>
@@ -610,7 +611,7 @@
   <script src="js/docs.js?v=6"></script>
   <script src="js/intro.js?v=2"></script>
   <script src="js/game.js?v=25"></script>
-  <script src="js/profile.js?v=13"></script>
+  <script src="js/profile.js?v=14"></script>
   <script src="js/ranked.js?v=8"></script>
   <script src="js/chat.js?v=5"></script>
   <script src="js/friends.js?v=7"></script>
@@ -620,7 +621,28 @@
   const LuckyRoyale={
     spinning:false, items:[], ledsTimer:null,
     colors:{common:'#9aa7b8',rare:'#00e5ff',epic:'#8b5cf6',legendary:'#ffd600',mythic:'#ff1744'},
-    init(){ this.buildLeds(); this.draw(); },
+    init(){ this.buildLeds(); this.draw(); this.loadPool(); },
+    iconFor(it){ if(!it) return '💬'; if(it.type==='coins') return (it.amount>=1000?'💰':'🪙'); if(it.type==='exp') return '⚡'; return ({'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'}[it.bubbleId]||'💬'); },
+    labelFor(it){ if(!it) return '?'; if(it.type==='bubble') return (it.bubbleId||'').replace(/_/g,' '); return it.name||'?'; },
+    async loadPool(){
+      try{
+        const r=await fetch('/api/lucky/pool'); const data=await r.json();
+        if(data&&data.items&&data.items.length){ this.items=data.items; this.draw(); this.renderOdds(); }
+      }catch(e){}
+    },
+    renderOdds(){
+      const box=document.getElementById('luckyOdds'); if(!box||!this.items.length) return;
+      const RLN={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
+      box.innerHTML='<div class="lucky-odds-title">🎁 LO QUE TE PUEDE TOCAR</div>'+this.items.map(it=>'<div class="lucky-odds-row rw-'+(it.rarity||'common')+'"><span>'+this.iconFor(it)+' '+this.labelFor(it)+'</span><span>◆ '+(RLN[it.rarity]||it.rarity)+' · '+(it.chance!=null?it.chance+'%':'?')+'</span></div>').join('');
+    },
+    landingDeg(idx){
+      const n=this.items.length||13, seg=360/n;
+      const center=idx*seg+seg/2;
+      let base=((-(center))%360+360)%360;
+      const jit=(Math.random()*2-1)*seg*0.32;
+      const turns=360*(5+Math.floor(Math.random()*3));
+      return base+jit+turns;
+    },
     buildLeds(){
       const w=document.getElementById('luckyLeds'); if(!w||w.children.length) return;
       for(let i=0;i<16;i++){ const s=document.createElement('i'); const a=(i/16)*Math.PI*2; const R=142;
@@ -674,38 +696,44 @@
       const panel=document.getElementById('luckyWheelWrap'); if(panel) panel.classList.remove('shake');
       const wheel=document.getElementById('luckyWheel');
       const inner=document.getElementById('luckyWheelInner');
-      if(wheel) wheel.classList.remove('lucky-wheel-spinning');
-      void (wheel&&wheel.offsetWidth);
-      const deg=(2520+Math.random()*1440)+(count>1?(count*360):0);
-      if(inner) inner.style.setProperty('--spin-deg',deg+'deg');
-      if(wheel) wheel.classList.add('lucky-wheel-spinning');
-      let ticks=0; const tickInt=setInterval(()=>{ this.blip(300+ticks*22,.05); if(++ticks>28) clearInterval(tickInt); },150);
-      setTimeout(async()=>{
+      const self=this;
+      (async()=>{
+        let data;
         try{
           const token=(typeof Auth!=='undefined'&&Auth.token)||localStorage.getItem('fx_token')||'';
           const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({count})});
-          const data=await r.json();
-          if(!r.ok){ Toast.error(data.error||'Error'); this.resetBtn(); return; }
-          if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); if(Profile.loadBubbles) Profile.loadBubbles(); }
-          try{ if(typeof Auth!=='undefined'&&Auth.user){ Auth.user.coins=data.coins; Auth.user.exp=data.exp; Auth.user.chatBubbles=data.chatBubbles; if(Auth.saveLocal) Auth.saveLocal(); } }catch(e){}
-          if(typeof Game!=='undefined'){ Game.coins=data.coins; }
-          const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
-          const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
+          data=await r.json();
+          if(!r.ok){ Toast.error(data.error||'Error'); self.resetBtn(); return; }
+        }catch(e){ Toast.error('Error de red'); self.resetBtn(); return; }
+        if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); if(Profile.loadBubbles) Profile.loadBubbles(); }
+        try{ if(typeof Auth!=='undefined'&&Auth.user){ Auth.user.coins=data.coins; Auth.user.exp=data.exp; Auth.user.chatBubbles=data.chatBubbles; if(Auth.saveLocal) Auth.saveLocal(); } }catch(e){}
+        if(typeof Game!=='undefined'){ Game.coins=data.coins; }
+        const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
+        const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
+        if(data.pool&&data.pool.length){ self.items=data.pool; self.draw(); self.renderOdds(); }
+        let idx=data.pool?(data.pool.findIndex(x=>x.id===data.winId)):self.items.findIndex(x=>x.id===data.winId);
+        if(idx==null||idx<0) idx=Math.floor(Math.random()*(self.items.length||13));
+        if(wheel) wheel.classList.remove('lucky-wheel-spinning');
+        void (wheel&&wheel.offsetWidth);
+        if(inner) inner.style.setProperty('--spin-deg',self.landingDeg(idx)+'deg');
+        if(wheel) wheel.classList.add('lucky-wheel-spinning');
+        let ticks=0; const tickInt=setInterval(()=>{ self.blip(300+ticks*22,.05); if(++ticks>28) clearInterval(tickInt); },150);
+        setTimeout(()=>{
           const items=data.items||[data.item];
           const RLN={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
-          [880,660,990,1320].forEach((f,i)=>setTimeout(()=>this.blip(f,.12,i>1?'sawtooth':'square'),i*110));
+          const best=data.winId?(items.find(i=>i.id===data.winId)||items[0]):(items.find(i=>i.rarity==='mythic')||items.find(i=>i.rarity==='legendary')||items[0]);
+          [880,660,990,1320].forEach((f,i)=>setTimeout(()=>self.blip(f,.12,i>1?'sawtooth':'square'),i*110));
           if(panel){ panel.classList.add('shake'); setTimeout(()=>panel.classList.remove('shake'),500); }
           if(res){
-            const best=items.reduce((a,b)=>a,(items.find(i=>i.rarity==='mythic')||items.find(i=>i.rarity==='legendary')||items[0]));
             const rows=items.map(it=>{ const nm=(it.name||it.bubbleId||'?').replace(/_/g,' '); return '<div class="rw-row rw-'+(it.rarity||'common')+'">🎰 '+nm+' <span>◆ '+(RLN[it.rarity]||it.rarity)+' ◆</span></div>'; }).join('');
             res.className='galaga-result '+(best.rarity||'common');
-            res.innerHTML='◢ ◣ x'+items.length+' RECOMPENSAS ◢ ◣<div class="rw-list">'+rows+'</div><div class="rw-where">🪙/⚡ sumados al perfil · 💬 en Ajustes → Burbujas de chat</div>';
+            res.innerHTML='🎯 LA FLECHA CAYÓ EN: <b>'+self.iconFor(best)+' '+self.labelFor(best)+'</b><div class="rw-list">'+rows+'</div><div class="rw-where">🪙/⚡ sumados al perfil · 💬 en Ajustes → Burbujas de chat</div>';
             res.classList.remove('hidden');
           }
           Toast.success('🎰 Ganaste x'+items.length+': '+items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '));
-          this.resetBtn();
-        }catch(e){ Toast.error('Error de red'); this.resetBtn(); }
-      },5400);
+          self.resetBtn();
+        },5400);
+      })();
     },
     resetBtn(){ this.spinning=false; const hub=document.getElementById('luckyHub'); if(hub) hub.classList.remove('spinning');
       document.querySelectorAll('.spin-btn').forEach(b=>{ b.disabled=false; const c=b.dataset.count;

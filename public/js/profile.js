@@ -727,7 +727,7 @@ const Profile = {
           icon=m[i.bubbleId]||'💬';
           label=(i.bubbleId||'').replace(/_/g,' ');
         }
-        return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div></div>`;
+        return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div><div class="g-odds">🎲 ${i.chance!=null?i.chance+'%':'?'}</div></div>`;
       }).join('');
       grid.innerHTML=html;
       if(layout) layout.classList.remove('hidden');

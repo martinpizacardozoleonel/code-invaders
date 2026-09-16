@@ -1989,4 +1989,9 @@ body.light .shop-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8
   .lucky-layout{ flex-direction:column; }
   #luckyWheelWrap{ flex:none; width:100%; position:static; }
   .lucky-side{ width:100%; max-height:none; overflow:visible; }
+.lucky-odds{ margin-top:12px; background:rgba(0,0,0,.35); border:1px solid rgba(0,229,255,.25); border-radius:12px; padding:10px 12px; }
+.lucky-odds-title{ text-align:center; font-family:monospace; font-weight:900; letter-spacing:1.5px; color:#ffd600; text-shadow:0 0 10px rgba(255,214,0,.5); margin-bottom:8px; font-size:.8rem; }
+.lucky-odds-row{ display:flex; justify-content:space-between; gap:8px; font-family:monospace; font-size:.72rem; padding:4px 8px; border-radius:6px; margin-bottom:3px; background:rgba(255,255,255,.03); color:#fff; }
+.lucky-odds-row span:last-child{ color:#ffd600; white-space:nowrap; }
+.g-odds{ font-family:monospace; font-size:.72rem; color:#ffd600; margin-top:2px; }
 }
