@@ -1912,3 +1912,16 @@ body.light .enemy-q{color:#475569;}.enemy-a{background:#0f172a!important;color:#
 body.light .shop-tab{ background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.1); color:#64748b; }
 body.light .shop-tab:hover{ background:rgba(0,0,0,.06); color:#334155; }
 body.light .shop-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8; color:#0077b6; }
+/* ============ LUCKY LAYOUT LADO A LADO ============ */
+.modal-shop.lucky-wide{ width:min(1020px,96vw); }
+.lucky-layout{ display:flex; gap:16px; align-items:flex-start; }
+.lucky-layout.hidden{ display:none!important; }
+#luckyWheelWrap{ flex:0 0 360px; margin:0; position:sticky; top:0; }
+.lucky-side{ flex:1; min-width:0; max-height:62vh; overflow-y:auto; padding-right:4px; }
+.lucky-side #luckyGrid{ display:grid; grid-template-columns:repeat(2,1fr); }
+@media (max-width:820px){
+  .modal-shop.lucky-wide{ width:min(640px,96vw); }
+  .lucky-layout{ flex-direction:column; }
+  #luckyWheelWrap{ flex:none; width:100%; position:static; }
+  .lucky-side{ width:100%; max-height:none; overflow:visible; }
+}

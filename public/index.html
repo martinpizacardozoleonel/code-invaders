@@ -358,19 +358,21 @@
         <button class="shop-tab" data-tab="lucky">👾 Galaga Royale</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
-      <div id="luckyWheelWrap" class="hidden galaga-panel">
-        <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
-        <div class="galaga-title">👾 GALAGA ROYALE<small>LUCKY // FUTURE SPIN</small></div>
-        <div class="galaga-stage">
-          <div class="lucky-pointer"></div>
-          <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">🚀<b>SPIN</b></div></div>
-          <div class="lucky-leds" id="luckyLeds"></div>
+      <div id="luckyLayout" class="lucky-layout hidden">
+        <div id="luckyWheelWrap" class="galaga-panel">
+          <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
+          <div class="galaga-title">👾 GALAGA ROYALE<small>LUCKY // FUTURE SPIN</small></div>
+          <div class="galaga-stage">
+            <div class="lucky-pointer"></div>
+            <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">🚀<b>SPIN</b></div></div>
+            <div class="lucky-leds" id="luckyLeds"></div>
+          </div>
+          <div id="luckyResult" class="galaga-result hidden"></div>
+          <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
+          <button class="btn btn-primary galaga-spin-btn" id="luckySpinBtn" onclick="LuckyRoyale.spin()">▶ INICIAR SECUENCIA — 1.000 PTS</button>
         </div>
-        <div id="luckyResult" class="galaga-result hidden"></div>
-        <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
-        <button class="btn btn-primary galaga-spin-btn" id="luckySpinBtn" onclick="LuckyRoyale.spin()">▶ INICIAR SECUENCIA — 1.000 PTS</button>
+        <div class="lucky-side"><div class="shop-grid" id="luckyGrid"></div></div>
       </div>
-      <div class="shop-grid hidden" id="luckyGrid"></div>
       <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
     </div>
   </div>

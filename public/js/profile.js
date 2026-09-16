@@ -669,7 +669,9 @@ const Profile = {
   }
 ,async renderLucky(){
     const grid=document.getElementById('luckyGrid'); if(!grid) return;
-    const lw=document.getElementById('luckyWheelWrap'); if(lw) lw.classList.remove('hidden');
+    const lw=document.getElementById('luckyWheelWrap'); const layout=document.getElementById('luckyLayout');
+    if(layout) layout.classList.remove('hidden');
+    if(lw) lw.classList.remove('hidden');
     if(window.LuckyRoyale&&LuckyRoyale.draw) requestAnimationFrame(()=>{ try{LuckyRoyale.draw();}catch(e){} });
      grid.innerHTML='<p style="opacity:.5;text-align:center;font-family:monospace">▸ CARGANDO SECTOR-7...</p>';
     try{
@@ -691,6 +693,7 @@ const Profile = {
         return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div></div>`;
       }).join('');
       grid.innerHTML=html;
+      if(layout) layout.classList.remove('hidden');
       if(lw) lw.classList.remove('hidden');
       if(window.LuckyRoyale&&LuckyRoyale.draw) requestAnimationFrame(()=>{ try{LuckyRoyale.draw(items);}catch(e){} });
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar pool</p>'; }
