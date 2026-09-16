@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=21">
+  <link rel="stylesheet" href="css/style.css?v=22">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -440,8 +440,8 @@
           <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
           <div class="spin-btns">
             <button class="btn btn-primary galaga-spin-btn spin-btn" data-count="1" onclick="LuckyRoyale.spin(1)">▶ 1 GIRO — 1.000 PTS</button>
-            <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">★ 5 GIROS — 3.000 PTS<small>AHORRAS 2.000</small></button>
-            <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">👑 10 GIROS — 5.000 PTS<small>AHORRAS 5.000</small></button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">★ 5 GIROS — 3.000 PTS</button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">👑 10 GIROS — 5.000 PTS</button>
           </div>
           <div class="lucky-odds" id="luckyOdds"><p class="hint">🎁 Cargando lo que te puede tocar...</p></div>
         </div>
@@ -738,8 +738,8 @@
     resetBtn(){ this.spinning=false; const hub=document.getElementById('luckyHub'); if(hub) hub.classList.remove('spinning');
       document.querySelectorAll('.spin-btn').forEach(b=>{ b.disabled=false; const c=b.dataset.count;
         if(c==='1') b.innerHTML='▶ 1 GIRO — 1.000 PTS';
-        if(c==='5') b.innerHTML='★ 5 GIROS — 3.000 PTS<small>AHORRAS 2.000</small>';
-        if(c==='10') b.innerHTML='👑 10 GIROS — 5.000 PTS<small>AHORRAS 5.000</small>'; }); }
+        if(c==='5') b.innerHTML='★ 5 GIROS — 3.000 PTS';
+        if(c==='10') b.innerHTML='👑 10 GIROS — 5.000 PTS'; }); }
   };
   document.addEventListener('DOMContentLoaded',()=>{ try{ LuckyRoyale.init(); }catch(e){} });
   </script>

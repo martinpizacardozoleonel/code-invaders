@@ -294,6 +294,7 @@ main{flex:1;min-height:0;overflow:hidden;padding:12px 20px 10px;max-width:98vw;d
   flex-wrap: wrap;
 }
 .mode-btns .btn-start { position: static; transform: none; bottom: auto; left: auto; margin: 0; }
+#retryBtn{ position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:10; margin:0; max-width:92%; }
 .btn-start {
   position: static;
   padding: 14px 26px;
