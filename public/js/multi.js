@@ -1,8 +1,10 @@
 const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},{id:'crimson',body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},{id:'gold',body:'#ffd600',accent:'#fff176',glow:'#ffea00'},{id:'neon',body:'#00e676',accent:'#69f0ae',glow:'#00e676'},{id:'violet',body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},{id:'pixel',body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'},{id:'tournament_silver',body:'#c0c0c0',accent:'#e0e0e0',glow:'#e0e0e0'}];
 const MultiUI={
- open:false, timer:null, ready:false, lastKey:'', fetching:false, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null,
+ open:false, timer:null, ready:false, mode:'normal', lastKey:'', fetching:false, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null,
  init(){
   const mb=document.getElementById('multiBtn'); if(mb) mb.addEventListener('click',()=>this.openLobby());
+  const mn=document.getElementById('multiModeNormalBtn'); if(mn) mn.addEventListener('click',()=>this.setMode('normal'));
+  const ms=document.getElementById('multiModeSpeedrunBtn'); if(ms) ms.addEventListener('click',()=>this.setMode('speedrun'));
   const nb=document.getElementById('navMultiBtn'); if(nb) nb.addEventListener('click',()=>{ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-game')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b===nb)); this.openLobby(); });
   const cb=document.getElementById('multiCloseBtn'); if(cb) cb.addEventListener('click',()=>this.close());
   const rb=document.getElementById('multiReadyBtn'); if(rb) rb.addEventListener('click',()=>this.toggleReady());
@@ -15,10 +17,18 @@ const MultiUI={
   const st=document.getElementById('multiStayBtn'); if(st) st.addEventListener('click',async()=>{ this.ready=false; try{ await API.multiReady(false); }catch(e){} this.show('lobby'); this.poll(true); });
   const qt=document.getElementById('multiQuitBtn'); if(qt) qt.addEventListener('click',()=>this.leave());
  },
+ setMode(m){
+  this.mode=(m==='speedrun')?'speedrun':'normal';
+  const mn=document.getElementById('multiModeNormalBtn'), ms=document.getElementById('multiModeSpeedrunBtn'), hint=document.getElementById('multiModeHint');
+  if(mn) mn.classList.toggle('active',this.mode==='normal');
+  if(ms) ms.classList.toggle('active',this.mode==='speedrun');
+  if(hint) hint.innerHTML='Modo multi: <b>'+(this.mode==='speedrun'?'⚡ SPEEDRUN':'▶ JUGAR')+'</b>'+(this.mode==='speedrun'?' · oleadas más rápidas, mismo lobby':'');
+ },
  async openLobby(){
   if(typeof Auth==='undefined'||!Auth.isLogged){ Toast.info('Inicia sesión para jugar online'); return; }
   document.getElementById('multiOverlay').classList.remove('hidden');
   this.open=true; this.ready=false;
+  this.setMode(this.mode||'normal');
   try{ await API.multiJoin(); }catch(e){ Toast.error(e.message); return; }
   this.show('lobby');
   this.failCount=0;
@@ -112,7 +122,7 @@ const MultiUI={
     if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.seenShots={}; (match.shots||[]).forEach(s=>this.seenShots[s.id]=1); }
     this.show('battle');
     const my=match.players.find(p=>p.userId===me);
-    if(my) document.getElementById('multiWaveBanner').textContent='⚔️ '+(my.desc||('HORNADA '+my.wave))+(my.alive?'':' · 💀 ELIMINADO');
+    if(my) document.getElementById('multiWaveBanner').textContent=(this.mode==='speedrun'?'⚡ SPEEDRUN · ':'⚔️ ')+(my.desc||('HORNADA '+my.wave))+(my.alive?'':' · 💀 ELIMINADO');
     const cols=document.getElementById('multiColumns');
     const key=match.players.map(p=>p.userId+':'+p.wave+':'+p.alive+':'+(p.lives==null?2:p.lives)+':'+p.enemies.length+':'+p.hits+':'+p.misses).join('|');
     if(force||key!==this.lastKey){

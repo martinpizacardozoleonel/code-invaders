@@ -327,6 +327,12 @@ main{flex:1;min-height:0;overflow:hidden;padding:12px 20px 10px;max-width:98vw;d
   box-shadow: 0 0 20px rgba(255, 214, 0, 0.35);
 }
 .btn-speedrun:hover { background: #ffd600; color: #000; box-shadow: 0 0 30px rgba(255,214,0,.6); }
+.btn-multi-entry { border-color: #7c4dff; background: rgba(124,77,255,.18); box-shadow: 0 0 20px rgba(124,77,255,.35); }
+.btn-multi-entry:hover { background: #7c4dff; color: #fff; box-shadow: 0 0 30px rgba(124,77,255,.6); }
+.btn-back { min-width: 120px; font-size: .95rem; padding: 12px 18px; opacity: .9; }
+.multi-mode-pick { display: flex; gap: 10px; justify-content: center; margin: 10px 0 4px; flex-wrap: wrap; }
+.multi-mode-btn { opacity: .55; }
+.multi-mode-btn.active { opacity: 1; outline: 2px solid #fff; }
 .speedrun-timer {
   position: absolute;
   top: 10px; left: 50%;

@@ -16,7 +16,7 @@ const Game = (() => {
     {id:5,title:'👑 JEFE CSS',isBoss:true,isCssBoss:true,bossHealth:10,questions:[{q:'Color de texto',a:'color'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde',a:'border'},{q:'Ancho',a:'width'},{q:'Altura',a:'height'},{q:'Posición',a:'position'},{q:'Alinear ítems',a:'align-items'},{q:'Justificar contenido',a:'justify-content'}],enemySpeed:0,spawnInterval:0,enemyHealth:1}
   ];
   let canvas,ctx,W,H;
-  let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
+  let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
   let qBannerEl,qBannerTextEl;
   let state='title';
   let score=0,lives=2,level=0;
@@ -93,6 +93,9 @@ const Game = (() => {
     fireBtnEl=document.getElementById('fireBtn');
     speedrunBtnEl=document.getElementById('speedrunBtn');
     multiBtnEl=document.getElementById('multiBtn');
+    singlePlayerBtnEl=document.getElementById('singlePlayerBtn');
+    multiPlayerBtnEl=document.getElementById('multiPlayerBtn');
+    modeBackBtnEl=document.getElementById('modeBackBtn');
     speedrunHudEl=document.getElementById('speedrunHud');
     exitBtnEl=document.getElementById('exitBtn');
     exitOverlayEl=document.getElementById('exitOverlay');
@@ -151,6 +154,9 @@ const Game = (() => {
     },{passive:true});
     if(startBtnEl) startBtnEl.addEventListener('click', ()=>{ hideBtns(); startNormal(); });
     if(speedrunBtnEl) speedrunBtnEl.addEventListener('click', ()=>{ hideBtns(); startSpeedrun(); });
+    if(singlePlayerBtnEl) singlePlayerBtnEl.addEventListener('click', ()=>{ showSingleModes(); });
+    if(multiPlayerBtnEl) multiPlayerBtnEl.addEventListener('click', ()=>{ openMultiEntry(); });
+    if(modeBackBtnEl) modeBackBtnEl.addEventListener('click', ()=>{ showBtns(); });
     if(retryBtnEl) retryBtnEl.addEventListener('click', ()=>{ hideBtns(); speedrun?startSpeedrun():startNormal(); });
     if(exitBtnEl) exitBtnEl.addEventListener('click', ()=>{ showExitConfirm(); });
     if(exitCancelEl) exitCancelEl.addEventListener('click', ()=>{ hideExitConfirm(); });
@@ -357,13 +363,27 @@ const Game = (() => {
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
   function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){
+    if(startBtnEl) startBtnEl.classList.add('hidden');
+    if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden');
+    if(singlePlayerBtnEl) singlePlayerBtnEl.classList.remove('hidden');
+    if(multiPlayerBtnEl) multiPlayerBtnEl.classList.remove('hidden');
+    if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden');
+    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function showSingleModes(){
     if(startBtnEl){
       startBtnEl.textContent='▶ JUGAR';
       startBtnEl.classList.remove('hidden');
     }
-    if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
+    if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+    if(modeBackBtnEl) modeBackBtnEl.classList.remove('hidden');
+    if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden');
+    if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden');
+    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); updateExitBtn(); }
+  function openMultiEntry(){
+    if(typeof MultiUI!=='undefined'&&MultiUI.openLobby) MultiUI.openLobby();
+  }
+  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
   let sIdx=0;
@@ -465,12 +485,6 @@ const Game = (() => {
       state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); if(inputEl) inputEl.disabled=true;
       if(speedrun&&!speedrunFinished){ speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; try{ if(!speedrunBest||speedrunTime<speedrunBest){ const st=store(); const pref=isLogged()?`ci_${uid()}_`:`ci_guest_`; st.setItem(pref+'speedrun_best', String(speedrunTime)); speedrunBest=speedrunTime; } }catch(e){} pushSpeedrun(speedrunTime); }
       showBtns();
-      const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
-      if(startBtnEl) startBtnEl.classList.remove('hidden');
-      if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
-      if(multiBtnEl) multiBtnEl.classList.remove('hidden');
-      if(retryBtnEl) retryBtnEl.classList.add('hidden');
-      if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
       saveProgress(false);
     }
     updateHUD();
@@ -564,10 +578,6 @@ const Game = (() => {
     if(lives<=0){
       bossDodge=false; cssBoss=false; state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level);
       showBtns();
-      const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
-      if(startBtnEl) startBtnEl.classList.remove('hidden');
-      if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
-      if(multiBtnEl) multiBtnEl.classList.remove('hidden');
       saveProgress(false);
     }
     updateHUD();
@@ -806,8 +816,7 @@ const Game = (() => {
         if(speedrun){
           enemies.splice(i,1); if(e===currentEnemy) currentEnemy=null;
           lives=0; state='gameover'; if(inputEl) inputEl.disabled=true; speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; pushSpeedrun(speedrunTime);
-          const mb=document.getElementById('modeBtns'); if(mb) mb.classList.remove('hidden');
-          if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+          showBtns();
           saveProgress(false); continue;
         }
         if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20); damagePlayer(); } }
@@ -1050,5 +1059,5 @@ const Game = (() => {
   function showToast(msg){ const t=document.createElement('div'); t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1b2838;color:#00e676;padding:12px 24px;border-radius:8px;font-family:monospace;font-size:14px;z-index:9999;border:1px solid #00e676;box-shadow:0 4px 16px rgba(0,0,0,0.5);'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
   function loadProgress(){ refreshSession(); syncShopFromServer(); }
   function loop(){ update(); render(); requestAnimationFrame(loop); }
-  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}};
+  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession,showBtns,showSingleModes,openMultiEntry, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}};
 })();

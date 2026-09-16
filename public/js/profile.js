@@ -330,7 +330,7 @@ const Profile = {
   renderBubbles(){
     const g=document.getElementById('bubblesGrid'); if(!g) return;
     const owned=(this.user&&this.user.chatBubbles)||['none']; const cur=(this.user&&this.user.equippedBubble)||'none'; const list=this.bubblesCatalog||[];
-    if(!list.length){ g.innerHTML='<p class="hint">Gira la ruleta Galaga Royale para ganar burbujas.</p>'; return; }
+    if(!list.length){ g.innerHTML='<p class="hint">Gira la ruleta Lucky Coders para ganar burbujas.</p>'; return; }
     g.innerHTML=list.map(x=>{
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado ✓</button>';

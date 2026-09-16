@@ -116,8 +116,11 @@
             </div>
           </div>
           <div class="mode-btns" id="modeBtns">
-            <button class="btn-start hidden" id="startBtn">▶ NORMAL</button>
+            <button class="btn-start" id="singlePlayerBtn">👤 UN JUGADOR</button>
+            <button class="btn-start btn-multi-entry" id="multiPlayerBtn">🌐 MULTIJUGADOR</button>
+            <button class="btn-start hidden" id="startBtn">▶ JUGAR</button>
             <button class="btn-start btn-speedrun hidden" id="speedrunBtn">⚡ SPEEDRUN</button>
+            <button class="btn-start btn-back hidden" id="modeBackBtn">← VOLVER</button>
           </div>
           <button class="btn-start hidden" id="retryBtn">↺ REINTENTAR</button>
           <div class="touch-controls" id="touchControls" aria-hidden="true">
@@ -163,7 +166,12 @@
           </div>
           <!-- LOBBY -->
           <div id="multiLobby">
-            <p class="lead friends-sub" style="text-align:center">🚀 LOBBY DE LA NAVE — Reúne a tu tripulación · ¡Marca LISTO y despegamos! · 2+ jugadores</p>
+            <p class="lead friends-sub" style="text-align:center">🚀 LOBBY DE LA NAVE — Reúne a tu tripulación · ¡Elegí modo, marca LISTO y despegamos! · 2+ jugadores</p>
+            <div class="multi-mode-pick" id="multiModePick">
+              <button class="btn btn-primary multi-mode-btn active" id="multiModeNormalBtn">▶ JUGAR</button>
+              <button class="btn btn-speedrun multi-mode-btn" id="multiModeSpeedrunBtn">⚡ SPEEDRUN</button>
+            </div>
+            <p class="hint" id="multiModeHint" style="text-align:center">Modo multi: <b>▶ JUGAR</b></p>
             <div class="multi-players" id="multiPlayers"></div>
             <div class="multi-lobby-actions">
               <button class="btn btn-primary" id="multiReadyBtn">✅ ¡LISTO!</button>
@@ -355,13 +363,13 @@
       <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
       <div class="shop-tabs" id="shopTabs">
         <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
-        <button class="shop-tab" data-tab="lucky">👾 Galaga Royale</button>
+        <button class="shop-tab" data-tab="lucky">🎰 Lucky Coders</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
       <div id="luckyLayout" class="lucky-layout hidden">
         <div id="luckyWheelWrap" class="galaga-panel">
           <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
-          <div class="galaga-title">👾 GALAGA ROYALE<small>LUCKY // FUTURE SPIN</small></div>
+          <div class="galaga-title">🎰 LUCKY CODERS<small>LUCKY // FUTURE SPIN</small></div>
           <div class="galaga-stage">
             <div class="lucky-pointer"></div>
             <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">🚀<b>SPIN</b></div></div>
@@ -499,7 +507,7 @@
       </div>
       <div class="frames-section" id="bubblesSection">
         <h3>💬 Burbujas de chat</h3>
-        <p class="hint">🎰 Exclusivas del Galaga Royale: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
+        <p class="hint">🎰 Exclusivas de Lucky Coders: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
         <div class="frames-grid" id="bubblesGrid"></div>
       </div>
       <div class="frames-section hidden" id="backupSection"></div>
