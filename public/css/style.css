@@ -1912,6 +1912,16 @@ body.light .enemy-q{color:#475569;}.enemy-a{background:#0f172a!important;color:#
 body.light .shop-tab{ background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.1); color:#64748b; }
 body.light .shop-tab:hover{ background:rgba(0,0,0,.06); color:#334155; }
 body.light .shop-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8; color:#0077b6; }
+/* ============ LUCKY PACKS ============ */
+.spin-btns{ position:relative; z-index:2; display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.spin-btn{ width:100%; display:flex!important; flex-direction:column; align-items:center; justify-content:center; gap:2px; clip-path:none!important; border-radius:12px!important; padding:10px 12px!important; font-size:.78rem!important; }
+.spin-btn small{ font-size:.62rem; letter-spacing:1px; opacity:.85; font-weight:700; }
+.spin-btn.spin-best{ background:linear-gradient(180deg,#7c4dff,#4a00e0)!important; border-color:#b388ff!important; }
+.spin-btn.spin-mega{ background:linear-gradient(180deg,#ffb300,#ff6d00)!important; border-color:#ffd600!important; }
+.rw-list{ display:flex; flex-direction:column; gap:4px; margin-top:8px; max-height:180px; overflow-y:auto; }
+.rw-row{ font-size:.75rem; background:rgba(0,0,0,.35); border-radius:8px; padding:4px 8px; display:flex; justify-content:space-between; gap:8px; }
+.rw-row span{ opacity:.8; font-size:.65rem; }
+.rw-common{ border:1px solid #9aa7b8; } .rw-rare{ border:1px solid #40c4ff; } .rw-epic{ border:1px solid #7c4dff; } .rw-legendary{ border:1px solid #ffd600; } .rw-mythic{ border:1px solid #ff1744; }
 /* ============ LUCKY LAYOUT LADO A LADO ============ */
 .modal-shop.lucky-wide{ width:min(1020px,96vw); }
 .lucky-layout{ display:flex; gap:16px; align-items:flex-start; }

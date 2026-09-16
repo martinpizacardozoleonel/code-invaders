@@ -369,7 +369,11 @@
           </div>
           <div id="luckyResult" class="galaga-result hidden"></div>
           <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
-          <button class="btn btn-primary galaga-spin-btn" id="luckySpinBtn" onclick="LuckyRoyale.spin()">▶ INICIAR SECUENCIA — 1.000 PTS</button>
+          <div class="spin-btns">
+            <button class="btn btn-primary galaga-spin-btn spin-btn" data-count="1" onclick="LuckyRoyale.spin(1)">▶ 1 GIRO — 1.000 PTS</button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">★ 5 GIROS — 3.000 PTS<small>AHORRAS 2.000</small></button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">👑 10 GIROS — 5.000 PTS<small>AHORRAS 5.000</small></button>
+          </div>
         </div>
         <div class="lucky-side"><div class="shop-grid" id="luckyGrid"></div></div>
       </div>
@@ -584,45 +588,55 @@
       ctx.beginPath(); ctx.arc(0,0,R,0,7); ctx.lineWidth=6; ctx.strokeStyle='rgba(0,229,255,.9)'; ctx.stroke();
       ctx.restore();
     },
-    spin(){
+    spin(count){
       if(this.spinning) return;
-      const btn=document.getElementById('luckySpinBtn');
+      count=[1,5,10].includes(Number(count))?Number(count):1;
+      const btns=[...document.querySelectorAll('.spin-btn')];
       const res=document.getElementById('luckyResult');
       if(res) res.classList.add('hidden');
       this.spinning=true;
-      if(btn){ btn.disabled=true; btn.textContent='◉ TRANSMITIENDO...'; }
+      btns.forEach(b=>{ b.disabled=true; if(Number(b.dataset.count)===count) b.innerHTML='◉ TRANSMITIENDO x'+count+'...'; });
       const hub=document.getElementById('luckyHub'); if(hub) hub.classList.add('spinning');
       const panel=document.getElementById('luckyWheelWrap'); if(panel) panel.classList.remove('shake');
       const wheel=document.getElementById('luckyWheel');
       const inner=document.getElementById('luckyWheelInner');
       if(wheel) wheel.classList.remove('lucky-wheel-spinning');
       void (wheel&&wheel.offsetWidth);
-      const deg=2520+Math.random()*1440;
+      const deg=(2520+Math.random()*1440)+(count>1?(count*360):0);
       if(inner) inner.style.setProperty('--spin-deg',deg+'deg');
       if(wheel) wheel.classList.add('lucky-wheel-spinning');
       let ticks=0; const tickInt=setInterval(()=>{ this.blip(300+ticks*22,.05); if(++ticks>28) clearInterval(tickInt); },150);
       setTimeout(async()=>{
         try{
-          const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+Auth.token,'Content-Type':'application/json'}});
+          const token=(typeof Auth!=='undefined'&&Auth.token)||localStorage.getItem('fx_token')||'';
+          const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({count})});
           const data=await r.json();
           if(!r.ok){ Toast.error(data.error||'Error'); this.resetBtn(); return; }
           if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); }
           if(typeof Game!=='undefined'){ Game.coins=data.coins; }
           const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
           const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
-          const item=data.item;
-          const RL={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'}[item.rarity]||item.rarity;
-          const name=(item.name||item.bubbleId||'?').replace(/_/g,' ');
+          const items=data.items||[data.item];
+          const RLN={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
           [880,660,990,1320].forEach((f,i)=>setTimeout(()=>this.blip(f,.12,i>1?'sawtooth':'square'),i*110));
           if(panel){ panel.classList.add('shake'); setTimeout(()=>panel.classList.remove('shake'),500); }
-          if(res){ res.className='galaga-result '+(item.rarity||'common'); res.innerHTML='◢ ◣ RECOMPENSA RECIBIDA ◢ ◣<br><b style="font-size:1rem">🎰 '+name+'</b><br><span style="color:var(--c,#fff)">◆ '+RL+' ◆</span>'; res.classList.remove('hidden'); }
-          Toast.success('🎰 Ganaste: '+name+' ('+RL+')');
+          if(res){
+            const best=items.reduce((a,b)=>a,(items.find(i=>i.rarity==='mythic')||items.find(i=>i.rarity==='legendary')||items[0]));
+            const rows=items.map(it=>{ const nm=(it.name||it.bubbleId||'?').replace(/_/g,' '); return '<div class="rw-row rw-'+(it.rarity||'common')+'">🎰 '+nm+' <span>◆ '+(RLN[it.rarity]||it.rarity)+' ◆</span></div>'; }).join('');
+            res.className='galaga-result '+(best.rarity||'common');
+            res.innerHTML='◢ ◣ x'+items.length+' RECOMPENSAS ◢ ◣<div class="rw-list">'+rows+'</div>';
+            res.classList.remove('hidden');
+          }
+          Toast.success('🎰 Ganaste x'+items.length+': '+items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '));
           this.resetBtn();
         }catch(e){ Toast.error('Error de red'); this.resetBtn(); }
       },5400);
     },
     resetBtn(){ this.spinning=false; const hub=document.getElementById('luckyHub'); if(hub) hub.classList.remove('spinning');
-      const btn=document.getElementById('luckySpinBtn'); if(btn){ btn.disabled=false; btn.textContent='▶ INICIAR SECUENCIA — 1.000 PTS'; } }
+      document.querySelectorAll('.spin-btn').forEach(b=>{ b.disabled=false; const c=b.dataset.count;
+        if(c==='1') b.innerHTML='▶ 1 GIRO — 1.000 PTS';
+        if(c==='5') b.innerHTML='★ 5 GIROS — 3.000 PTS<small>AHORRAS 2.000</small>';
+        if(c==='10') b.innerHTML='👑 10 GIROS — 5.000 PTS<small>AHORRAS 5.000</small>'; }); }
   };
   document.addEventListener('DOMContentLoaded',()=>{ try{ LuckyRoyale.init(); }catch(e){} });
   </script>
