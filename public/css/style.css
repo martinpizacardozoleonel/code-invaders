@@ -2052,7 +2052,7 @@ body.light .shop-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8
 .lobby-join-row .btn{padding:10px 18px;}
 .lobby-count-badge{background:#7c4dff;color:#fff;font-family:monospace;font-size:.68rem;font-weight:900;padding:2px 9px;border-radius:999px;box-shadow:0 0 10px rgba(124,77,255,.6);}
 .lobby-rooms{max-height:360px!important;margin:0!important;}
-.lobby-room-card{position:relative;display:flex;gap:12px;align-items:center;background:linear-gradient(180deg,rgba(20,28,48,.95),rgba(8,12,24,.98));border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:12px;overflow:hidden;transition:.18s;animation:docIn .35s ease backwards;}
+.lobby-room-card{position:relative;display:flex;gap:12px;align-items:center;background:linear-gradient(180deg,rgba(20,28,48,.95),rgba(8,12,24,.98));border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:12px;overflow:hidden;transition:border-color .18s,box-shadow .18s;animation:none;}
 .lobby-room-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#00e5ff,#7c4dff);}
 .lobby-room-card.mode-speedrun::before{background:linear-gradient(180deg,#ffd600,#ff6d00);}
 .lobby-room-card.status-playing{opacity:.85;}
@@ -2080,4 +2080,45 @@ body.light .lobby-room-card{background:#fff!important;border-color:rgba(15,23,42
 body.light .lobby-room-name{color:#0f172a!important;}
 body.light .lobby-info{background:#f1f5f9!important;border-color:rgba(15,23,42,.08)!important;color:#475569!important;}
 body.light .lobby-info b{color:#0f172a!important;}
+/* FIX bug scroll horizontal que aparece/desaparece en salas */
+.multi-overlay{overflow-x:hidden!important;overflow-y:auto!important;box-sizing:border-box;}
+.multi-panel{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow-x:hidden!important;}
+.lobby-root{min-width:0!important;max-width:100%!important;overflow-x:hidden!important;box-sizing:border-box;}
+.lobby-hero,.lobby-grid,.lobby-card,.lobby-side{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
+.lobby-card,.lobby-hero{overflow:hidden!important;}
+.lobby-grid{overflow-x:hidden;}
+.multi-rooms.lobby-rooms{overflow-x:hidden!important;overflow-y:auto!important;width:100%!important;max-width:100%!important;box-sizing:border-box;scrollbar-gutter:stable;min-height:110px;overscroll-behavior:contain;}
+.multi-rooms.lobby-rooms::-webkit-scrollbar:horizontal{display:none!important;height:0!important;}
+.multi-rooms.lobby-rooms *{max-width:100%;}
+.lobby-room-card{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
+.lobby-room-card:hover{transform:none!important;}
+.lobby-room-main{min-width:0!important;overflow:hidden;}
+.lobby-room-meta{max-width:100%;min-width:0;}
+.lobby-title{white-space:normal!important;text-align:center;line-height:1.5;}
+.arcade-form-row{min-width:0;max-width:100%;}
+.arcade-form-row .arcade-input{min-width:0!important;flex:1 1 auto!important;}
+/* FIX mismo bug en chat global + chat amigos/privado */
+#view-chat,#view-friends,.friends-view,.chat-card,.friends-grid,.friends-col,.arcade-panel{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
+.chat-card,.friends-col,.arcade-panel{overflow-x:hidden!important;}
+.chat-messages,.arcade-chat{overflow-x:hidden!important;overflow-y:auto!important;width:100%!important;max-width:100%!important;box-sizing:border-box;scrollbar-gutter:stable;overscroll-behavior:contain;min-width:0!important;}
+.chat-messages::-webkit-scrollbar:horizontal,.arcade-chat::-webkit-scrollbar:horizontal{display:none!important;height:0!important;}
+.chat-messages::after,.arcade-chat::after{max-width:100%;overflow:hidden;}
+.chat-msg{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
+.chat-msg *{max-width:100%;}
+.chat-body{flex:1 1 auto!important;min-width:0!important;max-width:100%!important;overflow:hidden;}
+.chat-head{min-width:0;max-width:100%;overflow:hidden;}
+.chat-user{min-width:0;}
+.chat-text{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important;white-space:pre-wrap!important;box-sizing:border-box;}
+.chat-bubble-wrap{display:inline-block!important;max-width:100%!important;min-width:0!important;box-sizing:border-box;overflow:hidden;vertical-align:top;}
+.chat-text.chat-bubble-wrap{width:auto!important;}
+.chat-sticker,.chat-img,.chat-gif{max-width:100%!important;}
+.chat-img{width:auto;height:auto;}
+.chat-input-bar,.arcade-chat-bar{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
+.chat-input-bar input,.arcade-chat-bar input{min-width:0!important;flex:1 1 auto!important;max-width:100%!important;}
+.friend-card,.friend-req,.gift-box,.gift-row,.gift-history,.friends-stack{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
+.gift-row{overflow-x:hidden;}
+.gift-row .arcade-input{min-width:0!important;flex:1 1 auto!important;}
+.friend-name{min-width:0;}
+.media-grid{min-width:0;max-width:100%;overflow-x:hidden;}
+.chat-toolbar{max-width:100%;box-sizing:border-box;}
 @media(max-width:900px){.lobby-grid{grid-template-columns:1fr;}.lobby-hero-top{flex-direction:column;}.lobby-back{align-self:flex-end;}}

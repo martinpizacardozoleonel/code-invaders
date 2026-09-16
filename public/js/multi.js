@@ -111,19 +111,25 @@ const MultiUI={
   try{ const r=await API.multiJoinRoom('',code); if(inp) inp.value=''; this.currentRoom=r.room; this.ready=false; this.setMode(r.room.mode||'normal'); this.show('lobby'); this.poll(true); Toast.success('Entraste a '+r.room.name); }
   catch(e){ Toast.error(e.message); }
  },
- async loadRooms(force){
-  if(this.roomsFetching) return;
-  const now=Date.now();
-  if(!force && now-this.lastRoomsAt<2500) return;
-  this.roomsFetching=true;
-  try{
-    const q=(document.getElementById('multiRoomSearch')||{}).value||'';
-    const d=await API.multiRooms(q.trim());
-    this.rooms=d.rooms||[]; this.lastRoomsAt=Date.now();
-    this.renderRooms();
-  }catch(e){ const l=document.getElementById('multiRoomsList'); if(l&&!this.rooms.length) l.innerHTML='<p class="hint">Sin conexión... reintentando</p>'; }
-  finally{ this.roomsFetching=false; }
- },
+  async loadRooms(force){
+   if(this.roomsFetching) return;
+   const now=Date.now();
+   if(!force && now-this.lastRoomsAt<2500) return;
+   this.roomsFetching=true;
+   try{
+     const q=(document.getElementById('multiRoomSearch')||{}).value||'';
+     const d=await API.multiRooms(q.trim());
+     const next=d.rooms||[];
+     const key=JSON.stringify(next.map(r=>[r.id,r.name,r.players,r.maxPlayers,r.isPublic,r.mode,r.status,r.ownerName]));
+     if(force===true||key!==this._roomsKey){
+       this.rooms=next; this._roomsKey=key; this.lastRoomsAt=Date.now();
+       this.renderRooms();
+     } else {
+       this.rooms=next; this.lastRoomsAt=Date.now();
+     }
+   }catch(e){ const l=document.getElementById('multiRoomsList'); if(l&&!this.rooms.length) l.innerHTML='<p class="hint">Sin conexión... reintentando</p>'; }
+   finally{ this.roomsFetching=false; }
+  },
  renderRooms(){
    const box=document.getElementById('multiRoomsList'); if(!box) return;
    const badge=document.getElementById('lobbyCountBadge'); if(badge) badge.textContent=this.rooms.length;
@@ -143,7 +149,7 @@ const MultiUI={
      else if(full) btn='<button class="btn btn-ghost btn-sm" disabled title="Sala llena">🚫 LLENA</button>';
      else if(playing) btn='<button class="btn btn-ghost btn-sm" disabled title="Ya están jugando">⚔️ ...</button>';
      else btn='<button class="btn btn-primary btn-sm lobby-join-btn" data-join="'+r.id+'">▶ UNIRSE</button>';
-     return '<div class="lobby-room-card'+(isSpeed?' mode-speedrun':'')+(playing?' status-playing':'')+'" style="animation-delay:'+(i*0.05)+'s"><div class="lobby-room-main"><p class="lobby-room-name">🚀 '+this.esc(r.name)+'</p><div class="lobby-room-meta"><span class="lobby-badge owner">👑 '+this.esc(r.ownerName||'?')+'</span>'+capBadge+privBadge+modeBadge+st+'</div></div>'+btn+'</div>';
+     return '<div class="lobby-room-card'+(isSpeed?' mode-speedrun':'')+(playing?' status-playing':'')+'"><div class="lobby-room-main"><p class="lobby-room-name">🚀 '+this.esc(r.name)+'</p><div class="lobby-room-meta"><span class="lobby-badge owner">👑 '+this.esc(r.ownerName||'?')+'</span>'+capBadge+privBadge+modeBadge+st+'</div></div>'+btn+'</div>';
    }).join('');
    box.querySelectorAll('[data-join]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.join,true)));
    box.querySelectorAll('[data-priv]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.priv,false)));
