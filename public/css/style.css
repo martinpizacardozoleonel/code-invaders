@@ -2097,26 +2097,13 @@ body.light .lobby-info b{color:#0f172a!important;}
 .lobby-title{white-space:normal!important;text-align:center;line-height:1.5;}
 .arcade-form-row{min-width:0;max-width:100%;}
 .arcade-form-row .arcade-input{min-width:0!important;flex:1 1 auto!important;}
-/* FIX mismo bug en chat global + chat amigos/privado */
-#view-chat,#view-friends,.friends-view,.chat-card,.friends-grid,.friends-col,.arcade-panel{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
-.chat-card,.friends-col,.arcade-panel{overflow-x:hidden!important;}
-.chat-messages,.arcade-chat{overflow-x:hidden!important;overflow-y:auto!important;width:100%!important;max-width:100%!important;box-sizing:border-box;scrollbar-gutter:stable;overscroll-behavior:contain;min-width:0!important;}
+/* FIX scroll horizontal en chats — SOLO contenedores (sin tocar mensajes) */
+#view-chat,#view-friends,.friends-view,.chat-card,.friends-grid,.friends-col{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
+.chat-card,.friends-col{overflow-x:hidden!important;}
+.chat-messages,.arcade-chat{overflow-x:hidden!important;overflow-y:auto!important;box-sizing:border-box;scrollbar-gutter:stable;overscroll-behavior:contain;}
 .chat-messages::-webkit-scrollbar:horizontal,.arcade-chat::-webkit-scrollbar:horizontal{display:none!important;height:0!important;}
-.chat-messages::after,.arcade-chat::after{max-width:100%;overflow:hidden;}
-.chat-msg{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
-.chat-msg img{max-width:100%;}
-.chat-body{flex:1 1 auto!important;min-width:0!important;max-width:100%!important;overflow:hidden;}
-.chat-head{min-width:0;max-width:100%;overflow:hidden;}
-.chat-user{min-width:0;}
-.chat-text{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important;box-sizing:border-box;}
-.chat-bubble-wrap{display:block!important;width:100%!important;max-width:100%!important;box-sizing:border-box;}
-.chat-sticker{max-width:100%!important;}
-.chat-input-bar,.arcade-chat-bar{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
-.chat-input-bar input,.arcade-chat-bar input{min-width:0!important;flex:1 1 auto!important;max-width:100%!important;}
-.friend-card,.friend-req,.gift-box,.gift-row,.gift-history,.friends-stack{min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;}
-.gift-row{overflow-x:hidden;}
-.gift-row .arcade-input{min-width:0!important;flex:1 1 auto!important;}
-.friend-name{min-width:0;}
-.media-grid{min-width:0;max-width:100%;overflow-x:hidden;}
+.chat-input-bar,.arcade-chat-bar{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
+.chat-input-bar input,.arcade-chat-bar input{min-width:0!important;flex:1 1 auto!important;}
+.friend-card,.friend-req,.gift-box,.gift-row,.gift-history,.friends-stack{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
 .chat-toolbar{max-width:100%;box-sizing:border-box;}
 @media(max-width:900px){.lobby-grid{grid-template-columns:1fr;}.lobby-hero-top{flex-direction:column;}.lobby-back{align-self:flex-end;}}
