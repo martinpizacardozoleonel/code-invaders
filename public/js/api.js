@@ -79,7 +79,7 @@ const API = (() => {
     async deleteChat(id){ try{ return await request('/api/chat/'+id,{method:'DELETE'}); }catch(e){ throw e; } },
     async multiState(){ return request('/api/multi/state'); },
     async multiRooms(q){ return request('/api/multi/rooms'+(q?'?q='+encodeURIComponent(q):'')); },
-    async multiCreateRoom(name,isPublic,mode){ return request('/api/multi/rooms',{method:'POST',body:JSON.stringify({name,isPublic,mode})}); },
+    async multiCreateRoom(name,isPublic,mode,maxPlayers){ return request('/api/multi/rooms',{method:'POST',body:JSON.stringify({name,isPublic,mode,maxPlayers})}); },
     async multiJoinRoom(roomId,code){ return request('/api/multi/rooms/join',{method:'POST',body:JSON.stringify({roomId,code})}); },
     async multiUpdateRoom(patch){ return request('/api/multi/room',{method:'PUT',body:JSON.stringify(patch)}); },
     async multiJoin(){ return request('/api/multi/rooms/join',{method:'POST',body:JSON.stringify({})}); },

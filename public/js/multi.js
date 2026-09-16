@@ -1,6 +1,6 @@
 const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},{id:'crimson',body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},{id:'gold',body:'#ffd600',accent:'#fff176',glow:'#ffea00'},{id:'neon',body:'#00e676',accent:'#69f0ae',glow:'#00e676'},{id:'violet',body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},{id:'pixel',body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'},{id:'tournament_silver',body:'#c0c0c0',accent:'#e0e0e0',glow:'#e0e0e0'}];
 const MultiUI={
- open:false, timer:null, ready:false, mode:'normal', view:'rooms', currentRoom:null, rooms:[], lastKey:'', fetching:false, roomsFetching:false, lastRoomsAt:0, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null, createIsPublic:true, createMode:'normal',
+ open:false, timer:null, ready:false, mode:'normal', view:'rooms', currentRoom:null, rooms:[], lastKey:'', fetching:false, roomsFetching:false, lastRoomsAt:0, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null, createIsPublic:true, createMode:'normal', createMax:4,
  init(){
   const mb=document.getElementById('multiBtn'); if(mb) mb.addEventListener('click',()=>this.openLobby());
   const mn=document.getElementById('multiModeNormalBtn'); if(mn) mn.addEventListener('click',()=>this.setRoomMode('normal'));
@@ -22,6 +22,7 @@ const MultiUI={
   const sw=document.getElementById('multiPublicSwitch'); if(sw) sw.addEventListener('click',()=>this.toggleCreatePublic());
   const cn=document.getElementById('multiCreateNormalBtn'); if(cn) cn.addEventListener('click',()=>this.setCreateMode('normal'));
   const csp=document.getElementById('multiCreateSpeedrunBtn'); if(csp) csp.addEventListener('click',()=>this.setCreateMode('speedrun'));
+  const mx=document.getElementById('multiMaxPick'); if(mx) mx.querySelectorAll('[data-max]').forEach(b=>b.addEventListener('click',()=>this.setCreateMax(b.dataset.max)));
   const jb=document.getElementById('multiJoinCodeBtn'); if(jb) jb.addEventListener('click',()=>this.joinByCode());
   const ji=document.getElementById('multiJoinCode'); if(ji) ji.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.joinByCode(); }});
   const sb=document.getElementById('multiRoomSearchBtn'); if(sb) sb.addEventListener('click',()=>this.loadRooms(true));
@@ -42,6 +43,12 @@ const MultiUI={
   const cn=document.getElementById('multiCreateNormalBtn'), cs=document.getElementById('multiCreateSpeedrunBtn');
   if(cn) cn.classList.toggle('active',this.createMode==='normal');
   if(cs) cs.classList.toggle('active',this.createMode==='speedrun');
+ },
+ setCreateMax(m){
+  m=Math.min(4,Math.max(2,Math.round(Number(m)||4)));
+  this.createMax=m;
+  const mx=document.getElementById('multiMaxPick');
+  if(mx) mx.querySelectorAll('[data-max]').forEach(b=>b.classList.toggle('active',Number(b.dataset.max)===m));
  },
  setMode(m){
   this.mode=(m==='speedrun')?'speedrun':'normal';
@@ -82,7 +89,7 @@ const MultiUI={
   const btn=document.getElementById('multiCreateBtn');
   if(btn){ btn.disabled=true; btn.textContent='Creando...'; }
   try{
-    const r=await API.multiCreateRoom(name,this.createIsPublic,this.createMode);
+    const r=await API.multiCreateRoom(name,this.createIsPublic,this.createMode,this.createMax);
     if(inp) inp.value='';
     this.currentRoom=r.room; this.ready=false; this.setMode(r.room.mode||'normal');
     this.show('lobby'); this.poll(true);
@@ -120,11 +127,17 @@ const MultiUI={
   if(!this.rooms.length){ box.innerHTML='<p class="hint empty-hint">📭 Sin salas. ¡Creá la tuya arriba! 👆</p>'; return; }
   box.innerHTML=this.rooms.map(r=>{
     const pub=!!r.isPublic;
+    const mx=r.maxPlayers||4;
+    const full=(r.players||0)>=mx;
     const modeBadge=(r.mode==='speedrun')?'<span class="mini-badge">⚡ SPEEDRUN</span>':'<span class="mini-badge">▶ JUGAR</span>';
     const privBadge=pub?'<span class="mini-badge">🌍 Pública</span>':'<span class="mini-badge">🔒 Privada</span>';
     const st=r.status==='playing'?'<span class="mini-badge">⚔️ en batalla</span>':'<span class="mini-badge">🟢 lobby</span>';
-    const btn=pub?'<button class="btn btn-primary btn-sm" data-join="'+r.id+'">Unirse</button>':'<button class="btn btn-ghost btn-sm" data-priv="'+r.id+'" title="Sala privada: necesitás el código">🔒 Privada</button>';
-    return '<div class="multi-room"><div class="multi-room-info"><p class="multi-name">'+this.esc(r.name)+'</p><p class="hint">👑 '+this.esc(r.ownerName||'?')+' · 👥 '+r.players+' · '+privBadge+' '+modeBadge+' '+st+'</p></div>'+btn+'</div>';
+    const capBadge='<span class="mini-badge">👥 '+r.players+'/'+mx+'</span>';
+    let btn;
+    if(!pub) btn='<button class="btn btn-ghost btn-sm" data-priv="'+r.id+'" title="Sala privada: necesitás el código">🔒 Privada</button>';
+    else if(full) btn='<button class="btn btn-ghost btn-sm" disabled title="Sala llena">🚫 Llena</button>';
+    else btn='<button class="btn btn-primary btn-sm" data-join="'+r.id+'">Unirse</button>';
+    return '<div class="multi-room"><div class="multi-room-info"><p class="multi-name">'+this.esc(r.name)+'</p><p class="hint">👑 '+this.esc(r.ownerName||'?')+' · '+capBadge+' '+privBadge+' '+modeBadge+' '+st+'</p></div>'+btn+'</div>';
   }).join('');
   box.querySelectorAll('[data-join]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.join,true)));
   box.querySelectorAll('[data-priv]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.priv,false)));
@@ -132,7 +145,7 @@ const MultiUI={
  renderRoomHeader(){
   const r=this.currentRoom; if(!r) return;
   const t=document.getElementById('multiRoomTitle');
-  if(t) t.innerHTML='🚀 '+this.esc(r.name||'LOBBY')+' · '+(r.isPublic?'🌍 Pública':'🔒 Privada')+' · '+((r.mode==='speedrun')?'⚡ SPEEDRUN':'▶ JUGAR')+' · 👑 '+this.esc(r.ownerName||'');
+  if(t) t.innerHTML='🚀 '+this.esc(r.name||'LOBBY')+' · '+(r.isPublic?'🌍 Pública':'🔒 Privada')+' · '+((r.mode==='speedrun')?'⚡ SPEEDRUN':'▶ JUGAR')+' · 👥 '+(r.players!=null?r.players:'?')+'/'+(r.maxPlayers||4)+' · 👑 '+this.esc(r.ownerName||'');
   const bar=document.getElementById('multiOwnerBar');
   if(bar) bar.classList.toggle('hidden',!r.isOwner);
   const sw=document.getElementById('multiRoomPublicSwitch'), tr=document.getElementById('multiRoomPublicTrack'), lb=document.getElementById('multiRoomPublicLabel');

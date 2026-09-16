@@ -1685,6 +1685,9 @@ body.light .enemy-q{color:#475569;}.enemy-a{background:#0f172a!important;color:#
 .multi-mode-pick.small .btn{padding:6px 10px;font-size:.8rem;}
 .multi-create-speed{border:1.5px solid #ffd600;background:rgba(255,214,0,.12);color:#fff;border-radius:8px;cursor:pointer;font-weight:800;}
 .multi-create-speed.active{outline:2px solid #fff;opacity:1;}
+.multi-max-pick{display:flex;gap:6px;}
+.multi-max-pick .btn{border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.05);color:#fff;border-radius:8px;cursor:pointer;font-weight:800;min-width:38px;opacity:.55;}
+.multi-max-pick .btn.active{opacity:1;outline:2px solid #fff;background:rgba(0,229,255,.2);border-color:#00e5ff;}
 body.light .multi-room{background:#fff!important;border-color:rgba(15,23,42,.08)!important;color:#0f172a;}
 
 /* ============ ACHIEVEMENT SYSTEM ============ */

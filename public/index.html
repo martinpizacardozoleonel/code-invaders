@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=18">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -177,6 +177,15 @@
                 </div>
               </div>
               <p class="hint" id="multiPublicHint" style="margin:6px 0">Pública: aparece en el buscador y cualquiera se une con 1 click.</p>
+              <p class="hint" style="margin:6px 0">🎮 Modo: ▶ JUGAR = normal · ⚡ SPEEDRUN = contrarreloj.</p>
+              <div class="multi-create-row">
+                <span class="hint">👥 Jugadores (mín 2 · máx 4):</span>
+                <div class="multi-max-pick" id="multiMaxPick">
+                  <button class="btn btn-sm" data-max="2">2</button>
+                  <button class="btn btn-sm" data-max="3">3</button>
+                  <button class="btn btn-sm active" data-max="4">4</button>
+                </div>
+              </div>
               <button class="btn btn-primary" id="multiCreateBtn" style="width:100%">➕ Crear y entrar</button>
             </div>
             <div class="multi-join-code arcade-panel" style="padding:12px;margin-bottom:10px">
@@ -579,7 +588,7 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=9"></script>
+  <script src="js/api.js?v=10"></script>
   <script src="js/qr.js?v=1"></script>
   <script src="js/auth.js?v=3"></script>
   <script src="js/notifications.js?v=2"></script>
@@ -590,7 +599,7 @@
   <script src="js/ranked.js?v=8"></script>
   <script src="js/chat.js?v=5"></script>
   <script src="js/friends.js?v=7"></script>
-  <script src="js/multi.js?v=3"></script>
+  <script src="js/multi.js?v=4"></script>
   <script src="js/app.js?v=9"></script>
   <script>
   const LuckyRoyale={

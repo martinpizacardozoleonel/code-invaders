@@ -374,10 +374,11 @@ function makeRoomCode(){ const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
 function getUserRoomId(uid){ return UserRoom.get(uid)||null; }
 function getRoom(rid){ return Rooms.get(rid)||null; }
 function findRoomOfUser(uid){ const rid=UserRoom.get(uid); return rid?Rooms.get(rid)||null:null; }
+function clampMaxPlayers(n,fb){ n=Math.round(Number(n)); if(!Number.isFinite(n)) return fb==null?4:fb; return Math.min(4,Math.max(2,n)); }
 function roomCard(r){
   const lobbySize=r.lobby?r.lobby.size:0;
   const st=r.match?(r.match.status||'lobby'):'lobby';
-  return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, status:st, createdAt:r.createdAt };
+  return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, maxPlayers:clampMaxPlayers(r.maxPlayers,4), status:st, createdAt:r.createdAt };
 }
 function multiWaveTime(w){ return Math.max(12, 32 - w*1.2); }
 function multiPickEnemies(){
@@ -470,14 +471,15 @@ app.post('/api/multi/rooms', async (req,res)=>{
   try{
     const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
     ensureShopFields(user);
-    const {name,isPublic,mode}=req.body||{};
+    const {name,isPublic,mode,maxPlayers}=req.body||{};
     const nm=String(name||'').trim().slice(0,30);
     if(nm.length<3) return res.status(400).json({error:'El lobby necesita un nombre (3+ letras)'});
     const pub=isPublic!==false;
     const md=(mode==='speedrun')?'speedrun':'normal';
+    const mx=clampMaxPlayers(maxPlayers,4);
     leaveRoomInternal(user.id);
     const id=crypto.randomUUID();
-    const room={ id, name:nm, isPublic:!!pub, code:pub?null:makeRoomCode(), mode:md, ownerId:user.id, ownerName:user.username, createdAt:new Date().toISOString(), lobby:new Map(), chat:[], match:null };
+    const room={ id, name:nm, isPublic:!!pub, code:pub?null:makeRoomCode(), mode:md, maxPlayers:mx, ownerId:user.id, ownerName:user.username, createdAt:new Date().toISOString(), lobby:new Map(), chat:[], match:null };
     room.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:false,lastSeen:Date.now()});
     Rooms.set(id,room); UserRoom.set(user.id,id);
     room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'🚀 Sala "'+nm+'" creada por '+user.username+(room.isPublic?' (pública)':' (privada)'),createdAt:new Date().toISOString()});
@@ -501,6 +503,8 @@ app.post('/api/multi/rooms/join', async (req,res)=>{
     if(!room.isPublic && !isMember && !isOwner){
       if(!code || code!==room.code) return res.status(403).json({error:'🔒 Sala privada: pedí el código al creador'});
     }
+    const cap=clampMaxPlayers(room.maxPlayers,4);
+    if(!isMember && room.lobby.size>=cap) return res.status(400).json({error:'🚫 Sala llena ('+cap+'/'+cap+')'});
     if(getUserRoomId(user.id) && getUserRoomId(user.id)!==room.id) leaveRoomInternal(user.id);
     if(!room.lobby.has(user.id)){
       room.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:false,lastSeen:Date.now()});
@@ -517,9 +521,10 @@ app.put('/api/multi/room', async (req,res)=>{
     const room=findRoomOfUser(user.id);
     if(!room) return res.status(400).json({error:'No estás en ninguna sala'});
     if(room.ownerId!==user.id) return res.status(403).json({error:'Solo el creador puede cambiar la sala'});
-    const {name,isPublic,mode}=req.body||{};
+    const {name,isPublic,mode,maxPlayers}=req.body||{};
     if(name!==undefined){ const nm=String(name).trim().slice(0,30); if(nm.length<3) return res.status(400).json({error:'Nombre muy corto'}); room.name=nm; }
     if(mode!==undefined) room.mode=(mode==='speedrun')?'speedrun':'normal';
+    if(maxPlayers!==undefined){ const mx=clampMaxPlayers(maxPlayers,room.maxPlayers||4); if(mx<room.lobby.size) return res.status(400).json({error:'Hay '+room.lobby.size+' jugadores, no podés bajar a '+mx}); room.maxPlayers=mx; }
     if(isPublic!==undefined){
       const want=!!isPublic;
       if(want!==room.isPublic){
