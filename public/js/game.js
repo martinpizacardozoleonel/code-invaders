@@ -1009,7 +1009,11 @@ const Game = (() => {
       if(sg) sg.classList.toggle('hidden',t!=='skins');
       if(lg) lg.classList.toggle('hidden',t!=='lucky');
       if(lw) lw.classList.toggle('hidden',t!=='lucky');
-      if(t==='lucky' && typeof Profile!=='undefined' && Profile.renderLucky) Profile.renderLucky();
+      if(t==='lucky'){
+        if(window.LuckyRoyale&&LuckyRoyale.draw) requestAnimationFrame(()=>{ try{LuckyRoyale.draw();}catch(e){} });
+        const m=document.querySelector('#shopModal .modal-shop'); if(m) m.scrollTop=0;
+        if(typeof Profile!=='undefined' && Profile.renderLucky) Profile.renderLucky();
+      }
     }));
     const achBtn=document.getElementById('menuAchievements');
     const achModal=document.getElementById('achievementsModal');
