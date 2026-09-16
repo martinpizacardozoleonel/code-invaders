@@ -497,6 +497,11 @@
         <p class="hint">Compra estilos de letra con puntos. Se ven en chat, ranked y perfil.</p>
         <div class="frames-grid" id="fontsGrid"></div>
       </div>
+      <div class="frames-section" id="bubblesSection">
+        <h3>💬 Burbujas de chat</h3>
+        <p class="hint">🎰 Exclusivas del Galaga Royale: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
+        <div class="frames-grid" id="bubblesGrid"></div>
+      </div>
       <div class="frames-section hidden" id="backupSection"></div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
@@ -612,7 +617,8 @@
           const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({count})});
           const data=await r.json();
           if(!r.ok){ Toast.error(data.error||'Error'); this.resetBtn(); return; }
-          if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); }
+          if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); if(Profile.loadBubbles) Profile.loadBubbles(); }
+          try{ if(typeof Auth!=='undefined'&&Auth.user){ Auth.user.coins=data.coins; Auth.user.exp=data.exp; Auth.user.chatBubbles=data.chatBubbles; if(Auth.saveLocal) Auth.saveLocal(); } }catch(e){}
           if(typeof Game!=='undefined'){ Game.coins=data.coins; }
           const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
           const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
@@ -624,7 +630,7 @@
             const best=items.reduce((a,b)=>a,(items.find(i=>i.rarity==='mythic')||items.find(i=>i.rarity==='legendary')||items[0]));
             const rows=items.map(it=>{ const nm=(it.name||it.bubbleId||'?').replace(/_/g,' '); return '<div class="rw-row rw-'+(it.rarity||'common')+'">🎰 '+nm+' <span>◆ '+(RLN[it.rarity]||it.rarity)+' ◆</span></div>'; }).join('');
             res.className='galaga-result '+(best.rarity||'common');
-            res.innerHTML='◢ ◣ x'+items.length+' RECOMPENSAS ◢ ◣<div class="rw-list">'+rows+'</div>';
+            res.innerHTML='◢ ◣ x'+items.length+' RECOMPENSAS ◢ ◣<div class="rw-list">'+rows+'</div><div class="rw-where">🪙/⚡ sumados al perfil · 💬 en Ajustes → Burbujas de chat</div>';
             res.classList.remove('hidden');
           }
           Toast.success('🎰 Ganaste x'+items.length+': '+items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '));

@@ -109,6 +109,8 @@ const API = (() => {
     async getFxs(){ return request('/api/fxs'); },
     async buyFx(fxId){ return request('/api/fxs/buy',{method:'POST',body:JSON.stringify({fxId})}); },
     async equipFx(fxId){ return request('/api/fxs/equip',{method:'POST',body:JSON.stringify({fxId})}); },
+    async getBubbles(){ return request('/api/bubbles'); },
+    async equipBubble(bubbleId){ return request('/api/bubbles/equip',{method:'POST',body:JSON.stringify({bubbleId})}); },
     fxStyle(id){
       if(!id||id==='none') return '';
       const M={latido:'display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;',ola:'display:inline-block;animation:fxWave 1.8s ease-in-out infinite;',neon:'animation:fxNeon 1.6s ease-in-out infinite;',brillo:'font-weight:900;background:linear-gradient(100deg,#8a93a6 30%,#ffffff 50%,#8a93a6 70%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxShine 2.4s linear infinite;',fuego:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;',glitch:'animation:fxGlitch 1.4s steps(2,end) infinite;',arcoiris:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'};

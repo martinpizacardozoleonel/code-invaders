@@ -102,7 +102,8 @@ const MultiUI={
       if(m.userId==='sys') return '<div class="chat-msg sys"><div class="chat-text">🤖 '+this.esc(m.text)+'</div></div>';
       let body=this.esc(m.text);
       if(m.text.startsWith('[sticker]')) body='<div class="chat-sticker">'+this.esc(m.text.slice(9,20))+'</div>';
-      return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user">'+this.esc(m.username)+'</span></div><div class="chat-text">'+body+'</div></div></div>';
+      const bub=(m.equippedBubble&&m.equippedBubble!=='none')?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
+      return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span></div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
     }).join(''):'<p class="hint">Sin mensajes. ¡Saluda! 👋</p>';
     cb.scrollTop=cb.scrollHeight;
   }

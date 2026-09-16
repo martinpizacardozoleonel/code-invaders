@@ -7,6 +7,7 @@ const Profile = {
   bannersCatalog: [],
   fontsCatalog: [],
   fxsCatalog: [],
+  bubblesCatalog: [],
   framesCatalog: [
     { id: 'none', name: 'Ninguno', price: 0 },
     { id: 'bronce', name: 'Bronce', price: 200 },
@@ -70,7 +71,10 @@ const Profile = {
 
     if (settingsNavBtn) settingsNavBtn.addEventListener('click', () => {
       settingsOverlay.classList.remove('hidden');
+      try{ this.syncAuth(); }catch(e){}
       this.renderProfile();
+      if(this.isLogged()&&(!this.bubblesCatalog||!this.bubblesCatalog.length)) this.loadBubbles();
+      else this.renderBubbles();
     });
     if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
     if (settingsOverlay) settingsOverlay.addEventListener('click', (e) => {
@@ -307,6 +311,36 @@ const Profile = {
     this.loadBanners();
     this.loadFonts();
     this.loadFxs();
+    this.loadBubbles();
+  },
+  async loadBubbles(){
+    try{ const d=await API.getBubbles(); this.bubblesCatalog=d.bubbles||[]; if(this.user){ if(d.owned) this.user.chatBubbles=d.owned; if(d.equipped) this.user.equippedBubble=d.equipped; } }catch(e){ this.bubblesCatalog=[]; }
+    this.renderBubbles();
+  },
+  async equipBubble(id){
+    if(!this.isLogged()) return;
+    try{
+      const d=await API.equipBubble(id);
+      if(this.user) this.user.equippedBubble=d.equippedBubble;
+      try{ if(typeof Auth!=='undefined'&&Auth.user) Auth.user.equippedBubble=d.equippedBubble; }catch(e){}
+      this.renderBubbles();
+      if(typeof Toast!=='undefined') Toast.success('💬 Burbuja equipada');
+    }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }
+  },
+  renderBubbles(){
+    const g=document.getElementById('bubblesGrid'); if(!g) return;
+    const owned=(this.user&&this.user.chatBubbles)||['none']; const cur=(this.user&&this.user.equippedBubble)||'none'; const list=this.bubblesCatalog||[];
+    if(!list.length){ g.innerHTML='<p class="hint">Gira la ruleta Galaga Royale para ganar burbujas.</p>'; return; }
+    g.innerHTML=list.map(x=>{
+      const has=owned.includes(x.id); const act=x.id===cur; let btn='';
+      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado ✓</button>';
+      else if(has) btn='<button class="btn btn-primary btn-sm bu-equip" data-bu="'+x.id+'">Equipar</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>🎰 Solo ruleta · suerte</button>';
+      const prev=x.id==='none'?'Sin burbuja':'Hola, este es tu chat 👾';
+      const tags=(x.exclusive?'<span class="mini-badge">🎰 Exclusiva ruleta</span>':'')+(x.gif?'<span class="mini-badge">🎞️ GIF</span>':'');
+      return '<div class="frame-card"><div class="chat-bubble-wrap bubble-'+x.id+'"><span>'+prev+'</span></div><p>'+x.name+'</p><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">'+tags+'</div>'+btn+'</div>';
+    }).join('');
+    g.querySelectorAll('.bu-equip').forEach(b=>b.addEventListener('click',()=>this.equipBubble(b.dataset.bu)));
   },
   async loadNameColors(){
     try{
@@ -552,6 +586,7 @@ const Profile = {
     const bannerSection = document.getElementById('bannerSection');
     const fontsSection = document.getElementById('fontsSection');
     const fxsSection = document.getElementById('fxsSection');
+    const bubblesSection = document.getElementById('bubblesSection');
     const backupSection = document.getElementById('backupSection');
     const dangerZone = document.getElementById('dangerZone');
 
@@ -586,6 +621,7 @@ const Profile = {
       if (bannerSection) bannerSection.classList.remove('hidden');
       if (fontsSection) fontsSection.classList.remove('hidden');
       if (fxsSection) fxsSection.classList.remove('hidden');
+      if (bubblesSection) bubblesSection.classList.remove('hidden');
       if (backupSection) backupSection.classList.remove('hidden');
       this.renderProfileBanner();
       if (dangerZone) dangerZone.classList.remove('hidden');
@@ -607,6 +643,7 @@ const Profile = {
       if (bannerSection) bannerSection.classList.add('hidden');
       if (fontsSection) fontsSection.classList.add('hidden');
       if (fxsSection) fxsSection.classList.add('hidden');
+      if (bubblesSection) bubblesSection.classList.add('hidden');
       if (backupSection) backupSection.classList.add('hidden');
       if (dangerZone) dangerZone.classList.add('hidden');
     }
@@ -716,7 +753,7 @@ Profile.syncAuth = function(){
           if(Auth.user.profilePic!==undefined) this.user.profilePic=Auth.user.profilePic;
           if(Auth.user.banners!==undefined) this.user.banners=Auth.user.banners;
           if(Auth.user.equippedBanner!==undefined) this.user.equippedBanner=Auth.user.equippedBanner;
-          if(Auth.user.bannerImg!==undefined) this.user.bannerImg=Auth.user.bannerImg; if(Auth.user.fonts!==undefined) this.user.fonts=Auth.user.fonts; if(Auth.user.equippedFont!==undefined) this.user.equippedFont=Auth.user.equippedFont; if(Auth.user.fxs!==undefined) this.user.fxs=Auth.user.fxs; if(Auth.user.equippedFx!==undefined) this.user.equippedFx=Auth.user.equippedFx;
+          if(Auth.user.bannerImg!==undefined) this.user.bannerImg=Auth.user.bannerImg; if(Auth.user.fonts!==undefined) this.user.fonts=Auth.user.fonts; if(Auth.user.equippedFont!==undefined) this.user.equippedFont=Auth.user.equippedFont; if(Auth.user.fxs!==undefined) this.user.fxs=Auth.user.fxs; if(Auth.user.equippedFx!==undefined) this.user.equippedFx=Auth.user.equippedFx; if(Auth.user.chatBubbles!==undefined) this.user.chatBubbles=Auth.user.chatBubbles; if(Auth.user.equippedBubble!==undefined) this.user.equippedBubble=Auth.user.equippedBubble;
         }
         this.active=true;
       }

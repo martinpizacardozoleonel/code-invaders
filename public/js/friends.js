@@ -180,7 +180,7 @@ const Friends={
       const lastKey=msgs.length+'|'+msgs[msgs.length-1].id+'|'+msgs[msgs.length-1].createdAt;
       if(!force && box.dataset.lastKey===lastKey) return;
       const me=(typeof Auth!=='undefined'&&Auth.user)?Auth.user.id:null;
-      box.innerHTML=msgs.map(m=>`<div class="chat-msg ${m.senderId===me?'own':''}"><div class="chat-body"><div class="chat-text">${this.renderPrivBody(m.text)}</div><div class="chat-time">${new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`).join('');
+      box.innerHTML=msgs.map(m=>{ const bub=(m.senderBubble&&m.senderBubble!=='none')?' chat-bubble-wrap bubble-'+m.senderBubble:''; return `<div class="chat-msg ${m.senderId===me?'own':''}"><div class="chat-body"><div class="chat-text${bub}">${this.renderPrivBody(m.text)}</div><div class="chat-time">${new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`; }).join('');
       box.dataset.lastKey=lastKey;
       if(atBottom) requestAnimationFrame(()=>{ box.scrollTop=box.scrollHeight; });
       else box.scrollTop = prevTop;

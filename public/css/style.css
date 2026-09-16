@@ -1916,6 +1916,12 @@ body.light .enemy-q{color:#475569;}.enemy-a{background:#0f172a!important;color:#
   content:'👑'; position:absolute; top:-4px; right:8px; font-size:.7rem;
   animation:masterCrown 1.5s ease-in-out infinite; pointer-events:none; opacity:.8;
 }
+/* GIF extra: destello barriendo + flotación para burbujas animadas */
+@keyframes bubbleGifSweep{ 0%{transform:translateX(-120%) rotate(15deg);opacity:0} 20%{opacity:.7} 100%{transform:translateX(320%) rotate(15deg);opacity:0} }
+@keyframes bubbleGifFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-1.5px)} }
+.chat-bubble-wrap.bubble-fire,.chat-bubble-wrap.bubble-galaxy,.chat-bubble-wrap.bubble-void,.chat-bubble-wrap.bubble-rainbow,.chat-bubble-wrap.bubble-diamond,.chat-bubble-wrap.bubble-glitch,.chat-bubble-wrap.bubble-exclusive_00{ animation-timing-function:ease-in-out; }
+.chat-bubble-wrap.bubble-fire span,.chat-bubble-wrap.bubble-galaxy span,.chat-bubble-wrap.bubble-void span,.chat-bubble-wrap.bubble-rainbow span,.chat-bubble-wrap.bubble-diamond span,.chat-bubble-wrap.bubble-glitch span,.chat-bubble-wrap.bubble-exclusive_00 span{ display:inline-block; animation:bubbleGifFloat 1.6s ease-in-out infinite; position:relative; z-index:2; }
+.chat-text.bubble-fire,.chat-text.bubble-galaxy,.chat-text.bubble-void,.chat-text.bubble-rainbow,.chat-text.bubble-diamond,.chat-text.bubble-glitch,.chat-text.bubble-exclusive_00{ color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.8); }
 
 /* ============ SHOP TABS ============ */
 .shop-tabs{ display:flex; gap:6px; margin:10px 0 14px; flex-wrap:wrap; }
@@ -1935,6 +1941,7 @@ body.light .shop-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8
 .rw-row{ font-size:.75rem; background:rgba(0,0,0,.35); border-radius:8px; padding:4px 8px; display:flex; justify-content:space-between; gap:8px; }
 .rw-row span{ opacity:.8; font-size:.65rem; }
 .rw-common{ border:1px solid #9aa7b8; } .rw-rare{ border:1px solid #40c4ff; } .rw-epic{ border:1px solid #7c4dff; } .rw-legendary{ border:1px solid #ffd600; } .rw-mythic{ border:1px solid #ff1744; }
+.rw-where{ margin-top:8px; font-size:.65rem; opacity:.85; letter-spacing:.5px; }
 /* ============ LUCKY LAYOUT LADO A LADO ============ */
 .modal-shop.lucky-wide{ width:min(1020px,96vw); }
 .lucky-layout{ display:flex; gap:16px; align-items:flex-start; }
