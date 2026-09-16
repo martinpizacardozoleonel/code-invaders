@@ -355,13 +355,21 @@
       <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
       <div class="shop-tabs" id="shopTabs">
         <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
-        <button class="shop-tab" data-tab="lucky">🎰 Lucky Royale</button>
+        <button class="shop-tab" data-tab="lucky">👾 Galaga Royale</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
       <div class="shop-grid hidden" id="luckyGrid"></div>
-      <div id="luckyWheelWrap" class="hidden" style="text-align:center;margin:16px 0">
-        <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"></div></div>
-        <p style="font-size:.8rem;opacity:.6;margin-top:8px">Gira la ruleta y gana recompensas</p>
+      <div id="luckyWheelWrap" class="hidden galaga-panel">
+        <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
+        <div class="galaga-title">👾 GALAGA ROYALE<small>LUCKY // FUTURE SPIN</small></div>
+        <div class="galaga-stage">
+          <div class="lucky-pointer"></div>
+          <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">🚀<b>SPIN</b></div></div>
+          <div class="lucky-leds" id="luckyLeds"></div>
+        </div>
+        <div id="luckyResult" class="galaga-result hidden"></div>
+        <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
+        <button class="btn btn-primary galaga-spin-btn" id="luckySpinBtn" onclick="LuckyRoyale.spin()">▶ INICIAR SECUENCIA — 1.000 PTS</button>
       </div>
       <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
     </div>
@@ -530,34 +538,91 @@
   <script src="js/app.js?v=9"></script>
   <script>
   const LuckyRoyale={
-    spinning:false,
+    spinning:false, items:[], ledsTimer:null,
+    colors:{common:'#9aa7b8',rare:'#00e5ff',epic:'#8b5cf6',legendary:'#ffd600',mythic:'#ff1744'},
+    init(){ this.buildLeds(); this.draw(); },
+    buildLeds(){
+      const w=document.getElementById('luckyLeds'); if(!w||w.children.length) return;
+      for(let i=0;i<16;i++){ const s=document.createElement('i'); const a=(i/16)*Math.PI*2; const R=142;
+        s.style.left=(150+Math.cos(a)*R-3.5)+'px'; s.style.top=(150+Math.sin(a)*R-3.5)+'px'; w.appendChild(s); }
+      let k=0; clearInterval(this.ledsTimer);
+      this.ledsTimer=setInterval(()=>{ k++; [...w.children].forEach((el,j)=>el.classList.toggle('on',(j+k)%2===0)); },this.spinning?120:600);
+    },
+    blip(f,dur,type){ try{ const C=window.AudioContext||window.webkitAudioContext; if(!C) return; this._ac=this._ac||new C();
+      const o=this._ac.createOscillator(),g=this._ac.createGain(); o.type=type||'square'; o.frequency.value=f;
+      o.connect(g); g.connect(this._ac.destination); g.gain.value=.04; o.start(); g.gain.exponentialRampToValueAtTime(.0001,this._ac.currentTime+(dur||.08)); o.stop(this._ac.currentTime+(dur||.08)); }catch(e){} },
+    draw(pool){
+      if(pool&&pool.length) this.items=pool;
+      const cv=document.getElementById('luckyCanvas'); if(!cv) return;
+      const ctx=cv.getContext('2d'); const items=this.items.length?this.items:[
+        {name:'500 pts',rarity:'common'},{name:'1000 pts',rarity:'common'},{name:'1000 EXP',rarity:'common'},
+        {bubbleId:'neon_blue',rarity:'rare'},{bubbleId:'emerald',rarity:'rare'},{bubbleId:'gold',rarity:'rare'},
+        {bubbleId:'fire',rarity:'epic'},{bubbleId:'galaxy',rarity:'epic'},{bubbleId:'void',rarity:'epic'},
+        {bubbleId:'rainbow',rarity:'legendary'},{bubbleId:'diamond',rarity:'legendary'},{bubbleId:'glitch',rarity:'legendary'},{bubbleId:'exclusive_00',rarity:'mythic'}];
+      const n=items.length, cx=280, cy=280, R=276, r0=62;
+      ctx.clearRect(0,0,560,560); ctx.save(); ctx.translate(cx,cy);
+      const seg=Math.PI*2/n;
+      const neon={common:['#2a3547','#141c2b'],rare:['#00b0ff','#062a4a'],epic:['#7c4dff','#1e0f4a'],legendary:['#ffb300','#4a2e00'],mythic:['#ff1744','#3d000e']};
+      items.forEach((it,i)=>{
+        const c=neon[it.rarity]||neon.common;
+        const g=ctx.createRadialGradient(0,0,r0,0,0,R); g.addColorStop(0,c[1]); g.addColorStop(1,c[0]);
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,i*seg-Math.PI/2,(i+1)*seg-Math.PI/2); ctx.closePath();
+        ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle=this.colors[it.rarity]||'#333'; ctx.stroke();
+        ctx.save(); ctx.rotate(i*seg+seg/2-Math.PI/2); ctx.textAlign='right'; ctx.fillStyle='#fff';
+        ctx.shadowColor=this.colors[it.rarity]||'#fff'; ctx.shadowBlur=10;
+        ctx.font='bold 20px monospace';
+        let t=it.name||(it.bubbleId||'').replace(/_/g,' ').toUpperCase();
+        if(t.length>12) t=t.slice(0,11)+'.';
+        ctx.fillText(t,R-18,7);
+        ctx.font='18px serif';
+        const em=it.type==='coins'?'💰':it.type==='exp'?'⚡':({'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'}[it.bubbleId]||'💬');
+        ctx.fillText(em,R-18,32);
+        ctx.restore();
+      });
+      ctx.beginPath(); ctx.arc(0,0,R,0,7); ctx.lineWidth=6; ctx.strokeStyle='rgba(0,229,255,.9)'; ctx.stroke();
+      ctx.restore();
+    },
     spin(){
       if(this.spinning) return;
+      const btn=document.getElementById('luckySpinBtn');
+      const res=document.getElementById('luckyResult');
+      if(res) res.classList.add('hidden');
       this.spinning=true;
+      if(btn){ btn.disabled=true; btn.textContent='◉ TRANSMITIENDO...'; }
+      const hub=document.getElementById('luckyHub'); if(hub) hub.classList.add('spinning');
+      const panel=document.getElementById('luckyWheelWrap'); if(panel) panel.classList.remove('shake');
       const wheel=document.getElementById('luckyWheel');
       const inner=document.getElementById('luckyWheelInner');
       if(wheel) wheel.classList.remove('lucky-wheel-spinning');
-      const deg=1800+Math.random()*720;
+      void (wheel&&wheel.offsetWidth);
+      const deg=2520+Math.random()*1440;
       if(inner) inner.style.setProperty('--spin-deg',deg+'deg');
       if(wheel) wheel.classList.add('lucky-wheel-spinning');
+      let ticks=0; const tickInt=setInterval(()=>{ this.blip(300+ticks*22,.05); if(++ticks>28) clearInterval(tickInt); },150);
       setTimeout(async()=>{
         try{
           const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+Auth.token,'Content-Type':'application/json'}});
           const data=await r.json();
-          if(!r.ok){ Toast.error(data.error||'Error'); this.spinning=false; return; }
+          if(!r.ok){ Toast.error(data.error||'Error'); this.resetBtn(); return; }
           if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); }
           if(typeof Game!=='undefined'){ Game.coins=data.coins; }
           const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
           const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
           const item=data.item;
-          let rarityLabel={common:'Común',rare:'Raro',epic:'Épico',legendary:'Legendario',mythic:'Mítico'}[item.rarity]||item.rarity;
-          let name=item.name||item.bubbleId||'?';
-          Toast.success('🎰 Ganaste: '+name+' ('+rarityLabel+')');
-          this.spinning=false;
-        }catch(e){ Toast.error('Error de red'); this.spinning=false; }
-      },5200);
-    }
+          const RL={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'}[item.rarity]||item.rarity;
+          const name=(item.name||item.bubbleId||'?').replace(/_/g,' ');
+          [880,660,990,1320].forEach((f,i)=>setTimeout(()=>this.blip(f,.12,i>1?'sawtooth':'square'),i*110));
+          if(panel){ panel.classList.add('shake'); setTimeout(()=>panel.classList.remove('shake'),500); }
+          if(res){ res.className='galaga-result '+(item.rarity||'common'); res.innerHTML='◢ ◣ RECOMPENSA RECIBIDA ◢ ◣<br><b style="font-size:1rem">🎰 '+name+'</b><br><span style="color:var(--c,#fff)">◆ '+RL+' ◆</span>'; res.classList.remove('hidden'); }
+          Toast.success('🎰 Ganaste: '+name+' ('+RL+')');
+          this.resetBtn();
+        }catch(e){ Toast.error('Error de red'); this.resetBtn(); }
+      },5400);
+    },
+    resetBtn(){ this.spinning=false; const hub=document.getElementById('luckyHub'); if(hub) hub.classList.remove('spinning');
+      const btn=document.getElementById('luckySpinBtn'); if(btn){ btn.disabled=false; btn.textContent='▶ INICIAR SECUENCIA — 1.000 PTS'; } }
   };
+  document.addEventListener('DOMContentLoaded',()=>{ try{ LuckyRoyale.init(); }catch(e){} });
   </script>
 </body>
 </html>

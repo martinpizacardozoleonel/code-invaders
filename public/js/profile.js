@@ -667,22 +667,29 @@ const Profile = {
       }).join('');
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar logros</p>'; }
   }
-  ,async renderLucky(){
+,async renderLucky(){
     const grid=document.getElementById('luckyGrid'); if(!grid) return;
-     grid.innerHTML='<p style="opacity:.5;text-align:center">Cargando pool...</p>';
+     grid.innerHTML='<p style="opacity:.5;text-align:center;font-family:monospace">▸ CARGANDO SECTOR-7...</p>';
     try{
       const data=await this.api('/api/lucky/pool');
-      let html='<div style="grid-column:1/-1;text-align:center;margin-bottom:8px"><h3 style="color:#ffd600">🎰 Pool de Premios</h3></div>';
-      html+=(data.items||[]).map(i=>{
-        if(i.type==='coins') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">💰</p><p style="font-weight:800;font-size:.85rem">${i.name}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
-        if(i.type==='exp') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">⚡</p><p style="font-weight:800;font-size:.85rem">${i.name}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
-        if(i.type==='bubble') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">💬</p><p style="font-weight:800;font-size:.85rem">${i.bubbleId}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
-        return '';
+      const items=data.items||[];
+      const totalW={common:65,rare:26,epic:9,legendary:3.3,mythic:0.1};
+      const RICON={common:'▫',rare:'◆',epic:'⬣',legendary:'★',mythic:'👑'};
+      const RNAME={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
+      let html='<div class="galaga-pool-title">◢ ◣ &nbsp;TABLA DE BOTÍN // SECTOR-7&nbsp; ◢ ◣</div>';
+      html+=items.map(i=>{
+        let icon='💬',label=i.bubbleId||i.name||'?';
+        if(i.type==='coins'){ icon=i.amount>=1000?'💰':'🪙'; label=i.name; }
+        if(i.type==='exp'){ icon='⚡'; label=i.name; }
+        if(i.type==='bubble'){
+          const m={'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'};
+          icon=m[i.bubbleId]||'💬';
+          label=(i.bubbleId||'').replace(/_/g,' ');
+        }
+        return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div></div>`;
       }).join('');
-      html+='<div style="grid-column:1/-1;text-align:center;margin-top:12px">';
-      html+='<button class="btn btn-primary" onclick="LuckyRoyale.spin()" style="margin:4px">🎰 Girar — 1.000 pts</button>';
-      html+='</div>';
       grid.innerHTML=html;
+      if(window.LuckyRoyale&&LuckyRoyale.draw) LuckyRoyale.draw(items);
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar pool</p>'; }
   }
 };
