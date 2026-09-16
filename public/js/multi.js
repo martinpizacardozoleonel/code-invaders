@@ -11,6 +11,7 @@ const MultiUI={
   const ci=document.getElementById('multiChatInput'); if(ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendChat(); }});
   const ab=document.getElementById('multiAnswerBtn'); if(ab) ab.addEventListener('click',()=>this.sendAnswer());
   const ai=document.getElementById('multiAnswer'); if(ai) ai.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendAnswer(); }});
+  const ex=document.getElementById('multiExitBtn'); if(ex) ex.addEventListener('click',()=>{ if(confirm('¿Abandonar la partida? Perderás la racha.')) this.leave(); });
   const st=document.getElementById('multiStayBtn'); if(st) st.addEventListener('click',async()=>{ this.ready=false; try{ await API.multiReady(false); }catch(e){} this.show('lobby'); this.poll(true); });
   const qt=document.getElementById('multiQuitBtn'); if(qt) qt.addEventListener('click',()=>this.leave());
  },
@@ -93,15 +94,17 @@ const MultiUI={
     const my=match.players.find(p=>p.userId===me);
     if(my) document.getElementById('multiWaveBanner').textContent='⚔️ '+(my.desc||('HORNADA '+my.wave))+(my.alive?'':' · 💀 ELIMINADO');
     const cols=document.getElementById('multiColumns');
-    const key=match.players.map(p=>p.userId+':'+p.wave+':'+p.alive+':'+p.enemies.length+':'+p.hits).join('|');
+    const key=match.players.map(p=>p.userId+':'+p.wave+':'+p.alive+':'+(p.lives==null?2:p.lives)+':'+p.enemies.length+':'+p.hits+':'+p.misses).join('|');
     if(force||key!==this.lastKey){
       this.lastKey=key;
       cols.innerHTML=match.players.map(p=>{
         const isMe=p.userId===me;
         const pic=this.picHtml(p);
+        const lives=(p.lives==null?2:p.lives);
+        const hearts=lives>1?'❤️❤️':(lives===1?'❤️🤍':'🤍🤍');
         const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
-        const ens=p.enemies.map(e=>'<div class="multi-enemy ship cat-'+e.cat+'" title="'+this.esc(e.q)+' → '+this.esc(e.a)+'"><span class="ship-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="ship-q">'+this.esc(e.q)+'</span><span class="ship-a">'+this.esc(e.a)+'</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
-        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
+        const ens=p.enemies.map(e=>'<div class="multi-enemy ship cat-'+e.cat+'" data-q="'+this.esc(e.q)+'" title="'+this.esc(e.q)+'"><span class="ship-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="ship-q">'+this.esc(e.q)+'</span><span class="ship-type">⌨️ escribe la etiqueta</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
+        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'" data-uid="'+p.userId+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · <span class="lives">'+hearts+'</span> · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s · '+hearts+' '+lives+'/2 vidas</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
       }).join('');
     } else {
       match.players.forEach(p=>{
@@ -130,6 +133,28 @@ const MultiUI={
   const i=document.getElementById('multiChatInput'); const t=(i.value||'').trim(); if(!t) return;
   try{ await API.multiChatSend(t); i.value=''; this.poll(true); }catch(e){ Toast.error(e.message); }
  },
+ fireLaser(killedQ,miss){
+  try{
+    const cols=document.getElementById('multiColumns'); if(!cols) return;
+    const meCol=cols.querySelector('.multi-col.me'); if(!meCol) return;
+    const ship=meCol.querySelector('.multi-ship'); if(!ship) return;
+    let target=null;
+    if(killedQ){ const qs=meCol.querySelectorAll('.multi-enemy'); for(const el of qs){ if((el.dataset.q||'')===killedQ){ target=el; break; } } if(!target&&qs.length) target=qs[0]; }
+    else { const qs=meCol.querySelectorAll('.multi-enemy'); if(qs.length) target=qs[Math.floor(Math.random()*qs.length)]; }
+    if(!target) return;
+    const cRect=meCol.getBoundingClientRect(), sRect=ship.getBoundingClientRect(), tRect=target.getBoundingClientRect();
+    const x1=sRect.left-cRect.left+sRect.width/2, y1=sRect.top-cRect.top;
+    const x2=tRect.left-cRect.left+tRect.width/2, y2=tRect.top-cRect.top+tRect.height/2;
+    const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy), ang=Math.atan2(dy,dx)*180/Math.PI;
+    const beam=document.createElement('div'); beam.className='multi-laser'+(miss?' miss':'');
+    beam.style.cssText='left:'+x1+'px;top:'+y1+'px;width:'+len+'px;transform:rotate('+ang+'deg)';
+    meCol.style.position='relative'; meCol.appendChild(beam);
+    requestAnimationFrame(()=>beam.classList.add('on'));
+    target.classList.add(miss?'shake':'dying');
+    setTimeout(()=>{ try{beam.remove();}catch(e){} },650);
+    if(!miss){ try{ const C=window.AudioContext||window.webkitAudioContext; if(C){ this._ac=this._ac||new C(); const o=this._ac.createOscillator(),g=this._ac.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(900,this._ac.currentTime); o.frequency.exponentialRampToValueAtTime(120,this._ac.currentTime+.35); o.connect(g); g.connect(this._ac.destination); g.gain.value=.06; o.start(); o.stop(this._ac.currentTime+.4); } }catch(e){} }
+  }catch(e){}
+ },
  async sendAnswer(){
   if(this.sending) return;
   const i=document.getElementById('multiAnswer'); const t=(i.value||'').trim(); if(!t) return;
@@ -137,10 +162,23 @@ const MultiUI={
   i.value=''; this.sending=true;
   try{
     const r=await API.multiAnswer(t);
-    if(r.hit){ fb.textContent='💥 ¡Destruido! Oleada '+r.wave+' · racha '+r.streak; fb.style.color='#00e676'; if(r.waveUp) Toast.success('¡Hornada superada! Oleada '+r.wave); }
-    else { fb.textContent='❌ Fallo ('+r.misses+')'; fb.style.color='#ff5252'; }
-    this.poll(true);
-  }catch(e){ fb.textContent='💀 '+(e.message||'Error'); fb.style.color='#ff5252'; this.poll(true); }
+    if(r.hit){
+      const kq=r.killed&&r.killed.q;
+      this.fireLaser(kq,false);
+      fb.textContent='💥 ¡Destruido! '+(r.killed&&r.killed.a?r.killed.a+' · ':'')+'Oleada '+r.wave+' · racha '+r.streak; fb.style.color='#00e676';
+      if(r.waveUp) setTimeout(()=>Toast.success('¡Hornada superada! Oleada '+r.wave),600);
+      this.lastKey='';
+      setTimeout(()=>this.poll(true),550);
+    }
+    else {
+      this.fireLaser(null,true);
+      if(r.dead){ fb.textContent='💀 ¡Eliminado! Sin vidas (❌ '+r.misses+')'; }
+      else { fb.textContent='❌ Fallo ('+r.misses+') · Pierdes 1 vida '+(r.lives!=null?('· quedan '+(r.lives)+'/2'):''); }
+      fb.style.color='#ff5252';
+      this.lastKey='';
+      setTimeout(()=>this.poll(true),550);
+    }
+  }catch(e){ fb.textContent='💀 '+(e.message||'Error'); fb.style.color='#ff5252'; this.lastKey=''; setTimeout(()=>this.poll(true),550); }
   finally{ this.sending=false; const ai=document.getElementById('multiAnswer'); if(ai&&!ai.disabled) ai.focus(); }
  }
 };

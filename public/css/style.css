@@ -1616,6 +1616,19 @@ main{ padding:20px 24px 44px; }
 .multi-name{font-weight:800;margin:0;word-break:break-word;}
 .multi-lobby-actions{display:flex;gap:8px;justify-content:center;align-items:center;margin:10px 0;flex-wrap:wrap;}
 .multi-wave-banner{text-align:center;font-family:monospace;font-weight:900;letter-spacing:1.5px;color:#ffd600;text-shadow:0 0 12px rgba(255,214,0,.5);background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.25);border-radius:10px;padding:10px;margin-bottom:10px;}
+.multi-battle-top{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
+.multi-battle-top .multi-wave-banner{ margin-bottom:0; }
+.multi-battle-top .btn{ white-space:nowrap; }
+.ship-type{ font-size:.55rem; font-family:monospace; color:#9fd8ff; opacity:.85; letter-spacing:.3px; }
+.multi-col .lives{ letter-spacing:1px; }
+.multi-laser{ position:absolute; height:4px; margin-top:-2px; transform-origin:left center; background:linear-gradient(90deg,#fff,#00e5ff,#7c4dff); box-shadow:0 0 12px #00e5ff,0 0 24px rgba(0,229,255,.7); border-radius:999px; opacity:0; transition:opacity .08s; z-index:20; pointer-events:none; }
+.multi-laser.on{ opacity:1; animation:laserFade .6s ease-out forwards; }
+.multi-laser.miss{ background:linear-gradient(90deg,#fff,#ff5252,#8e0000); box-shadow:0 0 12px #ff5252; }
+@keyframes laserFade{ 0%{opacity:1;filter:brightness(2)} 100%{opacity:0;filter:brightness(1)} }
+.multi-enemy.dying{ animation:enemyBlast .55s ease-out forwards!important; }
+@keyframes enemyBlast{ 0%{filter:brightness(3) drop-shadow(0 0 18px #fff)} 40%{transform:scale(1.25);filter:brightness(3) drop-shadow(0 0 24px #ffd600)} 100%{transform:scale(0);filter:brightness(0);opacity:0} }
+.multi-enemy.shake{ animation:enemyShake .4s linear!important; }
+@keyframes enemyShake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-3px)} }
 .multi-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
 .multi-col{background:rgba(0,0,0,.3);border:1.5px solid rgba(0,229,255,.25);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:300px;}
 .multi-col.me{border-color:#ffd600;box-shadow:0 0 16px rgba(255,214,0,.2);}
