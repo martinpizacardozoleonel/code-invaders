@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -176,40 +176,62 @@
             <button class="btn btn-ghost btn-sm" id="multiCloseBtn">✕ Cerrar</button>
           </div>
           <!-- BUSCADOR DE SALAS -->
-          <div id="multiRooms">
-            <div class="multi-lobby-actions" style="justify-content:flex-end;margin:0 0 4px">
-              <button class="btn btn-ghost btn-sm" id="multiRoomsBackBtn">← Atrás</button>
+          <div id="multiRooms" class="lobby-root">
+            <div class="lobby-hero">
+              <div class="lobby-hero-stars" aria-hidden="true"></div>
+              <div class="lobby-hero-top">
+                <div class="lobby-hero-title-wrap">
+                  <p class="lobby-kicker"><span class="blink-dot"></span> INSERT COIN · MULTIPLAYER ONLINE</p>
+                  <h2 class="lobby-hero-title">🌐 SALAS <span>MULTIJUGADOR</span></h2>
+                  <p class="lobby-hero-sub">Creá tu lobby o unite a uno público · escuadrón de 2 a 4 pilotos 👾</p>
+                </div>
+                <button class="btn btn-ghost btn-sm lobby-back" id="multiRoomsBackBtn">← Atrás</button>
+              </div>
+              <div class="lobby-hero-feats">
+                <span class="lobby-feat">👥 2-4 JUGADORES</span>
+                <span class="lobby-feat">🌍 PÚBLICA / 🔒 PRIVADA</span>
+                <span class="lobby-feat gold">⚡ NORMAL / SPEEDRUN</span>
+              </div>
             </div>
-            <p class="lead friends-sub" style="text-align:center">🌐 SALAS MULTIJUGADOR — Creá tu lobby o unite a uno público · 2+ jugadores</p>
-            <div class="multi-create arcade-panel" style="padding:12px;margin-bottom:10px">
-              <h3 class="panel-sec-title"><span>➕</span> CREAR SALA</h3>
-              <input type="text" id="multiRoomName" class="arcade-input" placeholder="Nombre de la sala (ej. NAVE DE GUSTAVO)" maxlength="30" autocomplete="off" style="width:100%;margin-bottom:8px">
-              <div class="multi-create-row">
-                <button class="switch-wrap" id="multiPublicSwitch" role="switch" aria-checked="true" title="Cambiar público/privado"><span class="switch-label" id="multiPublicLabel">🌍 Pública</span><span class="switch on" id="multiPublicTrack"><span class="switch-dot"></span></span></button>
-                <div class="multi-mode-pick small" style="margin:0">
-                  <button class="btn btn-primary btn-sm multi-mode-btn active" id="multiCreateNormalBtn">▶ JUGAR</button>
-                  <button class="btn btn-sm multi-mode-btn multi-create-speed" id="multiCreateSpeedrunBtn">⚡ SPEEDRUN</button>
+            <div class="lobby-grid">
+              <div class="lobby-card lobby-create arcade-panel">
+                <div class="lobby-card-head">
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🚀</span> CREAR SALA <span class="lobby-live"><i></i>LIVE</span></h3>
+                </div>
+                <label class="lobby-label">NOMBRE DE TU NAVE / ESCUADRÓN</label>
+                <input type="text" id="multiRoomName" class="arcade-input lobby-input" placeholder="Ej. NAVE DE GUSTAVO 👾" maxlength="30" autocomplete="off">
+                <div class="lobby-row-2">
+                  <button class="switch-wrap lobby-switch" id="multiPublicSwitch" role="switch" aria-checked="true" title="Cambiar público/privado"><span class="switch-label" id="multiPublicLabel">🌍 Pública</span><span class="switch on" id="multiPublicTrack"><span class="switch-dot"></span></span></button>
+                  <div class="lobby-seg" role="tablist" aria-label="Modo de sala">
+                    <button class="lobby-seg-btn active" id="multiCreateNormalBtn">▶ JUGAR</button>
+                    <button class="lobby-seg-btn seg-gold" id="multiCreateSpeedrunBtn">⚡ SPEEDRUN</button>
+                  </div>
+                </div>
+                <div class="lobby-info" id="multiPublicHint">🌍 <b>Pública:</b> aparece en el buscador y cualquiera se une con 1 click.</div>
+                <div class="lobby-info dim">🎮 <b>▶ JUGAR</b> = normal · <b>⚡ SPEEDRUN</b> = contrarreloj ⏱</div>
+                <div class="lobby-row-2 lobby-players-row">
+                  <span class="lobby-label" style="margin:0">👥 TRIPULACIÓN</span>
+                  <div class="lobby-count-pick" id="multiMaxPick">
+                    <button class="lobby-count-btn" data-max="2"><b>2</b><small>PILOTOS</small></button>
+                    <button class="lobby-count-btn" data-max="3"><b>3</b><small>PILOTOS</small></button>
+                    <button class="lobby-count-btn active" data-max="4"><b>4</b><small>PILOTOS</small></button>
+                  </div>
+                </div>
+                <button class="btn btn-primary lobby-cta" id="multiCreateBtn"><span>➕ CREAR Y ENTRAR</span><small>PRESS START ▶</small></button>
+              </div>
+              <div class="lobby-side">
+                <div class="lobby-card arcade-panel lobby-join">
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🔑</span> UNIRSE CON CÓDIGO</h3>
+                  <p class="lobby-side-sub">¿Sala privada? Pegá el código secreto del creador 👇</p>
+                  <div class="arcade-form-row lobby-join-row"><input type="text" id="multiJoinCode" class="arcade-input lobby-code" placeholder="XK7Q2M" maxlength="10" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiJoinCodeBtn">⚡ Unirse</button></div>
+                </div>
+                <div class="lobby-card arcade-panel lobby-search">
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🔎</span> BUSCADOR DE LOBBYS <span class="lobby-count-badge" id="lobbyCountBadge">0</span></h3>
+                  <div class="arcade-form-row"><input type="text" id="multiRoomSearch" class="arcade-input" placeholder="🔍 Buscar sala por nombre..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiRoomSearchBtn">Buscar</button></div>
+                  <div id="multiRoomsList" class="multi-rooms lobby-rooms"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>ESCANEANDO SECTOR...</p></div></div>
                 </div>
               </div>
-              <p class="hint" id="multiPublicHint" style="margin:6px 0">Pública: aparece en el buscador y cualquiera se une con 1 click.</p>
-              <p class="hint" style="margin:6px 0">🎮 Modo: ▶ JUGAR = normal · ⚡ SPEEDRUN = contrarreloj.</p>
-              <div class="multi-create-row">
-                <span class="hint">👥 Jugadores (mín 2 · máx 4):</span>
-                <div class="multi-max-pick" id="multiMaxPick">
-                  <button class="btn btn-sm" data-max="2">2</button>
-                  <button class="btn btn-sm" data-max="3">3</button>
-                  <button class="btn btn-sm active" data-max="4">4</button>
-                </div>
-              </div>
-              <button class="btn btn-primary" id="multiCreateBtn" style="width:100%">➕ Crear y entrar</button>
             </div>
-            <div class="multi-join-code arcade-panel" style="padding:12px;margin-bottom:10px">
-              <h3 class="panel-sec-title"><span>🔑</span> UNIRSE CON CÓDIGO (salas privadas)</h3>
-              <div class="arcade-form-row"><input type="text" id="multiJoinCode" class="arcade-input" placeholder="Código ej. XK7Q2M" maxlength="10" autocomplete="off" style="text-transform:uppercase"><button class="btn btn-primary btn-sm arcade-btn" id="multiJoinCodeBtn">Unirse</button></div>
-            </div>
-            <h3 class="panel-sec-title"><span>🔎</span> BUSCADOR DE LOBBYS</h3>
-            <div class="arcade-form-row" style="margin-bottom:8px"><input type="text" id="multiRoomSearch" class="arcade-input" placeholder="Buscar sala por nombre..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiRoomSearchBtn">Buscar</button></div>
-            <div id="multiRoomsList" class="multi-rooms"><p class="hint">Buscando salas...</p></div>
           </div>
           <!-- LOBBY DE SALA -->
           <div id="multiLobby" class="hidden">
@@ -615,7 +637,7 @@
   <script src="js/ranked.js?v=8"></script>
   <script src="js/chat.js?v=5"></script>
   <script src="js/friends.js?v=7"></script>
-  <script src="js/multi.js?v=5"></script>
+  <script src="js/multi.js?v=6"></script>
   <script src="js/app.js?v=9"></script>
   <script>
   const LuckyRoyale={

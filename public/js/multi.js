@@ -31,14 +31,14 @@ const MultiUI={
   const rsw=document.getElementById('multiRoomPublicSwitch'); if(rsw) rsw.addEventListener('click',()=>this.toggleRoomPublic());
   const ccb=document.getElementById('multiCopyCodeBtn'); if(ccb) ccb.addEventListener('click',()=>this.copyCode());
  },
- toggleCreatePublic(){
-  this.createIsPublic=!this.createIsPublic;
-  const tr=document.getElementById('multiPublicTrack'), lb=document.getElementById('multiPublicLabel'), hint=document.getElementById('multiPublicHint'), sw=document.getElementById('multiPublicSwitch');
-  if(tr) tr.classList.toggle('on',this.createIsPublic);
-  if(lb) lb.textContent=this.createIsPublic?'🌍 Pública':'🔒 Privada';
-  if(sw) sw.setAttribute('aria-checked',this.createIsPublic?'true':'false');
-  if(hint) hint.textContent=this.createIsPublic?'Pública: aparece en el buscador y cualquiera se une con 1 click.':'Privada: NO aparece para unirse con click, se genera un código que solo el creador comparte.';
- },
+  toggleCreatePublic(){
+   this.createIsPublic=!this.createIsPublic;
+   const tr=document.getElementById('multiPublicTrack'), lb=document.getElementById('multiPublicLabel'), hint=document.getElementById('multiPublicHint'), sw=document.getElementById('multiPublicSwitch');
+   if(tr) tr.classList.toggle('on',this.createIsPublic);
+   if(lb) lb.textContent=this.createIsPublic?'🌍 Pública':'🔒 Privada';
+   if(sw) sw.setAttribute('aria-checked',this.createIsPublic?'true':'false');
+   if(hint) hint.innerHTML=this.createIsPublic?'🌍 <b>Pública:</b> aparece en el buscador y cualquiera se une con 1 click.':'🔒 <b>Privada:</b> NO aparece en el buscador, se genera un código que solo el creador comparte.';
+  },
  setCreateMode(m){
   this.createMode=(m==='speedrun')?'speedrun':'normal';
   const cn=document.getElementById('multiCreateNormalBtn'), cs=document.getElementById('multiCreateSpeedrunBtn');
@@ -83,21 +83,22 @@ const MultiUI={
     else { i.select(); document.execCommand('copy'); done(); }
   }catch(e){ try{ i.select(); document.execCommand('copy'); done(); }catch(ee){ Toast.info('Código: '+code); } }
  },
- async createRoom(){
-  const inp=document.getElementById('multiRoomName');
-  const name=(inp?inp.value:'').trim();
-  if(name.length<3){ Toast.error('Poné un nombre de 3+ letras'); if(inp) inp.focus(); return; }
-  const btn=document.getElementById('multiCreateBtn');
-  if(btn){ btn.disabled=true; btn.textContent='Creando...'; }
-  try{
-    const r=await API.multiCreateRoom(name,this.createIsPublic,this.createMode,this.createMax);
-    if(inp) inp.value='';
-    this.currentRoom=r.room; this.ready=false; this.setMode(r.room.mode||'normal');
-    this.show('lobby'); this.poll(true);
-    Toast.success((r.room.isPublic?'🌍 Sala pública creada: ':'🔒 Sala privada creada: ')+r.room.name);
-  }catch(e){ Toast.error(e.message); }
-  finally{ if(btn){ btn.disabled=false; btn.textContent='➕ Crear y entrar'; } }
- },
+  async createRoom(){
+   const inp=document.getElementById('multiRoomName');
+   const name=(inp?inp.value:'').trim();
+   if(name.length<3){ Toast.error('Poné un nombre de 3+ letras'); if(inp) inp.focus(); return; }
+   const btn=document.getElementById('multiCreateBtn');
+   const btnOrig=btn?btn.innerHTML:'';
+   if(btn){ btn.disabled=true; btn.innerHTML='<span>⏳ CREANDO...</span><small>TRANSMITIENDO ▶</small>'; }
+   try{
+     const r=await API.multiCreateRoom(name,this.createIsPublic,this.createMode,this.createMax);
+     if(inp) inp.value='';
+     this.currentRoom=r.room; this.ready=false; this.setMode(r.room.mode||'normal');
+     this.show('lobby'); this.poll(true);
+     Toast.success((r.room.isPublic?'🌍 Sala pública creada: ':'🔒 Sala privada creada: ')+r.room.name);
+   }catch(e){ Toast.error(e.message); }
+   finally{ if(btn){ btn.disabled=false; btn.innerHTML=btnOrig||'<span>➕ CREAR Y ENTRAR</span><small>PRESS START ▶</small>'; } }
+  },
  async joinRoom(roomId,isPublic){
   if(!isPublic){ Toast.info('🔒 Sala privada: pedí el código al creador e ingresalo arriba'); const ji=document.getElementById('multiJoinCode'); if(ji) ji.focus(); return; }
   try{ const r=await API.multiJoinRoom(roomId,''); this.currentRoom=r.room; this.ready=false; this.setMode(r.room.mode||'normal'); this.show('lobby'); this.poll(true); Toast.success('Entraste a '+r.room.name); }
@@ -124,25 +125,29 @@ const MultiUI={
   finally{ this.roomsFetching=false; }
  },
  renderRooms(){
-  const box=document.getElementById('multiRoomsList'); if(!box) return;
-  if(!this.rooms.length){ box.innerHTML='<p class="hint empty-hint">📭 Sin salas. ¡Creá la tuya arriba! 👆</p>'; return; }
-  box.innerHTML=this.rooms.map(r=>{
-    const pub=!!r.isPublic;
-    const mx=r.maxPlayers||4;
-    const full=(r.players||0)>=mx;
-    const modeBadge=(r.mode==='speedrun')?'<span class="mini-badge">⚡ SPEEDRUN</span>':'<span class="mini-badge">▶ JUGAR</span>';
-    const privBadge=pub?'<span class="mini-badge">🌍 Pública</span>':'<span class="mini-badge">🔒 Privada</span>';
-    const st=r.status==='playing'?'<span class="mini-badge">⚔️ en batalla</span>':'<span class="mini-badge">🟢 lobby</span>';
-    const capBadge='<span class="mini-badge">👥 '+r.players+'/'+mx+'</span>';
-    let btn;
-    if(!pub) btn='<button class="btn btn-ghost btn-sm" data-priv="'+r.id+'" title="Sala privada: necesitás el código">🔒 Privada</button>';
-    else if(full) btn='<button class="btn btn-ghost btn-sm" disabled title="Sala llena">🚫 Llena</button>';
-    else btn='<button class="btn btn-primary btn-sm" data-join="'+r.id+'">Unirse</button>';
-    return '<div class="multi-room"><div class="multi-room-info"><p class="multi-name">'+this.esc(r.name)+'</p><p class="hint">👑 '+this.esc(r.ownerName||'?')+' · '+capBadge+' '+privBadge+' '+modeBadge+' '+st+'</p></div>'+btn+'</div>';
-  }).join('');
-  box.querySelectorAll('[data-join]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.join,true)));
-  box.querySelectorAll('[data-priv]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.priv,false)));
- },
+   const box=document.getElementById('multiRoomsList'); if(!box) return;
+   const badge=document.getElementById('lobbyCountBadge'); if(badge) badge.textContent=this.rooms.length;
+   if(!this.rooms.length){ box.innerHTML='<div class="lobby-empty"><span class="lobby-empty-ico">🛸</span><p class="hint">📭 Sin salas en este sector.<br>¡Creá la tuya arriba y sé el primer piloto! 👆</p></div>'; return; }
+   box.innerHTML=this.rooms.map((r,i)=>{
+     const pub=!!r.isPublic;
+     const mx=r.maxPlayers||4;
+     const full=(r.players||0)>=mx;
+     const isSpeed=r.mode==='speedrun';
+     const playing=r.status==='playing';
+     const modeBadge=isSpeed?'<span class="lobby-badge mode-s">⚡ SPEEDRUN</span>':'<span class="lobby-badge mode-n">▶ JUGAR</span>';
+     const privBadge=pub?'<span class="lobby-badge pub">🌍 PÚBLICA</span>':'<span class="lobby-badge priv">🔒 PRIVADA</span>';
+     const st=playing?'<span class="lobby-badge fighting">⚔️ EN BATALLA</span>':'<span class="lobby-badge live-b">🟢 LOBBY</span>';
+     const capBadge='<span class="lobby-badge">👥 '+r.players+'/'+mx+'</span>';
+     let btn;
+     if(!pub) btn='<button class="btn btn-ghost btn-sm lobby-join-btn locked" data-priv="'+r.id+'" title="Sala privada: necesitás el código">🔒 CÓDIGO</button>';
+     else if(full) btn='<button class="btn btn-ghost btn-sm" disabled title="Sala llena">🚫 LLENA</button>';
+     else if(playing) btn='<button class="btn btn-ghost btn-sm" disabled title="Ya están jugando">⚔️ ...</button>';
+     else btn='<button class="btn btn-primary btn-sm lobby-join-btn" data-join="'+r.id+'">▶ UNIRSE</button>';
+     return '<div class="lobby-room-card'+(isSpeed?' mode-speedrun':'')+(playing?' status-playing':'')+'" style="animation-delay:'+(i*0.05)+'s"><div class="lobby-room-main"><p class="lobby-room-name">🚀 '+this.esc(r.name)+'</p><div class="lobby-room-meta"><span class="lobby-badge owner">👑 '+this.esc(r.ownerName||'?')+'</span>'+capBadge+privBadge+modeBadge+st+'</div></div>'+btn+'</div>';
+   }).join('');
+   box.querySelectorAll('[data-join]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.join,true)));
+   box.querySelectorAll('[data-priv]').forEach(b=>b.addEventListener('click',()=>this.joinRoom(b.dataset.priv,false)));
+  },
  renderRoomHeader(){
   const r=this.currentRoom; if(!r) return;
   const t=document.getElementById('multiRoomTitle');
