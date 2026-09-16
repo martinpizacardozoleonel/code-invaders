@@ -366,8 +366,18 @@ async function importDb(d){
 app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const dump=await dumpDb(); res.json({dump}); }catch(e){ res.status(500).json({error:'No se pudo exportar'}); } });
 app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
 
-/* ============ MULTIPLAYER (lobby + battle por oleadas, polling) ============ */
-const Multi={ lobby:new Map(), chat:[], match:null };
+/* ============ MULTIPLAYER SALAS (buscador + público/privado con código, polling) ============ */
+const Rooms=new Map();
+const UserRoom=new Map();
+function makeRoomCode(){ const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=ABC[Math.floor(Math.random()*ABC.length)]; return s; }
+function getUserRoomId(uid){ return UserRoom.get(uid)||null; }
+function getRoom(rid){ return Rooms.get(rid)||null; }
+function findRoomOfUser(uid){ const rid=UserRoom.get(uid); return rid?Rooms.get(rid)||null:null; }
+function roomCard(r){
+  const lobbySize=r.lobby?r.lobby.size:0;
+  const st=r.match?(r.match.status||'lobby'):'lobby';
+  return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, status:st, createdAt:r.createdAt };
+}
 function multiWaveTime(w){ return Math.max(12, 32 - w*1.2); }
 function multiPickEnemies(){
   const pools=[];
@@ -385,26 +395,34 @@ function multiWaveDesc(w,enemies){
   const parts=[]; if(c.HTML) parts.push(c.HTML+' HTML'); if(c.CSS) parts.push(c.CSS+' CSS'); if(c.JS) parts.push(c.JS+' JS');
   return 'HORNADA '+w+' · '+parts.join(' + ');
 }
-function multiPublicState(){
+function leaveRoomInternal(uid){
+  const r=findRoomOfUser(uid);
+  if(!r) return;
+  if(r.lobby) r.lobby.delete(uid);
+  UserRoom.delete(uid);
+  if(r.match && r.match.status==='playing' && r.match.players[uid]){ r.match.players[uid].alive=false; r.match.players[uid].streak=0; }
+  if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
+}
+function tickRoom(r){
   const now=Date.now();
-  for(const [id,p] of [...Multi.lobby]){ if(now-p.lastSeen>45000) Multi.lobby.delete(id); }
-  if(Multi.match && Multi.match.status==='finished' && now-Multi.match.finishedAt>90000){ Multi.match=null; for(const p of Multi.lobby.values()) p.ready=false; }
-  if(Multi.match && Multi.match.status==='playing'){
-    let changed=false;
-    for(const pid of Object.keys(Multi.match.players)){
-      const ps=Multi.match.players[pid];
+  for(const [id,p] of [...r.lobby]){ if(now-p.lastSeen>45000){ r.lobby.delete(id); if(UserRoom.get(id)===r.id) UserRoom.delete(id); } }
+  if(r.match && r.match.status==='finished' && now-r.match.finishedAt>90000){ r.match=null; for(const p of r.lobby.values()) p.ready=false; }
+  if(r.match && r.match.status==='playing'){
+    for(const pid of Object.keys(r.match.players)){
+      const ps=r.match.players[pid];
       if(ps.alive && now-ps.waveStart>multiWaveTime(ps.wave)*1000){
-        ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0; changed=true;
+        ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0;
         if(ps.lives<=0){ ps.alive=false; } else { ps.waveStart=now; }
       }
     }
-    const ids=Object.keys(Multi.match.players);
-    const alive=ids.filter(id=>Multi.match.players[id].alive);
-    if(ids.length>=2 && alive.length<=1 && !Multi.match.finishing){
-      Multi.match.finishing=true;
+    const ids=Object.keys(r.match.players);
+    const alive=ids.filter(id=>r.match.players[id].alive);
+    if(ids.length>=2 && alive.length<=1 && !r.match.finishing){
+      r.match.finishing=true;
+      const m=r.match;
       (async()=>{
         try{
-          const m=Multi.match; const pls=ids.map(id=>m.players[id]);
+          const pls=ids.map(id=>m.players[id]);
           pls.sort((a,b)=> (b.alive-a.alive) || (b.wave-a.wave) || (b.hits-a.hits) || (a.misses-b.misses));
           const win=pls[0];
           for(const p of pls){
@@ -418,84 +436,168 @@ function multiPublicState(){
             try{ await pushNotification(u.id, isWin?'🏆 ¡Ganaste el Multiplayer!':'💀 Multiplayer terminado', isWin?('Oleada '+p.wave+' · +'+expGain+' EXP +'+coinGain+' pts'):('Oleada '+p.wave+' · '+p.hits+' aciertos'), isWin?'success':'info'); }catch(e){}
           }
           m.status='finished'; m.finishedAt=Date.now(); m.winnerId=win.userId;
-        }catch(e){ console.error('[multi finish]',e.message); if(Multi.match){ Multi.match.status='finished'; Multi.match.finishedAt=Date.now(); } }
+        }catch(e){ console.error('[multi finish]',e.message); m.status='finished'; m.finishedAt=Date.now(); }
       })();
     }
   }
-  if(!Multi.match || Multi.match.status==='finished'){
-    const l=[...Multi.lobby.values()];
+  if(!r.match || r.match.status==='finished'){
+    const l=[...r.lobby.values()];
     if(l.length>=2 && l.every(p=>p.ready)){
       const players={};
       l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',nameColor:p.nameColor||'#ffffff',alive:true,lives:2,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
-      Multi.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players,shots:[]};
-      Multi.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
+      r.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players,shots:[]};
+      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada en '+r.name+'! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
     }
   }
+  if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
 }
+function tickAllRooms(){ for(const r of [...Rooms.values()]){ try{ tickRoom(r); }catch(e){} } }
+function multiPublicState(){ tickAllRooms(); }
 function multiSlimPic(pic){ if(!pic) return ''; if(pic.startsWith('data:') && pic.length>500) return ''; return pic; }
+app.get('/api/multi/rooms', async (req,res)=>{
+  try{
+    tickAllRooms();
+    const q=String(req.query.q||'').trim().toLowerCase();
+    let list=[...Rooms.values()].map(roomCard);
+    if(q) list=list.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.ownerName||'').toLowerCase().includes(q));
+    list.sort((a,b)=>(b.players-a.players)||((b.createdAt||'')<(a.createdAt||'')?-1:1));
+    res.set('Cache-Control','no-store');
+    res.json({rooms:list.slice(0,50)});
+  }catch(e){ res.status(500).json({error:'rooms error'}); }
+});
+app.post('/api/multi/rooms', async (req,res)=>{
+  try{
+    const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+    ensureShopFields(user);
+    const {name,isPublic,mode}=req.body||{};
+    const nm=String(name||'').trim().slice(0,30);
+    if(nm.length<3) return res.status(400).json({error:'El lobby necesita un nombre (3+ letras)'});
+    const pub=isPublic!==false;
+    const md=(mode==='speedrun')?'speedrun':'normal';
+    leaveRoomInternal(user.id);
+    const id=crypto.randomUUID();
+    const room={ id, name:nm, isPublic:!!pub, code:pub?null:makeRoomCode(), mode:md, ownerId:user.id, ownerName:user.username, createdAt:new Date().toISOString(), lobby:new Map(), chat:[], match:null };
+    room.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:false,lastSeen:Date.now()});
+    Rooms.set(id,room); UserRoom.set(user.id,id);
+    room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'🚀 Sala "'+nm+'" creada por '+user.username+(room.isPublic?' (pública)':' (privada)'),createdAt:new Date().toISOString()});
+    tickRoom(room);
+    res.json({ok:true,room:{...roomCard(room),code:(room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:true}});
+  }catch(e){ res.status(500).json({error:'create room error'}); }
+});
+app.post('/api/multi/rooms/join', async (req,res)=>{
+  try{
+    const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+    ensureShopFields(user);
+    let {roomId,code}=req.body||{};
+    roomId=String(roomId||'').trim(); code=String(code||'').trim().toUpperCase();
+    let room=roomId?getRoom(roomId):null;
+    if(!room && code){ for(const r of Rooms.values()){ if(r.code&&r.code===code){ room=r; break; } } }
+    if(!room) return res.status(404).json({error:'Sala no encontrada'});
+    tickRoom(room);
+    if(!room.lobby) room.lobby=new Map();
+    const isMember=room.lobby.has(user.id);
+    const isOwner=room.ownerId===user.id;
+    if(!room.isPublic && !isMember && !isOwner){
+      if(!code || code!==room.code) return res.status(403).json({error:'🔒 Sala privada: pedí el código al creador'});
+    }
+    if(getUserRoomId(user.id) && getUserRoomId(user.id)!==room.id) leaveRoomInternal(user.id);
+    if(!room.lobby.has(user.id)){
+      room.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:false,lastSeen:Date.now()});
+      room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'👋 '+user.username+' se unió a la sala',createdAt:new Date().toISOString()});
+    } else { room.lobby.get(user.id).lastSeen=Date.now(); }
+    UserRoom.set(user.id,room.id);
+    tickRoom(room);
+    res.json({ok:true,room:{...roomCard(room),code:(room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:room.ownerId===user.id}});
+  }catch(e){ res.status(500).json({error:'join room error'}); }
+});
+app.put('/api/multi/room', async (req,res)=>{
+  try{
+    const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+    const room=findRoomOfUser(user.id);
+    if(!room) return res.status(400).json({error:'No estás en ninguna sala'});
+    if(room.ownerId!==user.id) return res.status(403).json({error:'Solo el creador puede cambiar la sala'});
+    const {name,isPublic,mode}=req.body||{};
+    if(name!==undefined){ const nm=String(name).trim().slice(0,30); if(nm.length<3) return res.status(400).json({error:'Nombre muy corto'}); room.name=nm; }
+    if(mode!==undefined) room.mode=(mode==='speedrun')?'speedrun':'normal';
+    if(isPublic!==undefined){
+      const want=!!isPublic;
+      if(want!==room.isPublic){
+        room.isPublic=want;
+        if(!want){ if(!room.code) room.code=makeRoomCode(); }
+        else { room.code=null; }
+        room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:want?'🌍 La sala ahora es PÚBLICA':'🔒 La sala ahora es PRIVADA',createdAt:new Date().toISOString()});
+      }
+    }
+    tickRoom(room);
+    res.json({ok:true,room:{...roomCard(room),code:(room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:true}});
+  }catch(e){ res.status(500).json({error:'update room error'}); }
+});
 app.get('/api/multi/state', async (req,res)=>{
   try{
     const user=await findUserByToken(req);
-    if(user && Multi.lobby.has(user.id)) Multi.lobby.get(user.id).lastSeen=Date.now();
-    multiPublicState();
-    const lobby=[...Multi.lobby.values()].map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,ready:!!p.ready,online:true}));
+    tickAllRooms();
+    const room=user?findRoomOfUser(user.id):null;
+    if(room && user && room.lobby.has(user.id)) room.lobby.get(user.id).lastSeen=Date.now();
+    if(!room){ res.set('Cache-Control','no-store'); return res.json({room:null,lobby:[],match:null,chat:[],me:user?user.id:null}); }
+    const lobby=[...room.lobby.values()].map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,ready:!!p.ready,online:true}));
     let match=null;
-    if(Multi.match){
+    if(room.match){
       const now=Date.now();
-      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
-      if(Multi.match.shots) Multi.match.shots=Multi.match.shots.filter(s=>now-s.at<8000).slice(-20);
-      match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players,shots:(Multi.match.shots||[]).slice(-15)};
+      const players=Object.values(room.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
+      if(room.match.shots) room.match.shots=room.match.shots.filter(s=>now-s.at<8000).slice(-20);
+      match={id:room.match.id,status:room.match.status,winnerId:room.match.winnerId||null,players,shots:(room.match.shots||[]).slice(-15)};
     }
+    const info={...roomCard(room),code:(user&&room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:!!(user&&room.ownerId===user.id)};
     res.set('Cache-Control','no-store');
-    res.json({lobby,match,chat:Multi.chat.slice(-20),me:user?user.id:null});
+    res.json({room:info,lobby,match,chat:room.chat.slice(-20),me:user?user.id:null});
   }catch(e){ res.status(500).json({error:'multi state error'}); }
 });
 app.post('/api/multi/join', async (req,res)=>{
-  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
-  ensureShopFields(user);
-  Multi.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',nameColor:user.nameColor||'#ffffff',ready:(Multi.lobby.get(user.id)||{}).ready||false,lastSeen:Date.now()});
-  multiPublicState();
-  res.json({ok:true});
+  return res.status(410).json({error:'Usá el buscador de salas: creá o unite a una sala'});
 });
 app.post('/api/multi/leave', async (req,res)=>{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
-  Multi.lobby.delete(user.id);
-  if(Multi.match && Multi.match.status==='playing' && Multi.match.players[user.id]){ Multi.match.players[user.id].alive=false; Multi.match.players[user.id].streak=0; }
-  multiPublicState();
+  leaveRoomInternal(user.id);
+  tickAllRooms();
   res.json({ok:true});
 });
 app.post('/api/multi/ready', async (req,res)=>{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  const room=findRoomOfUser(user.id);
+  if(!room) return res.status(400).json({error:'Unite a una sala primero'});
   const {ready}=req.body||{};
-  const p=Multi.lobby.get(user.id);
+  const p=room.lobby.get(user.id);
   if(!p) return res.status(400).json({error:'Únete al lobby primero'});
   p.ready=!!ready; p.lastSeen=Date.now();
-  multiPublicState();
+  tickRoom(room);
   res.json({ok:true,ready:p.ready});
 });
-app.get('/api/multi/chat', async (req,res)=>{ multiPublicState(); res.json({messages:Multi.chat.slice(-30)}); });
+app.get('/api/multi/chat', async (req,res)=>{ tickAllRooms(); const user=await findUserByToken(req); const room=user?findRoomOfUser(user.id):null; res.json({messages:(room?room.chat:[]).slice(-30)}); });
 app.post('/api/multi/chat', async (req,res)=>{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  const room=findRoomOfUser(user.id);
+  if(!room) return res.status(400).json({error:'Unite a una sala primero'});
   const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'});
   const isSt=t.startsWith('[sticker]');
   if(!isSt && t.length>300) return res.status(400).json({error:'Máx 300'});
   if(isSt && t.length>120) return res.status(400).json({error:'Sticker inválido'});
   const m={id:crypto.randomUUID(),userId:user.id,username:user.username,text:t.slice(0,300),createdAt:new Date().toISOString(),equippedBubble:user.equippedBubble||'none',nameColor:user.nameColor||'#ffffff'};
-  Multi.chat.push(m); if(Multi.chat.length>100) Multi.chat=Multi.chat.slice(-100);
+  room.chat.push(m); if(room.chat.length>100) room.chat=room.chat.slice(-100);
   res.json({message:m});
 });
 app.post('/api/multi/answer', async (req,res)=>{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
   const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Vacío'});
-  multiPublicState();
-  const m=Multi.match;
+  const _room=findRoomOfUser(user.id);
+  if(_room) tickRoom(_room); else tickAllRooms();
+  const m=_room?_room.match:null;
   if(!m || m.status!=='playing') return res.status(400).json({error:'Sin partida'});
   const ps=m.players[user.id];
   if(!ps) return res.status(400).json({error:'No estás en la partida'});
   if(!ps.alive) return res.status(400).json({error:'Estás eliminado'});
   const now=Date.now();
   const norm=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
-  if(now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0; if(ps.lives<=0) ps.alive=false; else ps.waveStart=now; multiPublicState(); return res.status(400).json({error:'¡Te alcanzaron! Pierdes 1 vida'}); }
+  if(now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0; if(ps.lives<=0) ps.alive=false; else ps.waveStart=now; if(_room) tickRoom(_room); return res.status(400).json({error:'¡Te alcanzaron! Pierdes 1 vida'}); }
   const idx=ps.enemies.findIndex(e=>norm(e.a)===norm(t));
   m.shots=m.shots||[];
   const pushShot=(hit,q)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,hit:!!hit,q:q||null,at:Date.now()}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
@@ -505,12 +607,12 @@ app.post('/api/multi/answer', async (req,res)=>{
     pushShot(true,killed.q);
     let waveUp=false;
     if(!ps.enemies.length){ ps.wave++; const en=multiPickEnemies(); ps.enemies=en; ps.waveStart=now; ps.desc=multiWaveDesc(ps.wave,en); waveUp=true; }
-    multiPublicState();
+    if(_room) tickRoom(_room);
     return res.json({hit:true,killed:{cat:killed.cat,q:killed.q,a:killed.a},waveUp,wave:ps.wave,enemies:(ps.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:ps.desc,hits:ps.hits,streak:ps.streak,lives:(ps.lives==null?2:ps.lives)});
   } else {
     ps.misses++; ps.streak=0; ps.lives=(ps.lives==null?2:ps.lives)-1;
     pushShot(false,null);
-    if(ps.lives<=0){ ps.alive=false; multiPublicState(); return res.json({hit:false,misses:ps.misses,lives:0,dead:true}); }
+    if(ps.lives<=0){ ps.alive=false; if(_room) tickRoom(_room); return res.json({hit:false,misses:ps.misses,lives:0,dead:true}); }
     return res.json({hit:false,misses:ps.misses,lives:ps.lives});
   }
 });

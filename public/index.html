@@ -50,7 +50,6 @@
     </div>
     <nav class="nav">
       <button class="nav-btn active" data-view="game">🎮 Juego</button>
-      <button class="nav-btn" id="navMultiBtn">🌐 Multi</button>
       <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
       <button class="nav-btn" data-view="chat">💬 Chat Global</button>
       <button class="nav-btn" data-view="friends">👥 Amigos</button>
@@ -164,9 +163,47 @@
             <h2 class="arcade-h1" style="font-size:1.2rem">🌐 MULTIPLAYER ONLINE</h2>
             <button class="btn btn-ghost btn-sm" id="multiCloseBtn">✕ Cerrar</button>
           </div>
-          <!-- LOBBY -->
-          <div id="multiLobby">
-            <p class="lead friends-sub" style="text-align:center">🚀 LOBBY DE LA NAVE — Reúne a tu tripulación · ¡Elegí modo, marca LISTO y despegamos! · 2+ jugadores</p>
+          <!-- BUSCADOR DE SALAS -->
+          <div id="multiRooms">
+            <p class="lead friends-sub" style="text-align:center">🌐 SALAS MULTIJUGADOR — Creá tu lobby o unite a uno público · 2+ jugadores</p>
+            <div class="multi-create arcade-panel" style="padding:12px;margin-bottom:10px">
+              <h3 class="panel-sec-title"><span>➕</span> CREAR SALA</h3>
+              <input type="text" id="multiRoomName" class="arcade-input" placeholder="Nombre de la sala (ej. NAVE DE GUSTAVO)" maxlength="30" autocomplete="off" style="width:100%;margin-bottom:8px">
+              <div class="multi-create-row">
+                <button class="switch-wrap" id="multiPublicSwitch" role="switch" aria-checked="true" title="Cambiar público/privado"><span class="switch-label" id="multiPublicLabel">🌍 Pública</span><span class="switch on" id="multiPublicTrack"><span class="switch-dot"></span></span></button>
+                <div class="multi-mode-pick small" style="margin:0">
+                  <button class="btn btn-primary btn-sm multi-mode-btn active" id="multiCreateNormalBtn">▶ JUGAR</button>
+                  <button class="btn btn-sm multi-mode-btn multi-create-speed" id="multiCreateSpeedrunBtn">⚡ SPEEDRUN</button>
+                </div>
+              </div>
+              <p class="hint" id="multiPublicHint" style="margin:6px 0">Pública: aparece en el buscador y cualquiera se une con 1 click.</p>
+              <button class="btn btn-primary" id="multiCreateBtn" style="width:100%">➕ Crear y entrar</button>
+            </div>
+            <div class="multi-join-code arcade-panel" style="padding:12px;margin-bottom:10px">
+              <h3 class="panel-sec-title"><span>🔑</span> UNIRSE CON CÓDIGO (salas privadas)</h3>
+              <div class="arcade-form-row"><input type="text" id="multiJoinCode" class="arcade-input" placeholder="Código ej. XK7Q2M" maxlength="10" autocomplete="off" style="text-transform:uppercase"><button class="btn btn-primary btn-sm arcade-btn" id="multiJoinCodeBtn">Unirse</button></div>
+            </div>
+            <h3 class="panel-sec-title"><span>🔎</span> BUSCADOR DE LOBBYS</h3>
+            <div class="arcade-form-row" style="margin-bottom:8px"><input type="text" id="multiRoomSearch" class="arcade-input" placeholder="Buscar sala por nombre..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiRoomSearchBtn">Buscar</button></div>
+            <div id="multiRoomsList" class="multi-rooms"><p class="hint">Buscando salas...</p></div>
+          </div>
+          <!-- LOBBY DE SALA -->
+          <div id="multiLobby" class="hidden">
+            <div class="multi-lobby-actions" style="justify-content:space-between">
+              <button class="btn btn-ghost btn-sm" id="multiBackBtn">← Salas</button>
+              <button class="btn btn-ghost btn-sm" id="multiCloseBtn2">✕ Cerrar</button>
+            </div>
+            <p class="lead friends-sub" id="multiRoomTitle" style="text-align:center">🚀 LOBBY</p>
+            <div id="multiOwnerBar" class="hidden">
+              <div class="multi-create-row">
+                <button class="switch-wrap" id="multiRoomPublicSwitch" role="switch" aria-checked="true" title="Solo el creador puede cambiarlo"><span class="switch-label" id="multiRoomPublicLabel">🌍 Pública</span><span class="switch on" id="multiRoomPublicTrack"><span class="switch-dot"></span></span></button>
+                <span class="hint">Solo el creador puede cambiarlo</span>
+              </div>
+              <div id="multiCodeBox" class="hidden">
+                <p class="hint">🔒 Sala privada · Compartí este código (solo vos lo ves):</p>
+                <div class="arcade-form-row"><input type="text" id="multiCodeInput" class="arcade-input" readonly><button class="btn btn-primary btn-sm arcade-btn" id="multiCopyCodeBtn">📋 Copiar</button></div>
+              </div>
+            </div>
             <div class="multi-mode-pick" id="multiModePick">
               <button class="btn btn-primary multi-mode-btn active" id="multiModeNormalBtn">▶ JUGAR</button>
               <button class="btn btn-speedrun multi-mode-btn" id="multiModeSpeedrunBtn">⚡ SPEEDRUN</button>
