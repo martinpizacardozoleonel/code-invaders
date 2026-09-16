@@ -655,6 +655,37 @@ const Profile = {
     grid.querySelectorAll('.name-equip').forEach(b=>b.addEventListener('click',()=>this.equipNameColor(b.dataset.color)));
     const resetBtn=document.createElement('button'); resetBtn.className='btn btn-ghost btn-sm'; resetBtn.textContent='Blanco por defecto'; resetBtn.addEventListener('click',()=>this.equipNameColor('white')); grid.appendChild(resetBtn);
   }
+  ,async renderAchievements(){
+    const grid=document.getElementById('achievementsGrid'); if(!grid) return;
+    grid.innerHTML='<p style="opacity:.5;text-align:center">Cargando logros...</p>';
+    try{
+      const data=await this.api('/api/achievements');
+      const owned=data.owned||[];
+      grid.innerHTML=(data.achievements||[]).map(a=>{
+        const isOwned=owned.includes(a.id);
+        const icon=a.name.match(/^[\p{Emoji}]/u)?.[0]||'🏆';
+        return `<div class="achievement-card${isOwned?' owned':''}"><div class="achievement-icon">${icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div><div class="achievement-reward">Recompensa: ${a.reward}</div>${isOwned?'<div class="achievement-claimed">✅ Desbloqueado</div>':''}</div>`;
+      }).join('');
+    }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar logros</p>'; }
+  }
+  ,async renderLucky(){
+    const grid=document.getElementById('luckyGrid'); if(!grid) return;
+     grid.innerHTML='<p style="opacity:.5;text-align:center">Cargando pool...</p>';
+    try{
+      const data=await this.api('/api/lucky/pool');
+      let html='<div style="grid-column:1/-1;text-align:center;margin-bottom:8px"><h3 style="color:#ffd600">🎰 Pool de Premios</h3></div>';
+      html+=(data.items||[]).map(i=>{
+        if(i.type==='coins') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">💰</p><p style="font-weight:800;font-size:.85rem">${i.name}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
+        if(i.type==='exp') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">⚡</p><p style="font-weight:800;font-size:.85rem">${i.name}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
+        if(i.type==='bubble') return `<div class="frame-card lucky-item-${i.rarity}"><p style="font-size:1.1rem">💬</p><p style="font-weight:800;font-size:.85rem">${i.bubbleId}</p><p style="font-size:.75rem;opacity:.6">${i.rarity}</p></div>`;
+        return '';
+      }).join('');
+      html+='<div style="grid-column:1/-1;text-align:center;margin-top:12px">';
+      html+='<button class="btn btn-primary" onclick="LuckyRoyale.spin(1000,1)" style="margin:4px">🎰 Girar — 1.000 pts</button>';
+      html+='</div>';
+      grid.innerHTML=html;
+    }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar pool</p>'; }
+  }
 };
 
 // FIX horas jugadas: Profile debe ver la sesion de Auth aunque se loguee por el modal principal

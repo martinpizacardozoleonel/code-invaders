@@ -34,12 +34,14 @@ const MultiUI={
   try{ await API.multiLeave(); }catch(e){}
   this.ready=false; this.close();
  },
- async toggleReady(){
-  this.ready=!this.ready;
-  try{ await API.multiReady(this.ready); }catch(e){ this.ready=!this.ready; Toast.error(e.message); return; }
-  document.getElementById('multiReadyBtn').textContent=this.ready?'⏳ Cancelar listo':'✅ ¡LISTO!';
-  this.poll(true);
- },
+  async toggleReady(){
+   this.ready=!this.ready;
+   const btn=document.getElementById('multiReadyBtn');
+   if(btn){ btn.textContent=this.ready?'⏳ Cancelar listo':'✅ ¡LISTO!'; btn.disabled=true; }
+   try{ await API.multiReady(this.ready); }catch(e){ this.ready=!this.ready; if(btn) btn.textContent=this.ready?'⏳ Cancelar listo':'✅ ¡LISTO!'; Toast.error(e.message); if(btn) btn.disabled=false; return; }
+   if(btn) btn.disabled=false;
+   this.poll(true);
+  },
  show(which){
   ['multiLobby','multiBattle','multiResults'].forEach(id=>document.getElementById(id).classList.add('hidden'));
   if(which==='lobby') document.getElementById('multiLobby').classList.remove('hidden');
@@ -69,7 +71,7 @@ const MultiUI={
   const lobby=d.lobby||[]; const match=d.match; const chat=d.chat||[];
   const lp=document.getElementById('multiPlayers');
   if(lp){
-    if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">Lobby vacío. ¡Invita a tus amigos!</p>';
+    if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">🚀 LOBBY DE LA NAVE — Sin tripulantes. ¡Comparte el link e invita a tu escuadrón!</p>';
     else lp.innerHTML=lobby.map(p=>{
       const pic=this.picHtml(p);
       return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+'</div>';

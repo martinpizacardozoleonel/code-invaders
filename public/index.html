@@ -162,7 +162,7 @@
           </div>
           <!-- LOBBY -->
           <div id="multiLobby">
-            <p class="lead friends-sub" style="text-align:center">Lobby de espera estilo Left 4 Dead · marca LISTO y cuando todos estén listos arranca · 2+ jugadores</p>
+            <p class="lead friends-sub" style="text-align:center">🚀 LOBBY DE LA NAVE — Reúne a tu tripulación · ¡Marca LISTO y despegamos! · 2+ jugadores</p>
             <div class="multi-players" id="multiPlayers"></div>
             <div class="multi-lobby-actions">
               <button class="btn btn-primary" id="multiReadyBtn">✅ ¡LISTO!</button>
@@ -348,12 +348,22 @@
   <div class="modal-backdrop hidden" id="shopModal">
     <div class="modal modal-shop">
       <div class="shop-header">
-        <h2>🛒 Tienda de Naves</h2>
+        <h2>🛒 Tienda</h2>
         <button class="btn-close" id="shopClose">✕</button>
       </div>
       <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
-      <p class="shop-hint">Gana puntos jugando. Compra skins y equipa tu nave. ¡Se guardan en tu cuenta!</p>
+      <div class="shop-tabs" id="shopTabs">
+        <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
+        <button class="shop-tab" data-tab="achievements">🏆 Logros</button>
+        <button class="shop-tab" data-tab="lucky">🎰 Lucky Royale</button>
+      </div>
       <div class="shop-grid" id="shopGrid"></div>
+      <div class="shop-grid hidden" id="achievementsGrid"></div>
+      <div class="shop-grid hidden" id="luckyGrid"></div>
+      <div id="luckyWheelWrap" class="hidden" style="text-align:center;margin:16px 0">
+        <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"></div></div>
+        <p style="font-size:.8rem;opacity:.6;margin-top:8px">Gira la ruleta y gana recompensas</p>
+      </div>
       <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
     </div>
   </div>
@@ -461,12 +471,7 @@
         <p class="hint">Compra estilos de letra con puntos. Se ven en chat, ranked y perfil.</p>
         <div class="frames-grid" id="fontsGrid"></div>
       </div>
-      <div class="frames-section" id="backupSection">
-        <h3>Respaldo de cuentas</h3>
-        <p class="hint">Exporta todas las cuentas a un archivo. Si Render borra la base, impórtalo y se recuperan con sus contraseñas, puntos y progreso. Requiere la clave ADMIN_KEY del servidor.</p>
-        <div class="setting-item"><label>Clave de admin</label><input type="password" id="backupKey" placeholder="ADMIN_KEY" autocomplete="off"></div>
-        <div class="btn-row"><button class="btn btn-primary btn-sm" id="backupExportBtn">Descargar respaldo</button><button class="btn btn-ghost btn-sm" id="backupImportBtn">Importar archivo</button><input type="file" id="backupFile" accept="application/json" class="hidden"></div>
-      </div>
+      <div class="frames-section hidden" id="backupSection" style="display:none"></div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
         <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
@@ -511,5 +516,36 @@
   <script src="js/friends.js?v=7"></script>
   <script src="js/multi.js?v=2"></script>
   <script src="js/app.js?v=9"></script>
+  <script>
+  const LuckyRoyale={
+    spinning:false,
+    spin(cost,count){
+      if(this.spinning) return;
+      this.spinning=true;
+      const wheel=document.getElementById('luckyWheel');
+      const inner=document.getElementById('luckyWheelInner');
+      if(wheel) wheel.classList.remove('lucky-wheel-spinning');
+      const deg=1800+Math.random()*720;
+      if(inner) inner.style.setProperty('--spin-deg',deg+'deg');
+      if(wheel) wheel.classList.add('lucky-wheel-spinning');
+      setTimeout(async()=>{
+        try{
+          const r=await fetch('/api/lucky/spin',{method:'POST',headers:{'Authorization':'Bearer '+Auth.token,'Content-Type':'application/json'}});
+          const data=await r.json();
+          if(!r.ok){ Toast.error(data.error||'Error'); this.spinning=false; return; }
+          if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); }
+          if(typeof Game!=='undefined'){ Game.coins=data.coins; }
+          const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
+          const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
+          const item=data.item;
+          let rarityLabel={common:'Común',rare:'Raro',epic:'Épico',legendary:'Legendario',mythic:'Mítico'}[item.rarity]||item.rarity;
+          let name=item.name||item.bubbleId||'?';
+          Toast.success('🎰 Ganaste: '+name+' ('+rarityLabel+')');
+          this.spinning=false;
+        }catch(e){ Toast.error('Error de red'); this.spinning=false; }
+      },5200);
+    }
+  };
+  </script>
 </body>
 </html>

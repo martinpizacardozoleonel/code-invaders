@@ -997,6 +997,18 @@ const Game = (() => {
     btn.addEventListener('click', ()=>{ renderShop(); modal.classList.remove('hidden'); });
     if(close) close.addEventListener('click', ()=>modal.classList.add('hidden'));
     modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.add('hidden'); });
+    const tabs=document.getElementById('shopTabs');
+    if(tabs) tabs.querySelectorAll('.shop-tab').forEach(tab=>tab.addEventListener('click',()=>{
+      tabs.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const t=tab.dataset.tab;
+      document.getElementById('shopGrid').classList.toggle('hidden',t!=='skins');
+      document.getElementById('achievementsGrid').classList.toggle('hidden',t!=='achievements');
+      document.getElementById('luckyGrid').classList.toggle('hidden',t!=='lucky');
+      document.getElementById('luckyWheelWrap').classList.toggle('hidden',t!=='lucky');
+      if(t==='achievements' && typeof Profile!=='undefined' && Profile.renderAchievements) Profile.renderAchievements();
+      if(t==='lucky' && typeof Profile!=='undefined' && Profile.renderLucky) Profile.renderLucky();
+    }));
   }
   function renderShop(){
     const grid=document.getElementById('shopGrid'); const bal=document.getElementById('shopBalance');

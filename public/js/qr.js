@@ -10,7 +10,7 @@ const QRView = (() => {
     const urlEl = document.getElementById('qrUrl');
     const openBtn = document.getElementById('qrOpenBtn');
     if(!img || !urlEl) return;
-    const qrSrc = typeof API!=='undefined' && API.qrUrl ? API.qrUrl(url, 300, '#00e5ff') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=00e5ff&data=${encodeURIComponent(url)}`;
+    const qrSrc = typeof API!=='undefined' && API.qrUrl ? API.qrUrl(url, 300, '#000000') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=000000&data=${encodeURIComponent(url)}`;
     img.src = qrSrc;
     img.onload = () => { if(loading) loading.classList.add('hidden'); };
     img.onerror = () => { if(loading) loading.textContent='Error al generar QR'; };
@@ -39,7 +39,7 @@ const QRView = (() => {
     const img=document.getElementById('qrImg');
     if(!img) return;
     url=getUrl();
-    const src = typeof API!=='undefined' && API.qrUrl ? API.qrUrl(url, 300, '#00e5ff') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=00e5ff&data=${encodeURIComponent(url)}`;
+    const src = typeof API!=='undefined' && API.qrUrl ? API.qrUrl(url, 300, '#000000') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=000000&data=${encodeURIComponent(url)}`;
     img.src = src + '&t='+Date.now();
     const urlEl=document.getElementById('qrUrl');
     if(urlEl) urlEl.textContent=url;
