@@ -440,7 +440,7 @@ app.get('/api/multi/state', async (req,res)=>{
     let match=null;
     if(Multi.match){
       const now=Date.now();
-      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
+      const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
       if(Multi.match.shots) Multi.match.shots=Multi.match.shots.filter(s=>now-s.at<8000).slice(-20);
       match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players,shots:(Multi.match.shots||[]).slice(-15)};
     }

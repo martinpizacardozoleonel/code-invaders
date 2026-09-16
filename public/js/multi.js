@@ -57,9 +57,27 @@ const MultiUI={
   const sk=this.skinById(skinId||'default');
   return '<div class="multi-ship alive" title="'+this.esc(skinId||'default')+'"><svg width="44" height="38" viewBox="-22 -22 44 44" style="filter:drop-shadow(0 0 8px '+sk.glow+')"><path d="M0,-22 L-20,18 L-7,10 L0,16 L7,10 L20,18 Z" fill="'+sk.body+'" stroke="rgba(255,255,255,.85)" stroke-width="1.2"/><circle cx="0" cy="-4" r="4.5" fill="'+sk.accent+'" stroke="#fff" stroke-width=".8"/><path d="M-6,14 L0,22 L6,14 Z" fill="#ff6d00" opacity=".95"/></svg></div>';
  },
+ picFetching:{},
  picHtml(p){
   if(p.profilePic) this.picCache[p.userId]=p.profilePic;
+  if(!this.picCache[p.userId]){
+    try{
+      const meId=(typeof Auth!=='undefined'&&Auth.user&&Auth.user.id)||null;
+      if(p.userId===meId){
+        const own=(typeof Auth!=='undefined'&&Auth.user&&Auth.user.profilePic)||(typeof Profile!=='undefined'&&Profile.user&&Profile.user.profilePic)||'';
+        if(own) this.picCache[p.userId]=own;
+      }
+    }catch(e){}
+  }
   const src=p.profilePic||this.picCache[p.userId]||'';
+  if(!src&&(p.hasPic)&&p.userId&&!this.picFetching[p.userId]){
+    this.picFetching[p.userId]=1;
+    fetch('/api/user/'+encodeURIComponent(p.userId)).then(r=>r.json()).then(u=>{
+      if(u&&u.profilePic){ this.picCache[p.userId]=u.profilePic;
+        document.querySelectorAll('.multi-avatar[data-pic="'+p.userId+'"]').forEach(av=>{ av.innerHTML='<img src="'+u.profilePic.replace(/"/g,'&quot;')+'" loading="lazy" alt="">'; });
+      }
+    }).catch(()=>{}).finally(()=>{ delete this.picFetching[p.userId]; });
+  }
   const pic=src?'<img src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" alt="">':'<span>👾</span>';
   return pic;
  },
@@ -75,7 +93,7 @@ const MultiUI={
     if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">🚀 LOBBY DE LA NAVE — Sin tripulantes. ¡Comparte el link e invita a tu escuadrón!</p>';
     else lp.innerHTML=lobby.map(p=>{
       const pic=this.picHtml(p);
-      return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+'</div>';
+      return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+'</div>';
     }).join('');
   }
   const cb=document.getElementById('multiChatBox');
@@ -105,7 +123,7 @@ const MultiUI={
         const hearts=lives>1?'❤️❤️':(lives===1?'❤️🤍':'🤍🤍');
         const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
         const ens=p.enemies.map(e=>'<div class="multi-enemy ship cat-'+e.cat+'" data-q="'+this.esc(e.q)+'" title="'+this.esc(e.q)+'"><span class="ship-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="ship-q">'+this.esc(e.q)+'</span><span class="ship-type">⌨️ escribe la etiqueta</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
-        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'" data-uid="'+p.userId+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · <span class="lives">'+hearts+'</span> · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s · '+hearts+' '+lives+'/2 vidas</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
+        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'" data-uid="'+p.userId+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · <span class="lives">'+hearts+'</span> · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s · '+hearts+' '+lives+'/2 vidas</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
       }).join('');
     } else {
       match.players.forEach(p=>{
@@ -125,7 +143,7 @@ const MultiUI={
     document.getElementById('multiTable').innerHTML='<div class="multi-table">'+arr.map((p,i)=>{
       const medal=i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+'°'));
       const pic=this.picHtml(p);
-      return '<div class="multi-row'+(i===0?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">✅ '+p.hits+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">🌊 '+p.wave+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
+      return '<div class="multi-row'+(i===0?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">✅ '+p.hits+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">🌊 '+p.wave+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
     }).join('')+'</div>';
     this.ready=false;
     const rb=document.getElementById('multiReadyBtn'); if(rb) rb.textContent='✅ ¡LISTO!';
