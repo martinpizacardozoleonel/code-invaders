@@ -425,7 +425,7 @@ function multiPublicState(){
     if(l.length>=2 && l.every(p=>p.ready)){
       const players={};
       l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',nameColor:p.nameColor||'#ffffff',alive:true,lives:2,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
-      Multi.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players};
+      Multi.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players,shots:[]};
       Multi.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
     }
   }
@@ -441,7 +441,8 @@ app.get('/api/multi/state', async (req,res)=>{
     if(Multi.match){
       const now=Date.now();
       const players=Object.values(Multi.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
-      match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players};
+      if(Multi.match.shots) Multi.match.shots=Multi.match.shots.filter(s=>now-s.at<8000).slice(-20);
+      match={id:Multi.match.id,status:Multi.match.status,winnerId:Multi.match.winnerId||null,players,shots:(Multi.match.shots||[]).slice(-15)};
     }
     res.set('Cache-Control','no-store');
     res.json({lobby,match,chat:Multi.chat.slice(-20),me:user?user.id:null});
@@ -495,15 +496,19 @@ app.post('/api/multi/answer', async (req,res)=>{
   const norm=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
   if(now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0; if(ps.lives<=0) ps.alive=false; else ps.waveStart=now; multiPublicState(); return res.status(400).json({error:'¡Te alcanzaron! Pierdes 1 vida'}); }
   const idx=ps.enemies.findIndex(e=>norm(e.a)===norm(t));
+  m.shots=m.shots||[];
+  const pushShot=(hit,q)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,hit:!!hit,q:q||null,at:Date.now()}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
   if(idx>=0){
     const killed=ps.enemies.splice(idx,1)[0];
     ps.hits++; ps.streak++; if(ps.streak>ps.best) ps.best=ps.streak;
+    pushShot(true,killed.q);
     let waveUp=false;
     if(!ps.enemies.length){ ps.wave++; const en=multiPickEnemies(); ps.enemies=en; ps.waveStart=now; ps.desc=multiWaveDesc(ps.wave,en); waveUp=true; }
     multiPublicState();
     return res.json({hit:true,killed:{cat:killed.cat,q:killed.q,a:killed.a},waveUp,wave:ps.wave,enemies:(ps.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:ps.desc,hits:ps.hits,streak:ps.streak,lives:(ps.lives==null?2:ps.lives)});
   } else {
     ps.misses++; ps.streak=0; ps.lives=(ps.lives==null?2:ps.lives)-1;
+    pushShot(false,null);
     if(ps.lives<=0){ ps.alive=false; multiPublicState(); return res.json({hit:false,misses:ps.misses,lives:0,dead:true}); }
     return res.json({hit:false,misses:ps.misses,lives:ps.lives});
   }
