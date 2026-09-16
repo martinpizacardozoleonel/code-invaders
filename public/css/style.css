@@ -2102,6 +2102,7 @@ body.light .lobby-info b{color:#0f172a!important;}
 .chat-card,.friends-col{overflow-x:hidden!important;}
 .chat-messages,.arcade-chat{overflow-x:hidden!important;overflow-y:auto!important;box-sizing:border-box;scrollbar-gutter:stable;overscroll-behavior:contain;}
 .chat-messages::-webkit-scrollbar:horizontal,.arcade-chat::-webkit-scrollbar:horizontal{display:none!important;height:0!important;}
+.chat-text{overflow-wrap:anywhere;word-break:break-word;}
 .chat-input-bar,.arcade-chat-bar{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
 .chat-input-bar input,.arcade-chat-bar input{min-width:0!important;flex:1 1 auto!important;}
 .friend-card,.friend-req,.gift-box,.gift-row,.gift-history,.friends-stack{min-width:0!important;max-width:100%!important;box-sizing:border-box;}

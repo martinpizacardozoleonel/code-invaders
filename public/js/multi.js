@@ -261,28 +261,48 @@ const MultiUI={
     this.loadRooms(force===true);
     return;
   }
+  const roomId=d.room.id||d.room.name||'';
+  if(roomId!==this._roomId){ this._roomId=roomId; this._lobbyKey=null; this._chatKey=null; }
   this.currentRoom=d.room;
   this.renderRoomHeader();
   const me=d.me;
   const lobby=d.lobby||[]; const match=d.match; const chat=d.chat||[];
   const lp=document.getElementById('multiPlayers');
   if(lp){
-    if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">🚀 Sala vacía. ¡Compartí el nombre o el código e invita a tu escuadrón!</p>';
-    else lp.innerHTML=lobby.map(p=>{
-      const pic=this.picHtml(p);
-      return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+((d.room&&d.room.ownerId===p.userId)?'<span class="mini-badge">👑 CREADOR</span>':'')+'</div>';
-    }).join('');
+    const lkey=lobby.map(p=>p.userId+':'+(p.ready?1:0)+':'+(p.username||'')).join('|')||'empty';
+    if(force===true||lkey!==this._lobbyKey){
+      this._lobbyKey=lkey;
+      if(!lobby.length) lp.innerHTML='<p class="hint empty-hint">🚀 Sala vacía. ¡Compartí el nombre o el código e invita a tu escuadrón!</p>';
+      else lp.innerHTML=lobby.map(p=>{
+        const pic=this.picHtml(p);
+        return '<div class="multi-player'+(p.ready?' is-ready':'')+'"><div class="multi-avatar frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><p class="multi-name">'+this.esc(p.username)+'</p><span class="status-pill '+(p.ready?'online':'offline')+'">'+(p.ready?'✅ LISTO':'⏳ esperando')+'</span>'+(p.userId===me?'<span class="mini-badge">TÚ</span>':'')+((d.room&&d.room.ownerId===p.userId)?'<span class="mini-badge">👑 CREADOR</span>':'')+'</div>';
+      }).join('');
+    }
   }
   const cb=document.getElementById('multiChatBox');
   if(cb){
-    cb.innerHTML=chat.length?chat.map(m=>{
-      if(m.userId==='sys') return '<div class="chat-msg sys"><div class="chat-text">🤖 '+this.esc(m.text)+'</div></div>';
-      let body=this.esc(m.text);
-      if(m.text.startsWith('[sticker]')) body='<div class="chat-sticker">'+this.esc(m.text.slice(9,20))+'</div>';
-      const bub=(m.equippedBubble&&m.equippedBubble!=='none')?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
-      return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span></div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
-    }).join(''):'<p class="hint">Sin mensajes. ¡Saluda! 👋</p>';
-    cb.scrollTop=cb.scrollHeight;
+    if(!cb.dataset.scrollBound){
+      cb.dataset.scrollBound='1';
+      cb.addEventListener('scroll',()=>{
+        cb.dataset.userAtBottom=(cb.scrollTop+cb.clientHeight>=cb.scrollHeight-60)?'1':'0';
+     },{passive:true});
+    }
+    const last=chat[chat.length-1];
+    const ckey=chat.length+'|'+(last?((last.id||'')+'|'+(last.createdAt||'')+'|'+String(last.text||'').slice(-80)):'empty');
+    if(force===true||ckey!==this._chatKey){
+      this._chatKey=ckey;
+      const prevTop=cb.scrollTop;
+      const nearBottom=cb.dataset.userAtBottom!=='0'||(cb.scrollTop+cb.clientHeight>=cb.scrollHeight-60);
+      cb.innerHTML=chat.length?chat.map(m=>{
+        if(m.userId==='sys') return '<div class="chat-msg sys"><div class="chat-text">🤖 '+this.esc(m.text)+'</div></div>';
+        let body=this.esc(m.text);
+        if(m.text.startsWith('[sticker]')) body='<div class="chat-sticker">'+this.esc(m.text.slice(9,20))+'</div>';
+        const bub=(m.equippedBubble&&m.equippedBubble!=='none')?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
+        return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span></div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
+      }).join(''):'<p class="hint">Sin mensajes. ¡Saluda! 👋</p>';
+      if(nearBottom) requestAnimationFrame(()=>{ cb.scrollTop=cb.scrollHeight; });
+      else cb.scrollTop=prevTop;
+    }
   }
   if(!match){ this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; return; }
   if(match.status==='playing'){
