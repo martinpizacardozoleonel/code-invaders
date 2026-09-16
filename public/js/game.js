@@ -17,6 +17,7 @@ const Game = (() => {
   ];
   let canvas,ctx,W,H;
   let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
+  let gameOptsBtnEl,gameOptsMenuEl,gameInfoBtnEl,gameAbandonBtnEl,gameBackBtnEl,gameInfoPanelEl,gameInfoBodyEl,gameInfoCloseBtnEl;
   let qBannerEl,qBannerTextEl;
   let state='title';
   let score=0,lives=2,level=0;
@@ -97,10 +98,18 @@ const Game = (() => {
     multiPlayerBtnEl=document.getElementById('multiPlayerBtn');
     modeBackBtnEl=document.getElementById('modeBackBtn');
     speedrunHudEl=document.getElementById('speedrunHud');
-    exitBtnEl=document.getElementById('exitBtn');
+    exitBtnEl=document.getElementById('gameOptions');
     exitOverlayEl=document.getElementById('exitOverlay');
     exitCancelEl=document.getElementById('exitCancel');
     exitConfirmEl=document.getElementById('exitConfirm');
+    gameOptsBtnEl=document.getElementById('gameOptionsBtn');
+    gameOptsMenuEl=document.getElementById('gameOptionsMenu');
+    gameInfoBtnEl=document.getElementById('gameInfoBtn');
+    gameAbandonBtnEl=document.getElementById('gameAbandonBtn');
+    gameBackBtnEl=document.getElementById('gameBackBtn');
+    gameInfoPanelEl=document.getElementById('gameInfoPanel');
+    gameInfoBodyEl=document.getElementById('gameInfoBody');
+    gameInfoCloseBtnEl=document.getElementById('gameInfoCloseBtn');
     retryBtnEl=document.getElementById('retryBtn');
     qBannerEl=document.getElementById('qBanner');
     qBannerTextEl=document.getElementById('qBannerText');
@@ -113,6 +122,7 @@ const Game = (() => {
       const ae=document.activeElement;
       const isAnswerFocused=ae===inputEl;
       const typing = isTyping();
+      if(e.key==='Escape' && isInGame() && gameMenuOpen()){ e.preventDefault(); hideGameMenu(); if(isAnswerFocused&&inputEl) inputEl.focus(); return; }
       if(typing && !isAnswerFocused){
         if(e.key==='Escape' && isInGame() && exitOverlayEl && !exitOverlayEl.classList.contains('hidden')){ e.preventDefault(); hideExitConfirm(); return; }
         if(e.key==='Escape' && isInGame()){ e.preventDefault(); showExitConfirm(); return; }
@@ -158,7 +168,12 @@ const Game = (() => {
     if(multiPlayerBtnEl) multiPlayerBtnEl.addEventListener('click', ()=>{ openMultiEntry(); });
     if(modeBackBtnEl) modeBackBtnEl.addEventListener('click', ()=>{ showBtns(); });
     if(retryBtnEl) retryBtnEl.addEventListener('click', ()=>{ hideBtns(); speedrun?startSpeedrun():startNormal(); });
-    if(exitBtnEl) exitBtnEl.addEventListener('click', ()=>{ showExitConfirm(); });
+    if(gameOptsBtnEl) gameOptsBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); toggleGameMenu(); });
+    if(gameInfoBtnEl) gameInfoBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); openGameInfo(); });
+    if(gameAbandonBtnEl) gameAbandonBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); hideGameMenu(); showExitConfirm(); });
+    if(gameBackBtnEl) gameBackBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); hideGameMenu(); if(isInGame()&&inputEl) inputEl.focus(); });
+    if(gameInfoCloseBtnEl) gameInfoCloseBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); hideGameMenu(); if(isInGame()&&inputEl) inputEl.focus(); });
+    document.addEventListener('click', (e)=>{ if(!gameMenuOpen()) return; const w=document.getElementById('gameOptions'); if(w&&!w.contains(e.target)) hideGameMenu(); });
     if(exitCancelEl) exitCancelEl.addEventListener('click', ()=>{ hideExitConfirm(); });
     if(exitConfirmEl) exitConfirmEl.addEventListener('click', ()=>{ hideExitConfirm(); doExit(); });
     if(exitOverlayEl) exitOverlayEl.addEventListener('click', (e)=>{ if(e.target===exitOverlayEl) hideExitConfirm(); });
@@ -358,7 +373,23 @@ const Game = (() => {
   });
   function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable); }
   function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'; }
-  function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else exitBtnEl.classList.add('hidden'); if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
+  function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else { exitBtnEl.classList.add('hidden'); hideGameMenu(); } if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
+  function gameMenuOpen(){ return !!((gameOptsMenuEl&&!gameOptsMenuEl.classList.contains('hidden'))||(gameInfoPanelEl&&!gameInfoPanelEl.classList.contains('hidden'))); }
+  function hideGameMenu(){ if(gameOptsMenuEl) gameOptsMenuEl.classList.add('hidden'); if(gameInfoPanelEl) gameInfoPanelEl.classList.add('hidden'); if(gameOptsBtnEl) gameOptsBtnEl.setAttribute('aria-expanded','false'); }
+  function toggleGameMenu(){ if(!isInGame()||!gameOptsMenuEl) return; const willOpen=gameOptsMenuEl.classList.contains('hidden'); hideGameMenu(); if(willOpen){ gameOptsMenuEl.classList.remove('hidden'); if(gameOptsBtnEl) gameOptsBtnEl.setAttribute('aria-expanded','true'); } }
+  function openGameInfo(){ if(!isInGame()) return; fillGameInfo(); if(gameOptsMenuEl) gameOptsMenuEl.classList.add('hidden'); if(gameInfoPanelEl) gameInfoPanelEl.classList.remove('hidden'); if(gameOptsBtnEl) gameOptsBtnEl.setAttribute('aria-expanded','true'); if(inputEl) inputEl.blur(); }
+  function fillGameInfo(){
+    if(!gameInfoBodyEl) return;
+    const mode=speedrun?'⚡ SPEEDRUN':'▶ NORMAL (jugar)';
+    const lvl=levelData?(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE FINAL'):('Nivel '+levelData.id+' · '+levelData.title)):'—';
+    let foes='—';
+    if(levelData&&levelData.isBoss){ foes=cssBoss?(enemies.length+' naves + jefe '+bossHP+'❤'):('Jefe '+bossHP+'/'+bossMaxHP+'❤'); }
+    else if(levelData){ foes=(enemies.length+questionsLeft.length)+' naves'; }
+    let t='—';
+    if(speedrun){ try{ t=formatTime(speedrunFinished?speedrunTime:(performance.now()-speedrunStart)); }catch(e){} }
+    const rows=[['🎮 Modo',mode],['🗺 Nivel',lvl],['⭐ Puntos',String(score)],['🪙 Monedas',String(coins)],['❤ Vidas',String(Math.max(lives,0))],['👾 Enemigos',foes],['🔥 Racha',String(comboCount)],['⏱ Tiempo',t]];
+    gameInfoBodyEl.innerHTML=rows.map(r=>'<div class="game-info-row"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
+  }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
   function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }

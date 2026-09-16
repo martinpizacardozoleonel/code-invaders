@@ -372,6 +372,18 @@ main{flex:1;min-height:0;overflow:hidden;padding:12px 20px 10px;max-width:98vw;d
 .exit-card p{ color:var(--text-dim); font-size:.8rem; margin-bottom:12px; }
 .exit-actions{ display:flex; gap:8px; justify-content:center; }
 .exit-actions .btn{ flex:1; }
+.game-options{ position:absolute; top:8px; right:8px; z-index:12; }
+.game-options .exit-btn{ position:static; }
+.game-options-menu{ position:absolute; top:calc(100% + 6px); right:0; min-width:230px; background:linear-gradient(180deg, rgba(17,24,39,.98), rgba(10,14,26,.99)); border:1px solid rgba(0,229,255,.25); border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:4px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.game-options-item{ background:transparent; border:1px solid transparent; color:#fff; text-align:left; padding:9px 10px; border-radius:8px; font-weight:700; font-size:.8rem; cursor:pointer; font-family:inherit; }
+.game-options-item:hover{ background:rgba(0,229,255,.12); border-color:rgba(0,229,255,.3); }
+.game-options-item.danger{ color:#ff8a80; }
+.game-options-item.danger:hover{ background:rgba(255,23,68,.15); border-color:rgba(255,23,68,.4); }
+.game-info-panel{ position:absolute; top:calc(100% + 6px); right:0; width:min(290px,72vw); background:linear-gradient(180deg, rgba(17,24,39,.98), rgba(10,14,26,.99)); border:1px solid rgba(0,229,255,.25); border-radius:12px; padding:12px 14px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.game-info-panel h3{ color:#fff; font-size:.85rem; margin-bottom:8px; text-align:center; letter-spacing:1px; }
+.game-info-row{ display:flex; justify-content:space-between; gap:10px; padding:5px 2px; border-bottom:1px dashed rgba(255,255,255,.08); font-size:.78rem; color:var(--text-dim); }
+.game-info-row b{ color:#fff; text-align:right; }
+.game-info-panel .btn{ margin-top:10px; }
 
 .q-banner{
   width:100%;max-width:none;flex-shrink:0;margin:0 6px;border-radius:8px;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=19">
+  <link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -103,7 +103,19 @@
         <div class="canvas-wrap">
           <canvas id="gameCanvas" width="700" height="500"></canvas>
           <div class="speedrun-timer hidden" id="speedrunHud">⏱ 00:00.00</div>
-          <button class="exit-btn hidden" id="exitBtn" aria-label="Salir de la partida" title="Salir (Esc)">✕ Salir</button>
+          <div class="game-options hidden" id="gameOptions">
+            <button class="exit-btn" id="gameOptionsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Opciones de la partida" title="Opciones (Esc)">☰ OPCIONES</button>
+            <div class="game-options-menu hidden" id="gameOptionsMenu" role="menu">
+              <button class="game-options-item" id="gameInfoBtn" role="menuitem">ℹ Información de la partida</button>
+              <button class="game-options-item danger" id="gameAbandonBtn" role="menuitem">🚪 Abandonar partida</button>
+              <button class="game-options-item" id="gameBackBtn" role="menuitem">← Volver</button>
+            </div>
+            <div class="game-info-panel hidden" id="gameInfoPanel" role="dialog" aria-label="Información de la partida">
+              <h3>ℹ PARTIDA</h3>
+              <div id="gameInfoBody"></div>
+              <button class="btn btn-primary btn-sm btn-block" id="gameInfoCloseBtn">← Volver</button>
+            </div>
+          </div>
           <div class="exit-overlay hidden" id="exitOverlay">
             <div class="exit-card">
               <h3>¿Salir de la partida?</h3>
@@ -594,7 +606,7 @@
   <script src="js/notifications.js?v=2"></script>
   <script src="js/docs.js?v=6"></script>
   <script src="js/intro.js?v=2"></script>
-  <script src="js/game.js?v=24"></script>
+  <script src="js/game.js?v=25"></script>
   <script src="js/profile.js?v=13"></script>
   <script src="js/ranked.js?v=8"></script>
   <script src="js/chat.js?v=5"></script>
