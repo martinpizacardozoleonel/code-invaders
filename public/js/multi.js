@@ -7,6 +7,7 @@ const MultiUI={
   const ms=document.getElementById('multiModeSpeedrunBtn'); if(ms) ms.addEventListener('click',()=>this.setRoomMode('speedrun'));
   const cb=document.getElementById('multiCloseBtn'); if(cb) cb.addEventListener('click',()=>this.close());
   const cb2=document.getElementById('multiCloseBtn2'); if(cb2) cb2.addEventListener('click',()=>this.close());
+  const rbk=document.getElementById('multiRoomsBackBtn'); if(rbk) rbk.addEventListener('click',()=>this.close());
   const back=document.getElementById('multiBackBtn'); if(back) back.addEventListener('click',()=>this.backToRooms());
   const rb=document.getElementById('multiReadyBtn'); if(rb) rb.addEventListener('click',()=>this.toggleReady());
   const lv=document.getElementById('multiLeaveBtn'); if(lv) lv.addEventListener('click',()=>this.leave());
