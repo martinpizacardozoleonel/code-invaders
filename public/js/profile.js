@@ -228,7 +228,6 @@ const Profile = {
     if(btn) btn.disabled=true;
     try{
       await this.api('/api/account', { method:'DELETE' });
-      if(window.API && API.deleteAccount) { try{ await API.deleteAccount(); }catch(e){} }
       this.token=null; this.user=null; this.active=false; this.pendingTime=0;
       localStorage.removeItem('fx_token');
       this.renderProfile();
@@ -681,7 +680,7 @@ const Profile = {
         return '';
       }).join('');
       html+='<div style="grid-column:1/-1;text-align:center;margin-top:12px">';
-      html+='<button class="btn btn-primary" onclick="LuckyRoyale.spin(1000,1)" style="margin:4px">🎰 Girar — 1.000 pts</button>';
+      html+='<button class="btn btn-primary" onclick="LuckyRoyale.spin()" style="margin:4px">🎰 Girar — 1.000 pts</button>';
       html+='</div>';
       grid.innerHTML=html;
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar pool</p>'; }

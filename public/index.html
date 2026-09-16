@@ -41,6 +41,7 @@
         <p class="arcade-menu-title"><span class="blink-dot"></span> INSERT COIN · MENÚ</p>
         <button class="logo-menu-item" id="menuTutorial" role="menuitem"><span class="mi-ico">📖</span><span class="mi-txt">Tutorial</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" id="shopBtn" role="menuitem"><span class="mi-ico">🛒</span><span class="mi-txt">Tienda</span><span class="badge-shop" id="coinVal">0</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" id="menuAchievements" role="menuitem"><span class="mi-ico">🏆</span><span class="mi-txt">Logros</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" data-view="docs" role="menuitem"><span class="mi-ico">📚</span><span class="mi-txt">Manual de uso</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" data-view="qr" role="menuitem"><span class="mi-ico">📷</span><span class="mi-txt">QR</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" id="menuSettings" role="menuitem"><span class="mi-ico">⚙️</span><span class="mi-txt">Ajustes</span><span class="mi-arrow">▶</span></button>
@@ -354,17 +355,28 @@
       <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
       <div class="shop-tabs" id="shopTabs">
         <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
-        <button class="shop-tab" data-tab="achievements">🏆 Logros</button>
         <button class="shop-tab" data-tab="lucky">🎰 Lucky Royale</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
-      <div class="shop-grid hidden" id="achievementsGrid"></div>
       <div class="shop-grid hidden" id="luckyGrid"></div>
       <div id="luckyWheelWrap" class="hidden" style="text-align:center;margin:16px 0">
         <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"></div></div>
         <p style="font-size:.8rem;opacity:.6;margin-top:8px">Gira la ruleta y gana recompensas</p>
       </div>
       <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
+    </div>
+  </div>
+
+  <!-- ============ LOGROS ============ -->
+  <div class="modal-backdrop hidden" id="achievementsModal">
+    <div class="modal modal-shop">
+      <div class="shop-header">
+        <h2>🏆 Logros</h2>
+        <button class="btn-close" id="achievementsClose">✕</button>
+      </div>
+      <p class="shop-hint">Desbloquea logros especiales y gana recompensas exclusivas.</p>
+      <div class="shop-grid" id="achievementsGrid"></div>
+      <button class="btn btn-ghost btn-block" id="achievementsBack" style="margin-top:12px">← Volver atrás</button>
     </div>
   </div>
 
@@ -471,7 +483,7 @@
         <p class="hint">Compra estilos de letra con puntos. Se ven en chat, ranked y perfil.</p>
         <div class="frames-grid" id="fontsGrid"></div>
       </div>
-      <div class="frames-section hidden" id="backupSection" style="display:none"></div>
+      <div class="frames-section hidden" id="backupSection"></div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
         <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
@@ -519,7 +531,7 @@
   <script>
   const LuckyRoyale={
     spinning:false,
-    spin(cost,count){
+    spin(){
       if(this.spinning) return;
       this.spinning=true;
       const wheel=document.getElementById('luckyWheel');

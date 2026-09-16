@@ -98,6 +98,7 @@ const Game = (() => {
     exitOverlayEl=document.getElementById('exitOverlay');
     exitCancelEl=document.getElementById('exitCancel');
     exitConfirmEl=document.getElementById('exitConfirm');
+    retryBtnEl=document.getElementById('retryBtn');
     qBannerEl=document.getElementById('qBanner');
     qBannerTextEl=document.getElementById('qBannerText');
     migrateIfNeeded();
@@ -361,7 +362,7 @@ const Game = (() => {
       startBtnEl.classList.remove('hidden');
     }
     if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.remove('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden'); if(multiBtnEl) multiBtnEl.classList.remove('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
@@ -1002,13 +1003,24 @@ const Game = (() => {
       tabs.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
       tab.classList.add('active');
       const t=tab.dataset.tab;
-      document.getElementById('shopGrid').classList.toggle('hidden',t!=='skins');
-      document.getElementById('achievementsGrid').classList.toggle('hidden',t!=='achievements');
-      document.getElementById('luckyGrid').classList.toggle('hidden',t!=='lucky');
-      document.getElementById('luckyWheelWrap').classList.toggle('hidden',t!=='lucky');
-      if(t==='achievements' && typeof Profile!=='undefined' && Profile.renderAchievements) Profile.renderAchievements();
+      const sg=document.getElementById('shopGrid');
+      const lg=document.getElementById('luckyGrid');
+      const lw=document.getElementById('luckyWheelWrap');
+      if(sg) sg.classList.toggle('hidden',t!=='skins');
+      if(lg) lg.classList.toggle('hidden',t!=='lucky');
+      if(lw) lw.classList.toggle('hidden',t!=='lucky');
       if(t==='lucky' && typeof Profile!=='undefined' && Profile.renderLucky) Profile.renderLucky();
     }));
+    const achBtn=document.getElementById('menuAchievements');
+    const achModal=document.getElementById('achievementsModal');
+    const achClose=document.getElementById('achievementsClose');
+    const achBack=document.getElementById('achievementsBack');
+    if(achBtn&&achModal){
+      achBtn.addEventListener('click',()=>{ if(typeof Profile!=='undefined'&&Profile.renderAchievements) Profile.renderAchievements(); achModal.classList.remove('hidden'); });
+      if(achClose) achClose.addEventListener('click',()=>achModal.classList.add('hidden'));
+      if(achBack) achBack.addEventListener('click',()=>achModal.classList.add('hidden'));
+      achModal.addEventListener('click',e=>{ if(e.target===achModal) achModal.classList.add('hidden'); });
+    }
   }
   function renderShop(){
     const grid=document.getElementById('shopGrid'); const bal=document.getElementById('shopBalance');
