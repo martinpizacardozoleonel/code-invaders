@@ -298,8 +298,10 @@ const MultiUI={
         let body=this.esc(m.text);
         if(m.text.startsWith('[sticker]')) body='<div class="chat-sticker">'+this.esc(m.text.slice(9,20))+'</div>';
         const bub=(m.equippedBubble&&m.equippedBubble!=='none')?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
-        return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span></div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
+        const flag=(m.userId!==me)?'<button class="chat-flag" data-rep="'+m.userId+'" data-name="'+this.esc(m.username).replace(/"/g,'&quot;')+'" title="Denunciar jugador">🚩</button>':'';
+        return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span>'+flag+'</div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
       }).join(''):'<p class="hint">Sin mensajes. ¡Saluda! 👋</p>';
+      cb.querySelectorAll('.chat-flag').forEach(b=>b.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(b.dataset.rep,b.dataset.name); }));
       if(nearBottom) requestAnimationFrame(()=>{ cb.scrollTop=cb.scrollHeight; });
       else cb.scrollTop=prevTop;
     }

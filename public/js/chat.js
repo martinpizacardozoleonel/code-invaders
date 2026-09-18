@@ -264,7 +264,7 @@ const Chat={
         box.innerHTML=msgs.map(m=>{
          const own=m.userId===meId;
          const date=new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-         const del=own?'<button class="chat-del" data-id="'+m.id+'" title="Borrar">🗑️</button>':'';
+         const del=own?'<button class="chat-del" data-id="'+m.id+'" title="Borrar">🗑️</button>':'<button class="chat-flag" data-rep="'+m.userId+'" data-name="'+this.escAttr(m.username)+'" title="Denunciar jugador">🚩</button>';
          const frame=m.equippedFrame&&m.equippedFrame!=='none'?' frame-'+m.equippedFrame:'';
           const champClass=m.equippedFrame==='campeon'?' frame-campeon':(m.frames&&m.frames.includes('campeon')?' champion-active':'');
           const pic=m.profilePic?'<img class="chat-avatar '+frame+champClass+'" src="'+this.escAttr(m.profilePic)+'" alt="">':'<div class="chat-avatar chat-avatar-placeholder '+frame+champClass+'">👾</div>';
@@ -272,6 +272,7 @@ const Chat={
           return '<div class="chat-msg '+(own?'own':'')+'">'+pic+'<div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+(m.nameColor||"#00e5ff")+';'+API.fontStyle(m.equippedFont)+API.fxStyle(m.equippedFx)+'">'+this.esc(m.username)+'</span><span class="chat-time">'+date+'</span>'+del+'</div><div class="chat-text'+bub+'">'+this.renderBody(m.text)+'</div></div></div>';
        }).join('');
        box.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',()=>this.del(b.dataset.id)));
+       box.querySelectorAll('.chat-flag').forEach(b=>b.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(b.dataset.rep,b.dataset.name); }));
        if(atBottom){
          requestAnimationFrame(()=>{ box.scrollTop=box.scrollHeight; });
        } else {

@@ -811,6 +811,10 @@ footer {
 .intro-page-label{ font-family:monospace; font-size:.75rem; color:var(--text-dim); letter-spacing:1px; }
 .intro-skip{ display:block; margin:0 auto; padding:8px 0 14px; background:none; border:0; color:var(--text-dim); font-size:.78rem; text-decoration:underline; cursor:pointer; flex-shrink:0; }
 .intro-skip:hover{ color:var(--accent); }
+.intro-noshow{display:flex;align-items:center;justify-content:center;gap:8px;padding:0 0 12px;font-size:.78rem;font-weight:700;color:#cbd5e1;cursor:pointer;user-select:none;flex-shrink:0;}
+.intro-noshow input{width:auto;accent-color:#00e5ff;cursor:pointer;margin:0;}
+.intro-noshow.locked{opacity:.65;cursor:not-allowed;color:#5b6b82;}
+.intro-noshow input:disabled{cursor:not-allowed;}
 
 .pass-wrap{ position:relative; display:flex; align-items:center; }
 .pass-wrap input{ flex:1; padding-right:42px !important; }
@@ -2108,3 +2112,13 @@ body.light .lobby-info b{color:#0f172a!important;}
 .friend-card,.friend-req,.gift-box,.gift-row,.gift-history,.friends-stack{min-width:0!important;max-width:100%!important;box-sizing:border-box;}
 .chat-toolbar{max-width:100%;box-sizing:border-box;}
 @media(max-width:900px){.lobby-grid{grid-template-columns:1fr;}.lobby-hero-top{flex-direction:column;}.lobby-back{align-self:flex-end;}}
+/* ============ DENUNCIAS ============ */
+.chat-flag{background:none;border:0;cursor:pointer;font-size:.85rem;opacity:.55;margin-left:auto;padding:2px 4px;}
+.chat-flag:hover{opacity:1;transform:scale(1.15);}
+.report-modal h2{color:#ff6b81;}
+.report-target{font-size:.92rem;}
+.report-label{display:flex;flex-direction:column;gap:6px;font-size:.82rem;font-weight:700;}
+.report-warn{font-size:.78rem;background:rgba(255,23,68,.08);border:1px solid rgba(255,23,68,.3);border-radius:10px;padding:8px 12px;color:#cbd5e1;}
+.report-warn b{color:#ff6b81;}
+.report-modal .btn-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+.inspect-report-row{display:flex;justify-content:center;padding:4px 20px 16px;}

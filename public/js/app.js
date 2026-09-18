@@ -93,7 +93,7 @@
       el.addEventListener('touchend', handler, {passive:false});
     });
 
-    (async()=>{ try{ const r=await fetch('/api/status'); const s=await r.json(); const b=document.getElementById('dbBadge'); if(b){ b.classList.remove('hidden'); if(s.storage==='postgres'){ b.textContent='PG '+s.users; b.classList.add('db-ok'); b.title='PostgreSQL conectada ('+s.users+' cuentas). Todo se guarda.'; } else { b.textContent='TEMPORAL'; b.classList.add('db-bad'); b.title='MODO TEMPORAL: sin base de datos. Las cuentas SE BORRAN. Configura DATABASE_URL en Render.'; } } }catch(e){} })();
+    (async()=>{ try{ const r=await fetch('/api/status'); const s=await r.json(); const b=document.getElementById('dbBadge'); if(b){ b.classList.remove('hidden'); if(s.storage==='postgres'){ b.textContent='PG '+s.users; b.classList.add('db-ok'); b.title='PostgreSQL conectada ('+s.users+' cuentas). Todo se guarda.'; } else { b.textContent='JSON'; b.classList.add('db-ok'); b.title='Modo JSON local ('+s.users+' cuentas).'; } } }catch(e){} })();
     Notifications.sync();
   });
 })();

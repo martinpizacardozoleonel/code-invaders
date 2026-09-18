@@ -124,6 +124,9 @@ Ranked.inspectUser=async function(userId){
     } else {
        ct.innerHTML=inner;
      }
+     ct.innerHTML+='<div class="inspect-report-row"><button class="btn btn-ghost btn-sm" id="inspectReportBtn">🚩 Denunciar jugador</button></div>';
+     const _rb=document.getElementById('inspectReportBtn');
+     if(_rb) _rb.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(userId,data.username); });
    }catch(e){ ct.innerHTML='<div class="inspect-loading"><div style="font-size:2.2rem">🛸</div><p class="arcade-load-title" style="color:#ff5252">ERROR DE SEÑAL</p><p class="arcade-load-sub">No se pudo cargar el perfil. Reintenta.</p></div>'; }
 };
 

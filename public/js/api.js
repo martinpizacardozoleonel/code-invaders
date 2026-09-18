@@ -77,6 +77,7 @@ const API = (() => {
     async getChat(){ try{ return await request('/api/chat'); }catch(e){ throw e; } },
     async sendChat(text){ try{ return await request('/api/chat',{method:'POST',body:JSON.stringify({text})}); }catch(e){ throw e; } },
     async deleteChat(id){ try{ return await request('/api/chat/'+id,{method:'DELETE'}); }catch(e){ throw e; } },
+    async report(userId,reason){ return request('/api/report',{method:'POST',body:JSON.stringify({reportedId:userId,reason})}); },
     async multiState(){ return request('/api/multi/state'); },
     async multiRooms(q){ return request('/api/multi/rooms'+(q?'?q='+encodeURIComponent(q):'')); },
     async multiCreateRoom(name,isPublic,mode,maxPlayers){ return request('/api/multi/rooms',{method:'POST',body:JSON.stringify({name,isPublic,mode,maxPlayers})}); },

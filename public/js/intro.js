@@ -1,5 +1,43 @@
 const Intro = (() => {
   const STORAGE_KEY = 'ci_intro_seen_v2';
+  const HIDE_KEY = 'ci_intro_hidden';
+  const seen = () => { try { return localStorage.getItem(STORAGE_KEY)==='1'; }catch(e){ return false; } };
+  const logged = () => (typeof Auth!=='undefined' && !!Auth.isLogged);
+  const unlocked = () => seen() && logged();
+  const hiddenLocal = () => { try { return localStorage.getItem(HIDE_KEY)==='1'; }catch(e){ return false; } };
+  const hiddenServer = () => !!(typeof Auth!=='undefined' && Auth.user && Auth.user.introHidden);
+  const shouldAutoShow = () => !(hiddenLocal() || hiddenServer());
+  let autoOpened = false;
+  async function saveHide(v){
+    try{ if(v) localStorage.setItem(HIDE_KEY,'1'); else localStorage.removeItem(HIDE_KEY); }catch(e){}
+    if(logged()){
+      try{
+        if(typeof Auth!=='undefined'&&Auth.user) Auth.user.introHidden=!!v;
+        await API.request('/api/settings',{method:'PUT',body:JSON.stringify({introHidden:!!v})});
+      }catch(e){}
+    }
+    refreshNoShow();
+  }
+  function refreshNoShow(){
+    const box=document.getElementById('introNoShow');
+    const label=document.getElementById('introNoShowLabel');
+    const wrap=document.getElementById('introNoShowWrap');
+    if(!box) return;
+    box.checked=hiddenLocal()||hiddenServer();
+    const ok=unlocked();
+    box.disabled=!ok;
+    if(wrap) wrap.classList.toggle('locked',!ok);
+    if(label) label.textContent=ok?'No volver a mostrar':'🔒 Mirá el tutorial e iniciá sesión para desbloquear "No volver a mostrar"';
+  }
+  function syncFromServer(){
+    try{
+      if(logged() && Auth.user && Auth.user.introHidden){
+        try{ localStorage.setItem(HIDE_KEY,'1'); }catch(e){}
+        if(autoOpened && overlay && !overlay.classList.contains('hidden')) close();
+      }
+    }catch(e){}
+    refreshNoShow();
+  }
   const slides = [
     {
       id: 1,
@@ -214,7 +252,7 @@ const Intro = (() => {
   ];
 
   let current = 0;
-  let overlay, contentEl, dotsEl, labelEl, prevBtn, nextBtn, progressFill, closeBtn, skipBtn, reopenBtn;
+  let overlay, contentEl, dotsEl, labelEl, prevBtn, nextBtn, progressFill, closeBtn, skipBtn, reopenBtn, noShowBox;
 
   function init() {
     overlay = document.getElementById('introOverlay');
@@ -227,11 +265,28 @@ const Intro = (() => {
     closeBtn = document.getElementById('introClose');
     skipBtn = document.getElementById('introSkip');
     reopenBtn = document.getElementById('introReopen');
+    noShowBox = document.getElementById('introNoShow');
     if (!overlay) return;
     buildDots();
     bindEvents();
+    if(noShowBox) noShowBox.addEventListener('change',()=>{
+      if(!unlocked()){
+        noShowBox.checked=false;
+        if(typeof Toast!=='undefined') Toast.info('🔒 Primero mirá el tutorial e iniciá sesión');
+        refreshNoShow();
+        return;
+      }
+      saveHide(noShowBox.checked);
+      if(typeof Toast!=='undefined') Toast.success(noShowBox.checked?'👁️ El intro ya no se mostrará solo':'👁️ El intro volverá a mostrarse');
+    });
+    if(typeof Auth!=='undefined' && !Auth._introHooked){
+      Auth._introHooked=true;
+      const _rs=Auth.restoreSession.bind(Auth);
+      Auth.restoreSession=async function(){ const r=await _rs.apply(this,arguments); try{ syncFromServer(); }catch(e){} return r; };
+    }
     render();
-    setTimeout(open, 600);
+    refreshNoShow();
+    setTimeout(()=>{ refreshNoShow(); if(shouldAutoShow()) open(true); }, 600);
   }
 
   function buildDots() {
@@ -300,8 +355,10 @@ const Intro = (() => {
   function goTo(i) { if (i<0||i>=slides.length) return; current=i; render(); }
   function next() { if (current<slides.length-1) goTo(current+1); }
   function prev() { if (current>0) goTo(current-1); }
-  function open() {
+  function open(auto) {
+    autoOpened=!!auto;
     current = 0; render();
+    refreshNoShow();
     overlay.classList.remove('hidden');
     document.body.style.overflow='hidden';
     if (reopenBtn) reopenBtn.classList.add('hidden');
