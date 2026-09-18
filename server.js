@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const LEVELS = require('./levels.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
+console.log('[STARTUP] Iniciando Code Invaders...');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 app.use((req,res,next)=>{ res.header('Access-Control-Allow-Origin','*'); res.header('Access-Control-Allow-Headers','Content-Type, Authorization'); res.header('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS'); if(req.method==='OPTIONS') return res.sendStatus(204); next(); });
@@ -14,8 +15,19 @@ app.use(express.static(path.join(__dirname, 'public'),{maxAge:0,etag:false}));
 const DATABASE_URL = process.env.DATABASE_URL;
 let USE_PG = !!DATABASE_URL;
 let pool = null;
+console.log('[INIT] DATABASE_URL presente:', !!DATABASE_URL);
 if (USE_PG) {
-  try { const { Pool } = require('pg'); pool = new Pool({ connectionString: DATABASE_URL, ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false } }); console.log('📦 Usando PostgreSQL persistente'); } catch(e) { console.log('⚠️ pg no instalado, usando archivo JSON. Instala con npm i pg'); USE_PG = false; }
+  try { 
+    console.log('[INIT] Intentando cargar módulo pg...');
+    const { Pool } = require('pg'); 
+    console.log('[INIT] Módulo pg cargado, creando pool...');
+    pool = new Pool({ connectionString: DATABASE_URL, ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false } }); 
+    console.log('📦 Usando PostgreSQL persistente'); 
+  } catch(e) { 
+    console.error('⚠️ ERROR al cargar pg:', e.message); 
+    console.log('⚠️ pg no instalado, usando archivo JSON. Instala con npm i pg'); 
+    USE_PG = false; 
+  }
 }
 if (!USE_PG) console.log('📁 Usando archivo JSON local (efímero en Render free sin Postgres)');
 function defaultDb(){ return { users: [], sessions: [], notifications: [], tournaments: [], chat: [], friendships: [], privateMessages: [], gifts: [], reports: [], bans: [] }; }
