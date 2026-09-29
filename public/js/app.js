@@ -93,7 +93,27 @@
       el.addEventListener('touchend', handler, {passive:false});
     });
 
-    (async()=>{ try{ const r=await fetch('/api/status'); const s=await r.json(); const b=document.getElementById('dbBadge'); if(b){ b.classList.remove('hidden'); if(s.storage==='postgres'){ b.textContent='PG '+s.users; b.classList.add('db-ok'); b.title='PostgreSQL conectada ('+s.users+' cuentas). Todo se guarda.'; } else { b.textContent='JSON'; b.classList.add('db-ok'); b.title='Modo JSON local ('+s.users+' cuentas).'; } } }catch(e){} })();
+    (async()=>{
+      const b=document.getElementById('dbBadge'); if(!b) return;
+      b.classList.remove('hidden');
+      try{
+        const r=await fetch('/api/health?_='+Date.now());
+        const s=await r.json();
+        if(s.connected){
+          b.textContent='PG '+s.users;
+          b.classList.add('db-ok');
+          b.title='PostgreSQL conectada ('+s.users+' cuentas). Todo se guarda.';
+        }else{
+          b.textContent='JSON';
+          b.classList.add('db-warn');
+          b.title='PostgreSQL NO conectada — '+(s.error||'sin configuración de base de datos')+'\nLas cuentas se guardan solo en este servidor y se pierden al reiniciar.';
+        }
+      }catch(e){
+        b.textContent='JSON';
+        b.classList.add('db-warn');
+        b.title='No se pudo consultar el estado del servidor: '+e.message;
+      }
+    })();
     Notifications.sync();
   });
 })();

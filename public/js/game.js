@@ -498,7 +498,7 @@ const Game = (() => {
   function resumeAudio(){ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }
   function _tone(freq,t,dur,type,vol){ if(!audioCtx) return; const g=audioCtx.createGain(),o=audioCtx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur); }
   function playSound(type){ if(!audioCtx) initAudio(); if(!audioCtx) return; resumeAudio(); const now=audioCtx.currentTime; switch(type){ case 'laser': _tone(880,now,0.12,'sine',0.18); break; case 'explosion': _tone(180,now,0.35,'sawtooth',0.25); _tone(90,now+0.05,0.3,'square',0.15); break; case 'hit': _tone(130,now,0.3,'sine',0.18); break; case 'combo': _tone(330,now,0.18,'sine',0.15); _tone(440,now+0.1,0.18,'sine',0.15); _tone(660,now+0.2,0.22,'sine',0.18); break; case 'pickup': _tone(440,now,0.2,'sine',0.14); _tone(880,now+0.12,0.25,'sine',0.14); break; } }
-  function addCoins(n){ if(!n) return; coins+=n; score+=n; saveShopLocal(); updateHUD(); updateShopUI(); if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged){ API.saveProgress(level+1,1,false,n).catch(()=>{}); } }
+  function addCoins(n){ if(!n) return; coins+=n; score+=n; saveShopLocal(); updateHUD(); updateShopUI(); if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged){ API.saveProgress(level+1,0,false,n).catch(()=>{}); } }
   function doBossDodgeShoot(){
     if(state!=='playing' || bossQuizActive) return false;
     if(shootCooldown>0 || bossBullets<=0) return false;
@@ -725,17 +725,33 @@ const Game = (() => {
       }
     }
   }
-  function saveProgress(solved){
-    const earned = solved ? (levelData&&levelData.isBoss?100:10*(level+1)) : 0;
-    if(solved && Auth && Auth.progress){
+  // Diseño de nave que corresponde al nivel en curso: uno distinto para cada
+  // uno de los 5 niveles (los mismos que usa el multijugador).
+  const LEVEL_SHIP={1:'html',2:'css',3:'js',4:'boss',5:'bossCss'};
+  function enemyDesignFor(){
+    if(!levelData) return 'html';
+    if(levelData.isCssBoss) return 'bossCss';
+    if(levelData.isBoss) return 'boss';
+    return LEVEL_SHIP[Number(levelData.id)]||'html';
+  }
+  // Guarda cómo va el nivel. solved=true cuando lo terminás; los intentos
+  // sólo se cuentan cuando la partida se pierde o se abandona, así un nivel
+  // superado no suma intentos falsos.
+  function saveProgress(solved,countAttempt){
+    const lvl=level+1;
+    const isRealAttempt=countAttempt!==false&&!solved;
+    const earned = solved ? (levelData&&levelData.isBoss?100:10*lvl) : 0;
+    if(Auth && Auth.progress){
       try{
-        let e=Auth.progress.find(p=>p.level===level+1);
-        if(!e){ e={level:level+1,attempts:1,solved:true,solvedAt:new Date().toISOString()}; Auth.progress.push(e); }
-        else { e.solved=true; e.solvedAt=new Date().toISOString(); }
+        let e=Auth.progress.find(p=>Number(p.level)===lvl);
+        if(!e){ e={level:lvl,attempts:0,solved:false,solvedAt:null}; Auth.progress.push(e); }
+        if(isRealAttempt) e.attempts=(Number(e.attempts)||0)+1;
+        if(solved&&!e.solved){ e.solved=true; e.solvedAt=new Date().toISOString(); }
+        if(typeof Auth.maxLevelReached!=='number'||Auth.maxLevelReached<lvl) Auth.maxLevelReached=lvl;
         if(isLogged()) localStorage.setItem('ci_'+uid()+'_progress', JSON.stringify(Auth.progress));
       }catch(err){}
     }
-    if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged) API.saveProgress(level+1,1,solved,earned).catch(()=>{});
+    if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged) API.saveProgress(lvl,isRealAttempt?1:0,solved,earned).catch(()=>{});
     else if(earned) saveShopLocal();
   }
   function fireAnswer(){
@@ -871,57 +887,36 @@ const Game = (() => {
       ctx.save(); if(e.flash>0&&e.flash%3<2) ctx.globalAlpha=0.6;
       const isTarget=e===currentEnemy;
       const isBoss=e.isBoss;
-      if(isBoss){
-        ctx.shadowColor='#a020f0'; ctx.shadowBlur=20;
-        ctx.fillStyle='#2a0a3a'; ctx.beginPath(); ctx.ellipse(e.x,e.y+14,e.w/2+12,e.h/2+8,0,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
-        ctx.fillStyle=isTarget?'#ff1744':'#6a1b9a'; ctx.beginPath();
-        ctx.moveTo(e.x,e.y+e.h/2); ctx.lineTo(e.x-e.w/2,e.y-e.h/3); ctx.lineTo(e.x-e.w/3,e.y-e.h/2); ctx.lineTo(e.x,e.y-e.h/2+10); ctx.lineTo(e.x+e.w/3,e.y-e.h/2); ctx.lineTo(e.x+e.w/2,e.y-e.h/3); ctx.closePath(); ctx.fill();
-        ctx.fillStyle='#ce93d8'; ctx.beginPath(); ctx.arc(e.x,e.y-6,18,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#ffeb3b'; ctx.shadowColor='#ffeb3b'; ctx.shadowBlur=10;
-        for(let i=0;i<3;i++){ const ax=e.x-18+i*18; ctx.beginPath(); ctx.arc(ax,e.y-18,3.5,0,Math.PI*2); ctx.fill(); }
-        ctx.shadowBlur=0;
-        ctx.fillStyle='#fff'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; const txt=e.question.length>22?e.question.slice(0,21)+'…':e.question; ctx.fillText(txt,e.x,e.y+6);
-        const bw=e.w-20; const hp=e.health/e.maxHealth; ctx.fillStyle='#400'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-14,bw,7); ctx.fillStyle=hp>0.5?'#0f0':hp>0.25?'#ffd600':'#f44'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-14,bw*hp,7);
-        ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=2; if(isTarget){ ctx.stroke(); }
-        ctx.restore(); continue;
-      }
-      ctx.fillStyle=isTarget?'#ff1744':(speedrun?'#ff6d00':'#c62828');
-      ctx.beginPath(); ctx.moveTo(e.x,e.y+e.h/2); ctx.lineTo(e.x-e.w/2,e.y-e.h/2); ctx.lineTo(e.x-e.w/4,e.y-e.h/4); ctx.lineTo(e.x,e.y-e.h/2+5); ctx.lineTo(e.x+e.w/4,e.y-e.h/4); ctx.lineTo(e.x+e.w/2,e.y-e.h/2); ctx.closePath(); ctx.fill();
-      if(isTarget){ ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); const ring=27+Math.sin(frameCount*0.12)*3; ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]); ctx.strokeRect(e.x-ring,e.y-ring,ring*2,ring*2); ctx.setLineDash([]); ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.fillText('▼',e.x,e.y-ring+4); if(comboCount>=3){ ctx.save(); const ans=e.answer; const hint=ans.length>1&&ans.charAt(0)==='<'?ans:'<'+ans+'>'; ctx.globalAlpha=1; ctx.fillStyle='#ffeb3b'; ctx.shadowColor='#ffeb3b'; ctx.shadowBlur=8+Math.sin(frameCount*0.2)*4; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('💡 '+hint,e.x,e.y-e.h/2-16); ctx.restore(); } }
-      if(e.maxHealth>1){ const bw=e.w-8; ctx.fillStyle='#400'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw,4); ctx.fillStyle='#f44'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw*(e.health/e.maxHealth),4); }
-      const label=e.question.trim();
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      let fontSize=10.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
-      const maxW=e.w-10;
-      let lines=[label];
-      if(ctx.measureText(label).width>maxW){
-        const words=label.split(' ');
-        if(words.length>1){
-          let line1=words[0], line2=words.slice(1).join(' ');
-          if(ctx.measureText(line1).width>maxW || ctx.measureText(line2).width>maxW){
-            fontSize=9.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
-          }
-          if(ctx.measureText(line1).width>maxW) line1=line1.slice(0,14);
-          if(ctx.measureText(line2).width>maxW) line2=line2.slice(0,14);
-          lines=[line1, line2];
-        } else {
-          fontSize=9.5; ctx.font='800 '+fontSize+'px "Segoe UI", system-ui, monospace';
-          lines=[label.slice(0,16)];
+      // Un diseño de nave distinto por nivel (compartido con el multijugador).
+      EnemyShips.draw(ctx,e.design||enemyDesignFor(),e.x,e.y,e.w,e.h);
+      if(isTarget){
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+        ctx.strokeRect(e.x-e.w/2,e.y-e.h/2,e.w,e.h);
+        const ring=27+Math.sin(frameCount*0.12)*3;
+        ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.5;
+        ctx.setLineDash([5,5]);
+        ctx.strokeRect(e.x-ring,e.y-ring,ring*2,ring*2);
+        ctx.setLineDash([]);
+        ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('▼',e.x,e.y-ring+4);
+        if(comboCount>=3){
+          const ans=e.answer; const hint=ans.length>1&&ans.charAt(0)==='<'?ans:'<'+ans+'>';
+          ctx.save(); ctx.globalAlpha=1; ctx.fillStyle='#ffeb3b'; ctx.shadowColor='#ffeb3b';
+          ctx.shadowBlur=8+Math.sin(frameCount*0.2)*4; ctx.font='bold 13px monospace';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('💡 '+hint,e.x,e.y-e.h/2-16); ctx.restore();
         }
       }
-      lines=lines.slice(0,2);
-      const lineH=11, padX=6, padY=4;
-      let maxLineW=0; for(const ln of lines){ const w=ctx.measureText(ln).width; if(w>maxLineW) maxLineW=w; }
-      const boxW=Math.min(maxLineW+padX*2, e.w-6), boxH=lines.length*lineH+padY*2;
-      const boxY=e.y+2;
-      ctx.fillStyle='rgba(0,0,0,.78)'; ctx.beginPath();
-      const bx=e.x-boxW/2, by=boxY-boxH/2;
-      const r=4; ctx.moveTo(bx+r,by); ctx.lineTo(bx+boxW-r,by); ctx.quadraticCurveTo(bx+boxW,by,bx+boxW,by+r); ctx.lineTo(bx+boxW,by+boxH-r); ctx.quadraticCurveTo(bx+boxW,by+boxH,bx+boxW-r,by+boxH); ctx.lineTo(bx+r,by+boxH); ctx.quadraticCurveTo(bx,by+boxH,bx,by+boxH-r); ctx.lineTo(bx,by+r); ctx.quadraticCurveTo(bx,by,bx+r,by); ctx.closePath(); ctx.fill();
-      ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,1)'; ctx.shadowBlur=4;
-      ctx.strokeStyle='rgba(0,0,0,.65)'; ctx.lineWidth=2.5;
-      if(lines.length===1){ ctx.strokeText(lines[0], e.x, boxY+0.5); ctx.fillText(lines[0], e.x, boxY+0.5); }
-      else { ctx.strokeText(lines[0], e.x, boxY-5); ctx.fillText(lines[0], e.x, boxY-5); ctx.strokeText(lines[1], e.x, boxY+6); ctx.fillText(lines[1], e.x, boxY+6); }
-      ctx.shadowBlur=0; ctx.restore();
+      if(e.maxHealth>1){
+        const bw=e.w-8; const hp=Math.max(0,e.health/e.maxHealth);
+        ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw,4);
+        ctx.fillStyle=hp>0.5?'#00e676':(hp>0.25?'#ffd600':'#ff1744');
+        ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw*hp,4);
+      }
+      // Texto legible dentro de la nave: misma cajita y mismo estilo de
+      // letras que se usan siempre, asi no hay que adivinar que pide.
+      EnemyShips.drawLabel(ctx,e.question,e.x,e.y+(isBoss?e.h*.1:e.h*.06),e.w-(isBoss?20:10),{fontSize:isBoss?12:11});
+      ctx.restore();
     }
   }
   function drawLasers(){ for(const l of lasers){ ctx.save(); ctx.strokeStyle=l.color; ctx.lineWidth=3; ctx.shadowColor=l.color; ctx.shadowBlur=12; ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.stroke(); ctx.restore(); } }

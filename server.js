@@ -6,30 +6,55 @@ const LEVELS = require('./levels.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 console.log('[STARTUP] Iniciando Code Invaders...');
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+// Se puede apuntar a otro archivo con DB_FILE (lo usan las pruebas automáticas
+// para no tocar los datos reales). Por defecto sigue siendo data/db.json.
+const DB_FILE = process.env.DB_FILE || path.join(DATA_DIR, 'db.json');
 app.use((req,res,next)=>{ res.header('Access-Control-Allow-Origin','*'); res.header('Access-Control-Allow-Headers','Content-Type, Authorization'); res.header('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS'); if(req.method==='OPTIONS') return res.sendStatus(204); next(); });
 app.use(express.json({ limit: '6mb' }));
 app.use((req,res,next)=>{ if(req.method==='GET') res.set('Cache-Control','no-store'); next(); });
 app.use(express.static(path.join(__dirname, 'public'),{maxAge:0,etag:false}));
-const DATABASE_URL = process.env.DATABASE_URL;
+// ── Conexión PostgreSQL (Railway / Render / local) ────────────────────────
+// Railway puede inyectar la conexión como DATABASE_URL, POSTGRES_URL o como
+// variables PG* sueltas. Antes solo se aceptaba DATABASE_URL, por eso el
+// servidor caía a JSON aunque la base existiera.
+function resolveConnectionString(){
+  const candidates = ['DATABASE_URL','POSTGRES_URL','POSTGRES_PRISMA_URL','POSTGRESQL_URL'];
+  for(const k of candidates){
+    const v = process.env[k];
+    if(v && /^postgres(ql)?:\/\//.test(v)) return { url:v.trim(), source:k };
+  }
+  const host=process.env.PGHOST, user=process.env.PGUSER, pass=process.env.PGPASSWORD, db=process.env.PGDATABASE;
+  const port=process.env.PGPORT||'5432';
+  if(host && user && db){
+    return { url:`postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass||'')}@${host}:${port}/${db}`, source:'PGHOST/PGUSER/PGDATABASE' };
+  }
+  const seen = candidates.filter(k=>process.env[k]).map(k=>k+'='+String(process.env[k]).slice(0,12)+'…');
+  return { url:null, source:null, hint: seen.length?('Variables presentes pero con formato inesperado: '+seen.join(', ')):'No hay ninguna variable de conexión (DATABASE_URL, POSTGRES_URL, PGHOST...)' };
+}
+const PG_CONN = resolveConnectionString();
+const DATABASE_URL = PG_CONN.url;
 let USE_PG = !!DATABASE_URL;
 let pool = null;
-console.log('[INIT] DATABASE_URL presente:', !!DATABASE_URL);
+let PG_ERROR = PG_CONN.url ? null : (PG_CONN.hint || 'Sin configuración de base de datos');
+console.log('[INIT] Conexión resuelta desde:', PG_CONN.source || 'NINGUNA', DATABASE_URL ? '(host: '+DATABASE_URL.replace(/^postgres(ql)?:\/\/[^@]*@/,'…@').replace(/\/.*$/,'/…')+')' : '');
 if (USE_PG) {
   try { 
     console.log('[INIT] Intentando cargar módulo pg...');
     const { Pool } = require('pg'); 
     console.log('[INIT] Módulo pg cargado, creando pool...');
-    pool = new Pool({ connectionString: DATABASE_URL, ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false } }); 
-    console.log('📦 Usando PostgreSQL persistente'); 
+    const isLocal = /localhost|127\.0\.0\.1/.test(DATABASE_URL);
+    pool = new Pool({ connectionString: DATABASE_URL, ssl: isLocal ? false : { rejectUnauthorized: false }, connectionTimeoutMillis: 10000, max: 10 }); 
+    pool.on('error', (e)=>{ console.error('[PG] error del pool:', e.message); });
+    console.log('📦 Configurado para usar PostgreSQL persistente'); 
   } catch(e) { 
     console.error('⚠️ ERROR al cargar pg:', e.message); 
     console.log('⚠️ pg no instalado, usando archivo JSON. Instala con npm i pg'); 
+    PG_ERROR = 'Módulo pg no disponible: '+e.message;
     USE_PG = false; 
   }
 }
-if (!USE_PG) console.log('📁 Usando archivo JSON local (efímero en Render free sin Postgres)');
+if (!USE_PG) console.log('📁 PostgreSQL NO conectado → usando archivo JSON local. Motivo:', PG_ERROR);
 function defaultDb(){ return { users: [], sessions: [], notifications: [], tournaments: [], chat: [], friendships: [], privateMessages: [], gifts: [], reports: [], bans: [] }; }
 function loadDb(){ if(!fs.existsSync(DB_FILE)) return defaultDb(); try{ const d=JSON.parse(fs.readFileSync(DB_FILE,'utf8')); if(!d.friendships) d.friendships=[]; if(!d.privateMessages) d.privateMessages=[]; if(!d.chat) d.chat=[]; if(!d.gifts) d.gifts=[]; if(!d.reports) d.reports=[]; if(!d.bans) d.bans=[]; return d; }catch(e){ return defaultDb(); } }
 function saveDb(db){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); fs.writeFileSync(DB_FILE, JSON.stringify(db,null,2)); }
@@ -83,7 +108,9 @@ async function initPg(){
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_bubble TEXT NOT NULL DEFAULT 'none'`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lucky_spins INT NOT NULL DEFAULT 0`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS intro_hidden INT NOT NULL DEFAULT 0`);
-    console.log('✅ Tablas PG listas');
+    const t = await pool.query('SELECT version()');
+    console.log('✅ Tablas PG listas →', (t.rows[0]&&t.rows[0].version||'').split(',')[0]);
+    PG_ERROR = null;
     try{
       const all = await pool.query('SELECT * FROM users');
       for(const row of all.rows){
@@ -101,7 +128,7 @@ async function initPg(){
       for(const n of fileDb.notifications){ try{ await pool.query('INSERT INTO notifications(id,user_id,title,body,type,read,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING',[n.id,n.userId,n.title,n.body,n.type,n.read,n.createdAt]); }catch(e){} }
       for(const t of fileDb.tournaments){ try{ await pool.query('INSERT INTO tournaments(id,status,start_date,end_date,results) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[t.id,t.status,t.startDate,t.endDate,JSON.stringify(t.results||{})]); }catch(e){} }
     }
-  }catch(e){ console.error('PG init error',e.message); USE_PG=false; }
+  }catch(e){ console.error('PG init error:', e.message); PG_ERROR = 'No se pudo inicializar PostgreSQL: '+e.message; USE_PG=false; console.log('⚠️ Caída a JSON local. Motivo:', PG_ERROR); }
 }
 function stripChampion(u){
   let changed=false;
@@ -113,6 +140,7 @@ function stripChampion(u){
 }
 function ensureShopFields(u){
   if(u.coins===undefined) u.coins=0;
+  if(!Array.isArray(u.progress)) u.progress=[];
   if(!u.skins) u.skins=['default'];
   if(!u.equipped) u.equipped='default';
   if(!u.skins.includes('default')) u.skins.unshift('default');
@@ -264,7 +292,20 @@ function pickLuckyItem(){
 
 function levelFromExp(exp){ let lv=1,left=Number(exp)||0,need=100; while(left>=need){ left-=need; lv++; need=100+(lv-1)*50; } return {level:lv,into:left,need}; }
 function formatSpeedrunMs(ms){ const s=ms/1000,m=Math.floor(s/60),sec=Math.floor(s%60),cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
-function publicUser(u){ return { id:u.id, username:u.username, createdAt:u.createdAt, coins:u.coins||0, skins:u.skins||['default'], equipped:u.equipped||'default', profilePic:u.profilePic||'', theme:u.theme||'dark', hoursPlayed: Math.floor((u.hoursPlayed||0)/3600), exp:u.exp||0, frames:u.frames||[], equippedFrame:u.equippedFrame||'none', speedrunBest:u.speedrunBest||null, nameColor:u.nameColor||'#ffffff', ownedNameColors:u.ownedNameColors||[], chatBg:u.chatBg||'', banners:u.banners||['none'], equippedBanner:u.equippedBanner||'none', bannerImg:u.bannerImg||'', fonts:u.fonts||['normal'], equippedFont:u.equippedFont||'normal', fxs:u.fxs||['none'], equippedFx:u.equippedFx||'none', lastSeen:u.lastSeen||null, description:u.description||'', achievements:u.achievements||[], tournamentStreak:u.tournamentStreak||0, tournamentWins:u.tournamentWins||0, chatBubbles:u.chatBubbles||['none'], equippedBubble:u.equippedBubble||'none', luckySpins:u.luckySpins||0, introHidden:!!u.introHidden }; }
+// Cuántos niveles resolvió cada usuario y cuál es el nivel más alto que
+// alcanzó. Se calcula desde progress, que sí está guardado en Postgres y en
+// el archivo JSON, así no hay ningún campo extra que pueda desincronizarse.
+function levelStats(u){
+  let solved=0,reached=0;
+  for(const p of ((u&&u.progress)||[])){
+    if(!p) continue;
+    const n=Number(p.level);
+    if(Number.isFinite(n)&&n>reached) reached=n;
+    if(p.solved) solved++;
+  }
+  return { solved, reached };
+}
+function publicUser(u){ const lv=levelStats(u); return { id:u.id, username:u.username, createdAt:u.createdAt, coins:u.coins||0, skins:u.skins||['default'], equipped:u.equipped||'default', profilePic:u.profilePic||'', theme:u.theme||'dark', hoursPlayed: Math.floor((u.hoursPlayed||0)/3600), exp:u.exp||0, frames:u.frames||[], equippedFrame:u.equippedFrame||'none', speedrunBest:u.speedrunBest||null, nameColor:u.nameColor||'#ffffff', ownedNameColors:u.ownedNameColors||[], chatBg:u.chatBg||'', banners:u.banners||['none'], equippedBanner:u.equippedBanner||'none', bannerImg:u.bannerImg||'', fonts:u.fonts||['normal'], equippedFont:u.equippedFont||'normal', fxs:u.fxs||['none'], equippedFx:u.equippedFx||'none', lastSeen:u.lastSeen||null, description:u.description||'', achievements:u.achievements||[], tournamentStreak:u.tournamentStreak||0, tournamentWins:u.tournamentWins||0, chatBubbles:u.chatBubbles||['none'], equippedBubble:u.equippedBubble||'none', luckySpins:u.luckySpins||0, introHidden:!!u.introHidden, maxLevelReached:lv.reached, levelsCompleted:lv.solved, levelsTotal:LEVELS.length }; }
 function isOnline(lastSeen){ if(!lastSeen) return false; return (Date.now()-new Date(lastSeen).getTime()) < 5*60*1000; }
 app.get('/favicon.ico',(req,res)=>res.status(204).end());
 app.post('/api/register', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(!username||!password) return res.status(400).json({error:'Usuario y contraseña son obligatorios'}); if(String(username).length<3) return res.status(400).json({error:'El usuario debe tener al menos 3 caracteres'}); if(String(password).length<4) return res.status(400).json({error:'La contraseña debe tener al menos 4 caracteres'}); if(await isBanned('',String(username))) return res.status(403).json({error:'⛔ Este nombre está vetado para siempre'}); if(await getUserByUsername(username)) return res.status(409).json({error:'Ese usuario ya existe'}); const salt=crypto.randomBytes(16).toString('hex'); const user={ id:crypto.randomUUID(), username, salt, passwordHash:hashPassword(password,salt), progress:[], coins:0, skins:['default'], equipped:'default', profilePic:'', theme:'dark', hoursPlayed:0, exp:0, frames:['none'], equippedFrame:'none', speedrunBest:null, speedrunHistory:[], createdAt:new Date().toISOString(), lastSeen:new Date().toISOString(), nameColor:'#ffffff', ownedNameColors:[], chatBg:'', banners:['none'], equippedBanner:'none', bannerImg:'', fonts:['normal'], equippedFont:'normal', fxs:['none'], equippedFx:'none', description:'' }; await createUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Bienvenido a Code Invaders 👾','¡Cuenta creada con éxito! Empieza a jugar en la sección Juego.','success'); res.status(201).json({token,user:publicUser(user)}); }catch(e){ console.error('[register]',e.message); res.status(500).json({error:'Error al registrar'}); } });
@@ -273,13 +314,22 @@ app.post('/api/logout', async (req,res)=>{ try{ const token=(req.headers.authori
 app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const lv=levelFromExp(user.exp); res.json({user:publicUser(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
 app.post('/api/heartbeat', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); user.lastSeen=new Date().toISOString(); await updateUser(user); res.json({ok:true, online:true}); }catch(e){ res.status(500).json({error:'heartbeat error'}); } });
 app.get('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); res.json({progress:user.progress}); }catch(e){ res.status(500).json({error:'progress error'}); } });
-app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {level,attempts,solved,coinsEarned}=req.body||{}; if(!level) return res.status(400).json({error:'Falta el nivel'}); let entry=user.progress.find(p=>p.level===level); if(!entry){ entry={level,attempts:0,solved:false,solvedAt:null}; user.progress.push(entry); } entry.attempts+=Number(attempts)||1; if(solved && !entry.solved){ entry.solved=true; entry.solvedAt=new Date().toISOString(); await pushNotification(user.id,'¡Nivel completado! 🎉',`Completaste el nivel ${level}. ¡Sigue así!`,'success'); }  if(Number(coinsEarned)) user.coins+=Number(coinsEarned);
- await checkAchievements(user);
- await updateUser(user); res.json({progress:user.progress,coins:user.coins}); }catch(e){ console.error('[progress]',e.message); res.status(500).json({error:'Error al guardar progreso'}); } });
-app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>({id:u.id,username:u.username,solved:u.progress.filter(p=>p.solved).length,attempts:u.progress.reduce((a,p)=>a+p.attempts,0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)})).sort((a,b)=>b.solved-a.solved||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
+app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);   const {level,attempts,solved,coinsEarned}=req.body||{}; const lvl=Number(level); if(!Number.isFinite(lvl)||lvl<1) return res.status(400).json({error:'Falta el nivel'}); if(!Array.isArray(user.progress)) user.progress=[];
+  let entry=user.progress.find(p=>Number(p.level)===lvl);
+  if(!entry){ entry={level:lvl,attempts:0,solved:false,solvedAt:null}; user.progress.push(entry); }
+  // El cliente manda attempts=0 cuando solo está avanzando de nivel, para no
+  // sumar intentos de más: cada intento real cuenta una vez y una sola vez.
+  entry.attempts=(Number(entry.attempts)||0)+Math.max(0,Number(attempts)||0);
+  if(solved&&!entry.solved){ entry.solved=true; entry.solvedAt=new Date().toISOString(); await pushNotification(user.id,'¡Nivel completado! 🎉',`Completaste el nivel ${lvl}. ¡Sigue así!`,'success'); }
+  if(Number(coinsEarned)) user.coins+=Number(coinsEarned);
+  const ls=levelStats(user);
+  await checkAchievements(user);
+  await updateUser(user); res.json({progress:user.progress,coins:user.coins,maxLevelReached:ls.reached,levelsCompleted:ls.solved}); }catch(e){ console.error('[progress]',e.message); res.status(500).json({error:'Error al guardar progreso'}); } });
+
+app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
 app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
 app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; await checkAchievements(user); }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } if(savedToDb){ try{ await pushNotification(user.id,'⚡ Nuevo récord Speedrun',`⏱ ${formatSpeedrunMs(t)} — ¡Nuevo mejor tiempo!`,'success'); }catch(e){ console.error('[speedrun] pushNotification fail',e.message); } } console.log(`[speedrun] ${user.username} ${t}ms isNew=${isNewBest} PG=${USE_PG} saved=${savedToDb}`); } else { console.log(`[speedrun] ${user.username} ${t}ms no mejora (best ${user.speedrunBest})`); } return res.json({speedrunBest:user.speedrunBest,isNewBest,savedToDb}); }catch(e){ console.error('[speedrun] error',e && e.stack||e); return res.status(500).json({error:'Error interno al guardar speedrun: '+(e.message||e)}); } });
-app.get('/api/user/:id', async (req,res)=>{ const user=await getUserById(req.params.id); if(!user) return res.status(404).json({error:'Usuario no encontrado'}); res.json({id:user.id,username:user.username,profilePic:user.profilePic||'',equippedFrame:user.equippedFrame||'none',frames:user.frames||[],exp:user.exp||0,hoursPlayed:Math.floor((user.hoursPlayed||0)/3600),coins:user.coins||0,solved:user.progress.filter(p=>p.solved).length,attempts:user.progress.reduce((a,p)=>a+p.attempts,0),createdAt:user.createdAt,speedrunBest:user.speedrunBest||null,nameColor:user.nameColor||'#ffffff',equippedBanner:user.equippedBanner||'none',bannerImg:user.bannerImg||'',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',online:isOnline(user.lastSeen),description:user.description||''}); });
+app.get('/api/user/:id', async (req,res)=>{ const user=await getUserById(req.params.id); if(!user) return res.status(404).json({error:'Usuario no encontrado'}); const ls=levelStats(user); res.json({id:user.id,username:user.username,profilePic:user.profilePic||'',equippedFrame:user.equippedFrame||'none',frames:user.frames||[],exp:user.exp||0,hoursPlayed:Math.floor((user.hoursPlayed||0)/3600),coins:user.coins||0,solved:ls.solved,reached:ls.reached,attempts:(user.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),createdAt:user.createdAt,speedrunBest:user.speedrunBest||null,nameColor:user.nameColor||'#ffffff',equippedBanner:user.equippedBanner||'none',bannerImg:user.bannerImg||'',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',online:isOnline(user.lastSeen),description:user.description||''}); });
 app.get('/api/notifications', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const list=await getNotifications(user.id); res.json({notifications:list,unread:list.filter(n=>!n.read).length}); });
 app.post('/api/notifications/read', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const {id}=req.body||{}; await markNotifications(user.id,id); res.json({ok:true}); });
 app.get('/api/shop',(req,res)=>{ res.json({skins:SKINS}); });
@@ -368,9 +418,9 @@ app.get('/api/bubbles', async (req,res)=>{ try{ const user=await findUserByToken
 app.post('/api/bubbles/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {bubbleId}=req.body||{}; if(bubbleId==='none'){ user.equippedBubble='none'; await updateUser(user); return res.json({equippedBubble:user.equippedBubble}); } const b=CHAT_BUBBLES.find(x=>x.id===bubbleId); if(!b) return res.status(404).json({error:'Burbuja no existe'}); if(!(user.chatBubbles||[]).includes(bubbleId)) return res.status(400).json({error:'Aún no ganaste esta burbuja (gírala en Lucky Coders)'}); user.equippedBubble=bubbleId; await updateUser(user); await pushNotification(user.id,'💬 Burbuja equipada','Ahora tus mensajes usan '+b.name,'success'); res.json({equippedBubble:user.equippedBubble}); });
 
 
-app.get('/api/levels', async (req,res)=>{ const user=await findUserByToken(req); const solved=user?user.progress.filter(p=>p.solved).map(p=>p.level):[]; res.json({total:LEVELS.length,solved,levels:LEVELS}); });
+app.get('/api/levels', async (req,res)=>{ const user=await findUserByToken(req); const ls=levelStats(user); const solved=user?((user.progress||[]).filter(p=>p.solved).map(p=>p.level)):[]; res.json({total:LEVELS.length,solved,reached:ls.reached,completed:ls.solved,levels:LEVELS}); });
 app.get('/api/chat', async (req,res)=>{ const msgs=await getChat(30); res.set('Cache-Control','no-store'); res.json({messages:msgs}); });
- app.post('/api/chat', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'Debes iniciar sesión para chatear'}); ensureShopFields(user); const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'}); const isImg=t.startsWith('[img]'); const isGif=t.startsWith('[gif]'); const isSticker=t.startsWith('[sticker]'); const isMedia=isImg||isGif||isSticker; if(!isMedia && t.length>500) return res.status(400).json({error:'Mensaje muy largo (máx 500)'}); if(isMedia && t.length>700000) return res.status(400).json({error:'Imagen muy grande'}); if(isImg){ const d=t.slice(5); if(!/^data:image\/(png|jpe?g|gif|webp);base64,/.test(d)) return res.status(400).json({error:'Foto inválida'}); } if(isGif){ const u=t.slice(5,505); if(!/^https?:\/\/.{4,480}$/.test(u)) return res.status(400).json({error:'GIF inválido'}); } if(isSticker){ if(t.length>120) return res.status(400).json({error:'Sticker inválido'}); } const maxLen=isMedia?700000:500; const msg={id:crypto.randomUUID(),userId:user.id,username:user.username,text:t.slice(0,maxLen),createdAt:new Date().toISOString(),equippedBubble:user.equippedBubble||'none',equippedFrame:user.equippedFrame||'none',nameColor:user.nameColor||'#ffffff',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',frames:user.frames||[],profilePic:user.profilePic||''}; await addChat(msg); res.json({message:msg}); });
+ app.post('/api/chat', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'Debes iniciar sesión para chatear'}); ensureShopFields(user); const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'}); const isImg=t.startsWith('[img]'); const isGif=t.startsWith('[gif]'); const isSticker=t.startsWith('[sticker]'); const isMedia=isImg||isGif||isSticker; if(!isMedia && t.length>500 && !replyLimitOk(t)) return res.status(400).json({error:'Mensaje muy largo (máx 500)'}); if(isMedia && t.length>700000) return res.status(400).json({error:'Imagen muy grande'}); if(isImg){ const d=t.slice(5); if(!/^data:image\/(png|jpe?g|gif|webp);base64,/.test(d)) return res.status(400).json({error:'Foto inválida'}); } if(isGif){ const u=t.slice(5,505); if(!/^https?:\/\/.{4,480}$/.test(u)) return res.status(400).json({error:'GIF inválido'}); } if(isSticker){ if(t.length>120) return res.status(400).json({error:'Sticker inválido'}); } const maxLen=isMedia?700000:500; const msg={id:crypto.randomUUID(),userId:user.id,username:user.username,text:t.slice(0,maxLen),createdAt:new Date().toISOString(),equippedBubble:user.equippedBubble||'none',equippedFrame:user.equippedFrame||'none',nameColor:user.nameColor||'#ffffff',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',frames:user.frames||[],profilePic:user.profilePic||''}; await addChat(msg); res.json({message:msg}); });
 app.delete('/api/chat/:id', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const id=req.params.id; if(USE_PG){ const r=await pool.query('SELECT * FROM chat_messages WHERE id=$1',[id]); if(!r.rows[0]) return res.status(404).json({error:'Mensaje no encontrado'}); if(r.rows[0].user_id!==user.id) return res.status(403).json({error:'No puedes borrar mensajes ajenos'}); await pool.query('DELETE FROM chat_messages WHERE id=$1',[id]); } else { const m=(fileDb.chat||[]).find(c=>c.id===id); if(!m) return res.status(404).json({error:'Mensaje no encontrado'}); if(m.userId!==user.id) return res.status(403).json({error:'No puedes borrar mensajes ajenos'}); fileDb.chat=fileDb.chat.filter(c=>c.id!==id); saveDb(fileDb); } res.json({ok:true}); });
 /* FRIENDS */
 async function getFriendships(userId){
@@ -383,7 +433,7 @@ app.post('/api/friends/accept', async (req,res)=>{ const user=await findUserByTo
 app.post('/api/friends/reject', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const {requestId}=req.body||{}; let fr=null; if(USE_PG){ const r=await pool.query('SELECT * FROM friendships WHERE id=$1',[requestId]); if(r.rows[0]) fr={id:r.rows[0].id,requesterId:r.rows[0].requester_id,addresseeId:r.rows[0].addressee_id,status:r.rows[0].status}; } else fr=fileDb.friendships.find(f=>f.id===requestId); if(!fr) return res.status(404).json({error:'Solicitud no encontrada'}); if(fr.addresseeId!==user.id && fr.requesterId!==user.id) return res.status(403).json({error:'No autorizado'}); if(USE_PG) await pool.query('DELETE FROM friendships WHERE id=$1',[requestId]); else { fileDb.friendships=fileDb.friendships.filter(f=>f.id!==requestId); saveDb(fileDb); } res.json({ok:true}); });
 app.delete('/api/friends/:id', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const id=req.params.id; let fr=null; if(USE_PG){ const r=await pool.query('SELECT * FROM friendships WHERE id=$1',[id]); if(r.rows[0]) fr={id:r.rows[0].id,requesterId:r.rows[0].requester_id,addresseeId:r.rows[0].addressee_id}; } else fr=fileDb.friendships.find(f=>f.id===id); if(!fr) return res.status(404).json({error:'No encontrado'}); if(fr.requesterId!==user.id && fr.addresseeId!==user.id) return res.status(403).json({error:'No autorizado'}); if(USE_PG) await pool.query('DELETE FROM friendships WHERE id=$1',[id]); else { fileDb.friendships=fileDb.friendships.filter(f=>f.id!==id); saveDb(fileDb); } res.json({ok:true}); });
 app.get('/api/friends/private/:friendId', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const friendId=req.params.friendId; const frs=await getFriendships(user.id); const ok=frs.some(f=>f.status==='accepted' && (f.requesterId===friendId || f.addresseeId===friendId)); if(!ok) return res.status(403).json({error:'No son amigos'}); let msgs=[]; if(USE_PG){ const r=await pool.query('SELECT * FROM (SELECT * FROM private_messages WHERE (sender_id=$1 AND receiver_id=$2) OR (sender_id=$2 AND receiver_id=$1) ORDER BY created_at DESC LIMIT 30) t ORDER BY created_at ASC',[user.id,friendId]); msgs=r.rows.map(x=>({id:x.id,senderId:x.sender_id,receiverId:x.receiver_id,text:x.text,createdAt:x.created_at})); } else msgs=fileDb.privateMessages.filter(m=>(m.senderId===user.id&&m.receiverId===friendId)||(m.senderId===friendId&&m.receiverId===user.id)).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).slice(-30); try{ const u1=await getUserById(user.id); const u2=await getUserById(friendId); const bmap={}; if(u1) bmap[u1.id]=u1.equippedBubble||'none'; if(u2) bmap[u2.id]=u2.equippedBubble||'none'; msgs=msgs.map(m=>Object.assign({},m,{senderBubble:bmap[m.senderId]||m.senderBubble||'none'})); }catch(e){} res.set('Cache-Control','no-store'); res.json({messages:msgs}); });
-app.post('/api/friends/private/:friendId', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const friendId=req.params.friendId; const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'}); const isImg=t.startsWith('[img]'); const isGif=t.startsWith('[gif]'); const isSticker=t.startsWith('[sticker]'); const isMedia=isImg||isGif||isSticker; if(!isMedia && t.length>500) return res.status(400).json({error:'Muy largo'}); if(isMedia && t.length>700000) return res.status(400).json({error:'Imagen muy grande'}); if(isImg && !/^data:image\/(png|jpe?g|gif|webp);base64,/.test(t.slice(5))) return res.status(400).json({error:'Foto inválida'}); if(isGif && !/^https?:\/\/.{4,480}$/.test(t.slice(5,505))) return res.status(400).json({error:'GIF inválido'}); if(isSticker && t.length>120) return res.status(400).json({error:'Sticker inválido'}); const frs=await getFriendships(user.id); const ok=frs.some(f=>f.status==='accepted' && (f.requesterId===friendId || f.addresseeId===friendId)); if(!ok) return res.status(403).json({error:'No son amigos'}); const maxLen=isMedia?700000:500; const msg={id:crypto.randomUUID(),senderId:user.id,receiverId:friendId,text:t.slice(0,maxLen),createdAt:new Date().toISOString()}; if(USE_PG) await pool.query('INSERT INTO private_messages(id,sender_id,receiver_id,text,created_at) VALUES($1,$2,$3,$4,$5)',[msg.id,msg.senderId,msg.receiverId,msg.text,msg.createdAt]); else { fileDb.privateMessages.push(msg); if(fileDb.privateMessages.length>2000) fileDb.privateMessages=fileDb.privateMessages.slice(-2000); saveDb(fileDb); } let preview=t.slice(0,40); if(isImg) preview='📷 Foto'; else if(isGif) preview='🎞️ GIF'; else if(isSticker) preview='😎 '+t.slice(9,15); await pushNotification(friendId,'💬 Mensaje privado',`${user.username}: ${preview}`,`info`); res.json({message:msg}); });
+app.post('/api/friends/private/:friendId', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const friendId=req.params.friendId; const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'}); const isImg=t.startsWith('[img]'); const isGif=t.startsWith('[gif]'); const isSticker=t.startsWith('[sticker]'); const isMedia=isImg||isGif||isSticker; if(!isMedia && t.length>500 && !replyLimitOk(t)) return res.status(400).json({error:'Muy largo'}); if(isMedia && t.length>700000) return res.status(400).json({error:'Imagen muy grande'}); if(isImg && !/^data:image\/(png|jpe?g|gif|webp);base64,/.test(t.slice(5))) return res.status(400).json({error:'Foto inválida'}); if(isGif && !/^https?:\/\/.{4,480}$/.test(t.slice(5,505))) return res.status(400).json({error:'GIF inválido'}); if(isSticker && t.length>120) return res.status(400).json({error:'Sticker inválido'}); const frs=await getFriendships(user.id); const ok=frs.some(f=>f.status==='accepted' && (f.requesterId===friendId || f.addresseeId===friendId)); if(!ok) return res.status(403).json({error:'No son amigos'}); const maxLen=isMedia?700000:500; const msg={id:crypto.randomUUID(),senderId:user.id,receiverId:friendId,text:t.slice(0,maxLen),createdAt:new Date().toISOString()}; if(USE_PG) await pool.query('INSERT INTO private_messages(id,sender_id,receiver_id,text,created_at) VALUES($1,$2,$3,$4,$5)',[msg.id,msg.senderId,msg.receiverId,msg.text,msg.createdAt]); else { fileDb.privateMessages.push(msg); if(fileDb.privateMessages.length>2000) fileDb.privateMessages=fileDb.privateMessages.slice(-2000); saveDb(fileDb); } let preview=t.slice(0,40); if(isImg) preview='📷 Foto'; else if(isGif) preview='🎞️ GIF'; else if(isSticker) preview='😎 '+t.slice(9,15); await pushNotification(friendId,'💬 Mensaje privado',`${user.username}: ${preview}`,`info`); res.json({message:msg}); });
 /* GIFTS */
 app.post('/api/friends/gift', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {friendId,amount,message}=req.body||{}; const numAmount=Math.round(Number(amount)); if(!friendId) return res.status(400).json({error:'Falta el destinatario'}); if(!Number.isFinite(numAmount)||numAmount<10) return res.status(400).json({error:'Monto mínimo: 10 pts'}); if(numAmount>5000) return res.status(400).json({error:'Monto máximo: 5000 pts'}); if(user.coins<numAmount) return res.status(400).json({error:'Puntos insuficientes'}); const target=await getUserById(friendId); if(!target) return res.status(404).json({error:'Usuario no encontrado'}); if(target.id===user.id) return res.status(400).json({error:'No puedes enviarte obsequios a ti mismo'}); const frs=await getFriendships(user.id); const ok=frs.some(f=>f.status==='accepted' && (f.requesterId===friendId || f.addresseeId===friendId)); if(!ok) return res.status(400).json({error:'Solo puedes enviar obsequios a amigos'}); user.coins-=numAmount; await updateUser(user); target.coins=(target.coins||0)+numAmount; await updateUser(target); const gift={id:crypto.randomUUID(),senderId:user.id,receiverId:friendId,amount:numAmount,message:String(message||'').slice(0,100),createdAt:new Date().toISOString()}; if(USE_PG) await pool.query('INSERT INTO gifts(id,sender_id,receiver_id,amount,message,created_at) VALUES($1,$2,$3,$4,$5,$6)',[gift.id,gift.senderId,gift.receiverId,gift.amount,gift.message,gift.createdAt]); else { fileDb.gifts.push(gift); if(fileDb.gifts.length>2000) fileDb.gifts=fileDb.gifts.slice(-2000); saveDb(fileDb); } await pushNotification(friendId,'🎁 ¡Obsequio recibido!',`${user.username} te envió ${numAmount} pts${gift.message?': '+gift.message:''}`,'success'); res.json({coins:user.coins,gift}); }catch(e){ console.error('[gift]',e.message); res.status(500).json({error:'Error al enviar obsequio'}); } });
 app.get('/api/friends/gifts', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); let gifts=[]; if(USE_PG){ const r=await pool.query('SELECT * FROM gifts WHERE sender_id=$1 OR receiver_id=$1 ORDER BY created_at DESC LIMIT 50',[user.id]); gifts=r.rows.map(x=>({id:x.id,senderId:x.sender_id,receiverId:x.receiver_id,amount:x.amount,message:x.message,createdAt:x.created_at})); } else gifts=fileDb.gifts.filter(g=>g.senderId===user.id||g.receiverId===user.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,50); const users=await getAllUsers(); const map=new Map(users.map(u=>[u.id,u])); gifts=gifts.map(g=>({...g,senderName:map.get(g.senderId)?map.get(g.senderId).username:'?',receiverName:map.get(g.receiverId)?map.get(g.receiverId).username:'?'})); res.json({gifts}); }catch(e){ res.status(500).json({error:'Error al obtener obsequios'}); } });
@@ -441,6 +491,33 @@ app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!A
 app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
 
 /* ============ MULTIPLAYER SALAS (buscador + público/privado con código, polling) ============ */
+// ── Responder mensajes ───────────────────────────────────────────────────
+// Un mensaje que responde a otro empieza con "[reply]" y detrás lleva un JSON
+// chico con los datos del mensaje original. Se guarda dentro del mismo campo
+// de texto para no tener que cambiar las tablas ni el archivo JSON.
+const REPLY_PREFIX='[reply]';
+const REPLY_META_MAX=220;   // tamaño del JSON con el mensaje citado
+const REPLY_TEXT_MAX=500;   // tamaño del texto nuevo
+function splitReply(t){
+  if(typeof t!=='string'||t.indexOf(REPLY_PREFIX)!==0) return {reply:null,body:t};
+  const rest=t.slice(REPLY_PREFIX.length);
+  const sep=rest.indexOf('|');
+  if(sep<1) return {reply:null,body:t};
+  let r=null;
+  try{ r=JSON.parse(rest.slice(0,sep).replace(/%7C/g,'|')); }catch(e){ r=null; }
+  if(!r||typeof r!=='object'||!r.n) return {reply:null,body:t};
+  return { reply:{ userId:String(r.u==null?'':r.u).slice(0,64), username:String(r.n).slice(0,40), text:String(r.t==null?'':r.t).slice(0,160) },
+           body:rest.slice(sep+1) };
+}
+// Un texto con el prefijo de respuesta tiene que estar bien formado y entrar
+// en el límite; si no, se rechaza en vez de guardar basura.
+function replyLimitOk(t){
+  const s=String(t==null?'':t);
+  if(s.indexOf(REPLY_PREFIX)!==0) return true;
+  if(s.length>REPLY_META_MAX+REPLY_TEXT_MAX+1) return false;
+  const p=splitReply(s);
+  return !!p.reply;
+}
 const Rooms=new Map();
 const UserRoom=new Map();
 function makeRoomCode(){ const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=ABC[Math.floor(Math.random()*ABC.length)]; return s; }
@@ -470,6 +547,36 @@ function multiWaveDesc(w,enemies){
   const parts=[]; if(c.HTML) parts.push(c.HTML+' HTML'); if(c.CSS) parts.push(c.CSS+' CSS'); if(c.JS) parts.push(c.JS+' JS');
   return 'HORNADA '+w+' · '+parts.join(' + ');
 }
+
+// ── Arena compartida multijugador ────────────────────────────────────────
+// Una sola pantalla. Cada jugador tiene su franja vertical y sus propias
+// naves cayendo dentro de ella, pero todos las ven y cualquiera puede
+// disparar a cualquiera. Cuando una nave toca el fondo TODOS pierden 1 vida.
+// No hay reloj de oleada: la presión sube sola a medida que se destruyen.
+const ARENA_FALL_BASE=0.30, ARENA_FALL_MAX=0.80, ARENA_FALL_WAVE=0.018;
+const ARENA_SPAWN_BASE=3000, ARENA_SPAWN_MIN=800, ARENA_SPAWN_KILL_STEP=130, ARENA_SPAWN_WAVE_STEP=90;
+const ARENA_MAX_ENEMIES=30, ARENA_START_LIVES=2, ARENA_KILLS_PER_WAVE=6;
+function arenaFall(wave){ return Math.min(ARENA_FALL_MAX, ARENA_FALL_BASE + Math.max(0,(wave||1)-1)*ARENA_FALL_WAVE); }
+function arenaSpawnMs(ps,wave){ return Math.max(ARENA_SPAWN_MIN, ARENA_SPAWN_BASE - (ps.kills||0)*ARENA_SPAWN_KILL_STEP - Math.max(0,(wave||1)-1)*ARENA_SPAWN_WAVE_STEP); }
+function arenaTravelMs(fall){ return 1000/Math.max(0.05,fall||ARENA_FALL_BASE); }
+function multiPool(){
+  const pools=[];
+  try{
+    const html=(LEVELS[0]&&LEVELS[0].questions)||[]; const css=(LEVELS[1]&&LEVELS[1].questions)||[]; const js=(LEVELS[2]&&LEVELS[2].questions)||[];
+    html.forEach(q=>pools.push({cat:'HTML',q:q.q,a:q.a})); css.forEach(q=>pools.push({cat:'CSS',q:q.q,a:q.a})); js.forEach(q=>pools.push({cat:'JS',q:q.q,a:q.a}));
+  }catch(e){}
+  if(!pools.length) pools.push({cat:'HTML',q:'Párrafo',a:'<p>'},{cat:'CSS',q:'Color de texto',a:'color'},{cat:'JS',q:'Variable mutable',a:'let'});
+  return pools;
+}
+function multiPickOne(){ const p=multiPool(); return p[Math.floor(Math.random()*p.length)]; }
+// Diseños de nave disponibles (los mismos 5 que usa el modo de un jugador).
+// En el multijugador cada nave sale con uno al azar para que se vean varias
+// formas distintas a la vez.
+const SHIP_DESIGNS=['html','css','js','boss','bossCss'];
+function arenaMakeEnemy(ownerId,wave,spawnAt){
+  const p=multiPickOne();
+  return { id:crypto.randomUUID(), ownerId, cat:p.cat, q:p.q, a:p.a, design:SHIP_DESIGNS[Math.floor(Math.random()*SHIP_DESIGNS.length)], spawnAt:(spawnAt||Date.now()), fall:arenaFall(wave) };
+}
 function leaveRoomInternal(uid){
   const r=findRoomOfUser(uid);
   if(!r) return;
@@ -483,34 +590,63 @@ function tickRoom(r){
   for(const [id,p] of [...r.lobby]){ if(now-p.lastSeen>45000){ r.lobby.delete(id); if(UserRoom.get(id)===r.id) UserRoom.delete(id); } }
   if(r.match && r.match.status==='finished' && now-r.match.finishedAt>90000){ r.match=null; for(const p of r.lobby.values()) p.ready=false; }
   if(r.match && r.match.status==='playing'){
-    for(const pid of Object.keys(r.match.players)){
-      const ps=r.match.players[pid];
-      if(ps.alive && now-ps.waveStart>multiWaveTime(ps.wave)*1000){
-        ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0;
-        if(ps.lives<=0){ ps.alive=false; } else { ps.waveStart=now; }
+    const m=r.match;
+    m.wave=1+Math.floor((m.totalKills||0)/ARENA_KILLS_PER_WAVE);
+    const ids=Object.keys(m.players);
+    if(!ids.length){ /* todos se fueron */ }
+    for(const pid of ids){
+      const ps=m.players[pid];
+      if(now>=ps.nextSpawnAt){
+        m.enemies.push(arenaMakeEnemy(pid,m.wave));
+        ps.nextSpawnAt=now+(m.enemies.length<ARENA_MAX_ENEMIES?arenaSpawnMs(ps,m.wave):500);
       }
     }
-    const ids=Object.keys(r.match.players);
-    const alive=ids.filter(id=>r.match.players[id].alive);
-    if(ids.length>=2 && alive.length<=1 && !r.match.finishing){
-      r.match.finishing=true;
-      const m=r.match;
+    const travel=arenaTravelMs(arenaFall(m.wave));
+    const breaches=[];
+    m.enemies=m.enemies.filter(e=>{
+      if(now-e.spawnAt<travel) return true;
+      breaches.push(e); return false;
+    });
+    if(breaches.length){
+      for(const pid of ids){ const ps=m.players[pid]; ps.lives=Math.max(0,(ps.lives==null?ARENA_START_LIVES:ps.lives)-1); ps.streak=0; }
+      m.events=m.events||[];
+      breaches.forEach(e=>m.events.push({id:crypto.randomUUID(),type:'breach',ownerId:e.ownerId,cat:e.cat,at:now}));
+      if(m.events.length>20) m.events=m.events.slice(-20);
+      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'🚨 ¡Rompen la línea! Todos pierden 1 vida.',createdAt:new Date().toISOString()});
+    }
+    const anyAlive=ids.some(id=>(!r.lobby||r.lobby.has(id)) && (m.players[id].lives==null?ARENA_START_LIVES:m.players[id].lives)>0);
+    if(!anyAlive && !m.finishing){
+      m.finishing=true;
       (async()=>{
-        try{
+         try{
           const pls=ids.map(id=>m.players[id]);
-          pls.sort((a,b)=> (b.alive-a.alive) || (b.wave-a.wave) || (b.hits-a.hits) || (a.misses-b.misses));
+          // Gana el que destruye MÁS NAVES ENEMIGAS. Sólo como desempate
+          // cuenta tener menos errores, y si siguen empatados no hay ganador
+          // único: el premio se reparte entre los que quedaron en cabeza.
+          pls.sort((a,b)=> (b.kills-a.kills) || (a.misses-b.misses));
           const win=pls[0];
+          const tied=(win&&pls.length>1&&pls[1].kills===win.kills&&pls[1].misses===win.misses)
+            ? pls.filter(p=>p.kills===win.kills&&p.misses===win.misses) : [win];
+          const winIds=tied.map(p=>p.userId);
+          const topKills=win.kills||0;
           for(const p of pls){
-            const u=await getUserById(p.userId); if(!u) continue; ensureShopFields(u);
-            const isWin=p.userId===win.userId;
-            const expGain=isWin?(300+p.wave*20+p.hits*5):(p.hits*5);
-            const coinGain=isWin?(500+ids.length*100+p.hits*5):(p.hits*10);
-            u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
-            await updateUser(u);
-            p.expWon=expGain; p.coinsWon=coinGain;
-            try{ await pushNotification(u.id, isWin?'🏆 ¡Ganaste el Multiplayer!':'💀 Multiplayer terminado', isWin?('Oleada '+p.wave+' · +'+expGain+' EXP +'+coinGain+' pts'):('Oleada '+p.wave+' · '+p.hits+' aciertos'), isWin?'success':'info'); }catch(e){}
+           const u=await getUserById(p.userId); if(!u) continue; ensureShopFields(u);
+           const isWin=winIds.indexOf(p.userId)>=0;
+           // Puntaje: lo que vale cada nave destruida, con bonus por racha.
+           const score=p.kills*100+(p.best||0)*25+(isWin?500:0);
+           p.score=score;
+           const expGain=(isWin?300:150)+p.kills*10+(isWin?(topKills*5):0);
+           const coinGain=(isWin?500:200)+p.kills*20+(isWin?(topKills*10):0);
+           u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
+           await updateUser(u);
+           p.expWon=expGain; p.coinsWon=coinGain;
+           const head=isWin?((tied.length>1?'🏆 ¡Empate en el primer lugar!':'🏆 ¡Ganaste el Multiplayer!')):'🛡️ Multiplayer terminado';
+           try{ await pushNotification(u.id, head, p.kills+' naves destruidas · '+score+' pts · +'+expGain+' EXP +'+coinGain+' pts', isWin?'success':'info'); }catch(e){}
           }
-          m.status='finished'; m.finishedAt=Date.now(); m.winnerId=win.userId;
+          r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:(tied.length>1?'🤝 ¡Empate! ':'🏆 Ganador: ')+(tied.map(p=>p.username).join(' y '))+' — '+topKills+' naves destruidas',createdAt:new Date().toISOString()});
+          m.status='finished'; m.finishedAt=Date.now();
+          m.winnerId=(pls.length>1&&tied.length===1)?win.userId:null;
+          m.winnerIds=winIds;
         }catch(e){ console.error('[multi finish]',e.message); m.status='finished'; m.finishedAt=Date.now(); }
       })();
     }
@@ -518,10 +654,13 @@ function tickRoom(r){
   if(!r.match || r.match.status==='finished'){
     const l=[...r.lobby.values()];
     if(l.length>=2 && l.every(p=>p.ready)){
+      const now=Date.now();
       const players={};
-      l.forEach(p=>{ const en=multiPickEnemies(); players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',nameColor:p.nameColor||'#ffffff',alive:true,lives:2,wave:1,enemies:en,waveStart:Date.now(),desc:multiWaveDesc(1,en),hits:0,misses:0,streak:0,best:0,expWon:0,coinsWon:0}; });
-      r.match={id:crypto.randomUUID(),status:'playing',startedAt:Date.now(),players,shots:[]};
-      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada en '+r.name+'! Sobrevive hasta ser el último.',createdAt:new Date().toISOString()});
+      l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+1500,expWon:0,coinsWon:0}; });
+      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[]};
+      l.forEach(p=>{ for(let i=0;i<3;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now-i*800)); });
+      r.match=m;
+      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada en '+r.name+'! Todos contra la oleada. No hay tiempo: sobrevive.',createdAt:new Date().toISOString()});
     }
   }
   if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
@@ -622,13 +761,19 @@ app.get('/api/multi/state', async (req,res)=>{
     let match=null;
     if(room.match){
       const now=Date.now();
-      const players=Object.values(room.match.players).map(p=>({userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive,lives:(p.lives==null?2:p.lives),wave:p.wave,enemies:(p.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:p.desc,hits:p.hits,misses:p.misses,streak:p.streak,best:p.best,expWon:p.expWon||0,coinsWon:p.coinsWon||0,timeLeft:p.alive?Math.max(0,Math.ceil(multiWaveTime(p.wave)-(now-p.waveStart)/1000)):0,timeTotal:multiWaveTime(p.wave)}));
-      if(room.match.shots) room.match.shots=room.match.shots.filter(s=>now-s.at<8000).slice(-20);
-      match={id:room.match.id,status:room.match.status,winnerId:room.match.winnerId||null,players,shots:(room.match.shots||[]).slice(-15)};
+      const m=room.match;
+      const order=Object.keys(m.players);
+      const players=order.map((pid,idx)=>{
+        const p=m.players[pid];
+        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,aliveNow:true};
+      });
+      if(m.shots) m.shots=m.shots.filter(s=>now-s.at<6000).slice(-20);
+      if(m.events) m.events=m.events.filter(e=>now-e.at<6000).slice(-10);
+      match={id:m.id,status:m.status,winnerId:m.winnerId||null,winnerIds:m.winnerIds||[],wave:m.wave||1,totalKills:m.totalKills||0,players,enemies:(m.enemies||[]).map(e=>({id:e.id,ownerId:e.ownerId,lane:order.indexOf(e.ownerId),cat:e.cat,q:e.q,design:e.design||'html',spawnAt:e.spawnAt,fall:e.fall})),events:(m.events||[]).slice(-6),shots:(m.shots||[]).slice(-12),now,travelMs:arenaTravelMs(arenaFall(m.wave||1))};
     }
     const info={...roomCard(room),code:(user&&room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:!!(user&&room.ownerId===user.id)};
     res.set('Cache-Control','no-store');
-    res.json({room:info,lobby,match,chat:room.chat.slice(-20),me:user?user.id:null});
+    res.json({room:info,lobby,match,chat:room.chat.slice(-20),me:user?user.id:null,now:Date.now()});
   }catch(e){ res.status(500).json({error:'multi state error'}); }
 });
 app.post('/api/multi/join', async (req,res)=>{
@@ -658,7 +803,7 @@ app.post('/api/multi/chat', async (req,res)=>{
   if(!room) return res.status(400).json({error:'Unite a una sala primero'});
   const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'});
   const isSt=t.startsWith('[sticker]');
-  if(!isSt && t.length>300) return res.status(400).json({error:'Máx 300'});
+  if(!isSt && t.length>300 && !replyLimitOk(t)) return res.status(400).json({error:'Máx 300'});
   if(isSt && t.length>120) return res.status(400).json({error:'Sticker inválido'});
   const m={id:crypto.randomUUID(),userId:user.id,username:user.username,text:t.slice(0,300),createdAt:new Date().toISOString(),equippedBubble:user.equippedBubble||'none',nameColor:user.nameColor||'#ffffff'};
   room.chat.push(m); if(room.chat.length>100) room.chat=room.chat.slice(-100);
@@ -673,27 +818,32 @@ app.post('/api/multi/answer', async (req,res)=>{
   if(!m || m.status!=='playing') return res.status(400).json({error:'Sin partida'});
   const ps=m.players[user.id];
   if(!ps) return res.status(400).json({error:'No estás en la partida'});
-  if(!ps.alive) return res.status(400).json({error:'Estás eliminado'});
+  if((ps.lives==null?ARENA_START_LIVES:ps.lives)<=0) return res.status(400).json({error:'No te quedan vidas'});
   const now=Date.now();
-  const norm=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
-  if(now-ps.waveStart>multiWaveTime(ps.wave)*1000){ ps.lives=(ps.lives==null?2:ps.lives)-1; ps.misses=(ps.misses||0)+1; ps.streak=0; if(ps.lives<=0) ps.alive=false; else ps.waveStart=now; if(_room) tickRoom(_room); return res.status(400).json({error:'¡Te alcanzaron! Pierdes 1 vida'}); }
-  const idx=ps.enemies.findIndex(e=>norm(e.a)===norm(t));
+  const norm=s=>String(s).trim().replace(/\s+/g,' ').toLowerCase();
   m.shots=m.shots||[];
-  const pushShot=(hit,q)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,hit:!!hit,q:q||null,at:Date.now()}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
-  if(idx>=0){
-    const killed=ps.enemies.splice(idx,1)[0];
-    ps.hits++; ps.streak++; if(ps.streak>ps.best) ps.best=ps.streak;
-    pushShot(true,killed.q);
-    let waveUp=false;
-    if(!ps.enemies.length){ ps.wave++; const en=multiPickEnemies(); ps.enemies=en; ps.waveStart=now; ps.desc=multiWaveDesc(ps.wave,en); waveUp=true; }
+  const pushShot=(hit,targetId)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,lane:Object.keys(m.players).indexOf(user.id),hit:!!hit,targetId:targetId||null,at:now}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
+  // Se puede disparar a cualquier nave de la pantalla: manda la que coincida
+  // con la respuesta escrita, priorizando las que son del propio jugador.
+  const mine=order=>m.enemies.map((e,i)=>({e,i})).filter(x=>(order!==0||x.e.ownerId===user.id));
+  const candidates=mine(1).concat(mine(0));
+  const found=candidates.find(x=>norm(x.e.a)===norm(t));
+  if(found){
+    const killed=m.enemies[found.i];
+    m.enemies.splice(found.i,1);
+    ps.kills=(ps.kills||0)+1; ps.streak=(ps.streak||0)+1; if(ps.streak>(ps.best||0)) ps.best=ps.streak;
+    m.totalKills=(m.totalKills||0)+1;
+    // Cada destrucción acelera la aparición de las naves de su dueño.
+    const own=m.players[killed.ownerId]; if(own) own.nextSpawnAt=Math.min(own.nextSpawnAt, now+Math.max(ARENA_SPAWN_MIN, arenaSpawnMs(ps,m.wave)));
+    pushShot(true,killed.id);
     if(_room) tickRoom(_room);
-    return res.json({hit:true,killed:{cat:killed.cat,q:killed.q,a:killed.a},waveUp,wave:ps.wave,enemies:(ps.enemies||[]).map(e=>({id:e.id,cat:e.cat,q:e.q})),desc:ps.desc,hits:ps.hits,streak:ps.streak,lives:(ps.lives==null?2:ps.lives)});
-  } else {
-    ps.misses++; ps.streak=0; ps.lives=(ps.lives==null?2:ps.lives)-1;
-    pushShot(false,null);
-    if(ps.lives<=0){ ps.alive=false; if(_room) tickRoom(_room); return res.json({hit:false,misses:ps.misses,lives:0,dead:true}); }
-    return res.json({hit:false,misses:ps.misses,lives:ps.lives});
+    return res.json({hit:true,killed:{id:killed.id,cat:killed.cat,q:killed.q,a:killed.a,ownerId:killed.ownerId},wave:m.wave,kills:ps.kills,streak:ps.streak,best:ps.best,lives:(ps.lives==null?ARENA_START_LIVES:ps.lives),totalKills:m.totalKills,enemiesLeft:m.enemies.length});
   }
+  ps.misses=(ps.misses||0)+1; ps.streak=0;
+  ps.lives=Math.max(0,(ps.lives==null?ARENA_START_LIVES:ps.lives)-1);
+  pushShot(false,null);
+  if(_room) tickRoom(_room);
+  return res.json({hit:false,misses:ps.misses,streak:0,lives:ps.lives,kills:ps.kills||0,totalKills:m.totalKills||0,enemiesLeft:m.enemies.length,out:ps.lives<=0});
 });
 
 app.get('/api/achievements', async (req,res)=>{
@@ -710,4 +860,17 @@ app.post('/api/lucky/spin', async (req,res)=>{
 });
 app.use((err,req,res,next)=>{ console.error('[server]',err.message||err); if(!res.headersSent) res.status(500).json({error:'Error interno del servidor'}); });
 app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });
-(async()=>{ await initPg(); try{ const _u=await getUserByUsername('guguslu'); if(_u){ const _t=15020; _u.speedrunBest=_t; if(!_u.speedrunHistory) _u.speedrunHistory=[]; if(!_u.speedrunHistory.some(h=>h.time===_t)) _u.speedrunHistory.push({time:_t,at:new Date().toISOString()}); await updateUser(_u); console.log(`[fix] guguslu speedrun forced ${_t}ms`); } }catch(e){ console.log('fix guguslu',e.message); } try{ const _p=await getUserByUsername('piza'); if(_p){ const _t2=12020; _p.speedrunBest=_t2; if(!_p.speedrunHistory) _p.speedrunHistory=[]; if(!_p.speedrunHistory.some(h=>h.time===_t2)) _p.speedrunHistory.push({time:_t2,at:new Date().toISOString()}); await updateUser(_p); console.log(`[fix] piza speedrun forced ${_t2}ms`); } }catch(e){ console.log('fix piza',e.message); } try{ const _e=await getUserByUsername('enzo'); if(_e && _e.frames && _e.frames.includes('campeon')){ _e.frames=_e.frames.filter(f=>f!=='campeon'); if(_e.equippedFrame==='campeon') _e.equippedFrame='none'; await updateUser(_e); console.log(`[fix] Removed campeon frame from enzo`); } }catch(e){ console.log('fix enzo campeon',e.message); } app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG]':'[JSON]'}`); }); })();
+app.get('/api/health', async (req,res)=>{
+  const info = { database: USE_PG?'postgres':'json', connected: USE_PG, source: PG_CONN.source||null, error: PG_ERROR||null, users:0, checkedAt:new Date().toISOString() };
+  try{
+    if(USE_PG && pool){
+      await pool.query('SELECT 1');
+      const c = await pool.query('SELECT COUNT(*) FROM users');
+      info.users = parseInt(c.rows[0].count);
+    } else {
+      info.users = fileDb.users.length;
+    }
+  }catch(e){ info.connected=false; info.error = e.message; }
+  res.json(info);
+});
+(async()=>{ await initPg(); try{ const _u=await getUserByUsername('guguslu'); if(_u){ const _t=15020; _u.speedrunBest=_t; if(!_u.speedrunHistory) _u.speedrunHistory=[]; if(!_u.speedrunHistory.some(h=>h.time===_t)) _u.speedrunHistory.push({time:_t,at:new Date().toISOString()}); await updateUser(_u); console.log(`[fix] guguslu speedrun forced ${_t}ms`); } }catch(e){ console.log('fix guguslu',e.message); } try{ const _p=await getUserByUsername('piza'); if(_p){ const _t2=12020; _p.speedrunBest=_t2; if(!_p.speedrunHistory) _p.speedrunHistory=[]; if(!_p.speedrunHistory.some(h=>h.time===_t2)) _p.speedrunHistory.push({time:_t2,at:new Date().toISOString()}); await updateUser(_p); console.log(`[fix] piza speedrun forced ${_t2}ms`); } }catch(e){ console.log('fix piza',e.message); } try{ const _e=await getUserByUsername('enzo'); if(_e && _e.frames && _e.frames.includes('campeon')){ _e.frames=_e.frames.filter(f=>f!=='campeon'); if(_e.equippedFrame==='campeon') _e.equippedFrame='none'; await updateUser(_e); console.log(`[fix] Removed campeon frame from enzo`); } }catch(e){ console.log('fix enzo campeon',e.message); } app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG conectado ✅]':'[JSON ⚠️ '+(PG_ERROR||'sin Postgres')+']'}`); }); })();

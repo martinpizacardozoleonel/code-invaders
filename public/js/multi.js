@@ -1,4 +1,284 @@
 const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},{id:'crimson',body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},{id:'gold',body:'#ffd600',accent:'#fff176',glow:'#ffea00'},{id:'neon',body:'#00e676',accent:'#69f0ae',glow:'#00e676'},{id:'violet',body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},{id:'pixel',body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'},{id:'tournament_silver',body:'#c0c0c0',accent:'#e0e0e0',glow:'#e0e0e0'}];
+
+// ══ ARENA MULTIJUGADOR ═══════════════════════════════════════════════════
+// Una sola pantalla. Cada jugador ocupa una franja vertical con su nave al
+// fondo, separadas entre sí. Las naves enemigas caen dentro de la franja de
+// su dueño y el fondo se desplaza como si el espacio avanzara. Las posiciones
+// se calculan acá con requestAnimationFrame a partir del spawnAt del servidor,
+// así el movimiento es fluido aunque el estado llegue cada 1,5 s.
+const MultiArena=(()=>{
+  let cv=null,ctx=null,raf=null,dpr=1,W=0,H=0;
+  let stars=[],beams=[],booms=[],shock=0;
+  let players=[],enemies=[],seenEvents={},me='',clockOff=0,travelMs=5000,lastT=0,visible=false,wavePhase=1;
+
+  function serverNow(){ return Date.now()+clockOff; }
+  function syncClock(serverNowMs){ if(serverNowMs) clockOff=serverNowMs-Date.now(); }
+  function laneRect(lane,count){
+    const n=Math.max(1,count||1); const w=W/n;
+    return { x:lane*w, w:w, cx:lane*w+w/2, pad:Math.max(6,w*0.06) };
+  }
+  function resize(){
+    if(!cv) return;
+    const box=cv.parentElement; if(!box) return;
+    dpr=Math.min(2,window.devicePixelRatio||1);
+    W=Math.max(320,box.clientWidth); H=Math.max(280,box.clientHeight);
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    if(ctx) ctx.setTransform(dpr,0,0,dpr,0,0);
+    buildStars();
+  }
+  function buildStars(){
+    const n=Math.round((W*H)/5200)+40; stars=[];
+    for(let i=0;i<n;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, z:0.25+Math.random()*1.15, s:0.6+Math.random()*1.5 });
+  }
+  function enemyGeom(e,count){
+    const L=laneRect(e.lane||0,count);
+    const t=Math.max(0,serverNow()-e.spawnAt);
+    const frac=Math.min(1.15,(t/1000)*(e.fall||0.3));
+    const usable=H*0.86;
+    return { L, y:usable*frac, w:Math.min(96,Math.max(56,L.w-18)), h:Math.min(74,Math.max(42,L.w*0.62)) };
+  }
+  function playerGeom(p,count){
+    const L=laneRect(p.lane||0,count);
+    return { L, x:L.cx, y:H*0.9 };
+  }
+  // Fondo de espacio: las estrellas van bajando y además hay nebulosas que
+  // van cambiando de color y de posición a medida que avanza la partida, para
+  // que se vea que estamos avanzando por el espacio.
+  const NEBULAS=[
+    { c:['rgba(0,120,255,.16)','rgba(124,77,255,.10)'], r:.75, sx:.00013, sy:.00009, px:.18, py:.22 },
+    { c:['rgba(255,0,120,.13)','rgba(255,105,180,.08)'], r:.60, sx:-.00010, sy:.00014, px:.72, py:.18 },
+    { c:['rgba(0,255,190,.10)','rgba(0,100,255,.10)'], r:.85, sx:.00008, sy:-.00012, px:.42, py:.70 },
+    { c:['rgba(255,140,0,.10)','rgba(200,0,255,.09)'],  r:.55, sx:-.00014, sy:-.00007, px:.85, py:.62 },
+    { c:['rgba(80,0,255,.13)','rgba(0,200,255,.09)'],  r:.70, sx:.00011, sy:.00011, px:.08, py:.66 }
+  ];
+  function drawStarfield(dt,t){
+    ctx.fillStyle='#04060f'; ctx.fillRect(0,0,W,H);
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(8,14,40,.55)'); g.addColorStop(.55,'rgba(4,6,16,0)'); g.addColorStop(1,'rgba(2,4,12,.6)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // Nebulosas: el color rota despacio con la fase de la partida.
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    const rot=Math.floor(phase||0)%NEBULAS.length;
+    for(let k=0;k<2;k++){
+      const i=(rot+k)%NEBULAS.length, n=NEBULAS[i];
+      const x=W*(n.px+Math.sin(t*n.sx+i)*.07);
+      const y=H*(n.py+Math.cos(t*n.sy+i*1.7)*.06);
+      const r=Math.max(W,H)*n.r;
+      const gr=ctx.createRadialGradient(x,y,0,x,y,r);
+      gr.addColorStop(0,n.c[0]); gr.addColorStop(1,n.c[1]);
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+    const spd=26+(shock>0?90:0)+Math.min(60,(phase||0)*4);
+    for(const s of stars){
+      s.y+=s.z*spd*dt; if(s.y>H+2){ s.y=-2; s.x=Math.random()*W; }
+      ctx.globalAlpha=Math.min(.9,.18+s.z*.45);
+      ctx.fillStyle= s.z>1.05?'#a5f3fc':'#ffffff';
+      ctx.fillRect(s.x,s.y,s.s,s.z>1.05?s.s*2.4:s.s);
+    }
+    ctx.globalAlpha=1;
+  }
+  function drawEnemy(e,count){
+    const g=enemyGeom(e,count); if(g.y>H+40||g.y<-40) return;
+    const x=g.L.cx, w=g.w, h=g.h, bob=Math.sin((serverNow()/260)+(e.lane||0))*h*.06;
+    const y=g.y+bob;
+    // Diseño de nave al azar: cada una se ve distinta a las de al lado.
+    EnemyShips.draw(ctx,e.design||'html',x,y,w,h);
+    // Carta con la barra de vida del dueño: se ve a quién hay que ayudar.
+    const d=EnemyShips.byId(e.design||'html');
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.fillStyle=d.glow; ctx.font='800 9px system-ui,sans-serif';
+    ctx.fillText(d.cat,x,y-h*.36);
+    // Texto legible dentro de la nave, igual que en el modo de un jugador.
+    EnemyShips.drawLabel(ctx,e.q,x,y+h*.16,w-10,{fontSize:10});
+    ctx.restore();
+  }
+  function drawPlayer(p,count,t){
+    const g=playerGeom(p,count);
+    const bob=Math.sin(t/320+p.lane)*5;
+    const sk=MultiSkins.find(s=>s.id===p.skin)||MultiSkins[0];
+    const y=g.y+bob, s=Math.min(30,g.L.w*.22);
+    ctx.save();
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+    ctx.fillStyle=sk.body; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1.4;
+    ctx.beginPath();
+    ctx.moveTo(g.x,y-s*1.1); ctx.lineTo(g.x-s,y+s*.8); ctx.lineTo(g.x-s*.35,y+s*.45);
+    ctx.lineTo(g.x,y+s*.72); ctx.lineTo(g.x+s*.35,y+s*.45); ctx.lineTo(g.x+s,y+s*.8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle=sk.accent; ctx.beginPath(); ctx.arc(g.x,y-s*.16,s*.22,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ff6d00'; ctx.beginPath();
+    ctx.moveTo(g.x-s*.28,y+s*.62); ctx.lineTo(g.x,y+s*1.05); ctx.lineTo(g.x+s*.28,y+s*.62); ctx.closePath(); ctx.fill();
+    // separadores de franja
+    ctx.shadowBlur=0;
+    const lives=Math.max(0,p.lives==null?2:p.lives);
+    ctx.textAlign='center';
+    ctx.fillStyle= p.userId===me?'#00e5ff':(p.nameColor||'#ffffff');
+    ctx.font=(p.userId===me?'800 ':'700 ')+'12px system-ui,sans-serif';
+    ctx.fillText(p.username+(p.userId===me?' (TÚ)':''),g.x,y+s*1.5);
+    ctx.fillStyle= lives>0?'#ff4d6d':'#555';
+    ctx.font='15px system-ui,sans-serif';
+    ctx.fillText('♥'.repeat(lives)+'♡'.repeat(Math.max(0,2-lives)),g.x,y+s*1.5+16);
+    ctx.fillStyle='#9fb3c8'; ctx.font='600 10px system-ui,sans-serif';
+    ctx.fillText('💥'+p.kills+'  🔥'+p.streak,g.x,y-s*1.5-4);
+    ctx.restore();
+  }
+  function drawLanes(count,t){
+    for(let i=0;i<count;i++){
+      const L=laneRect(i,count);
+      ctx.fillStyle=i%2?'rgba(255,255,255,.016)':'rgba(0,229,255,.022)';
+      ctx.fillRect(L.x,0,L.w,H);
+      ctx.strokeStyle='rgba(0,229,255,.10)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(L.x+.5,0); ctx.lineTo(L.x+.5,H); ctx.stroke();
+    }
+    // línea de peligro
+    const y=H*0.86;
+    ctx.strokeStyle='rgba(255,23,68,'+(0.25+Math.sin(t/220)*0.16)+')'; ctx.lineWidth=2;
+    ctx.setLineDash([10,8]);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  function drawFx(dt){
+    for(let i=beams.length-1;i>=0;i--){
+      const b=beams[i]; b.t+=dt;
+      if(b.t>=b.dur){ beams.splice(i,1); continue; }
+      const k=b.t/b.dur;
+      ctx.save(); ctx.globalAlpha=1-k;
+      ctx.strokeStyle=b.miss?'rgba(255,82,82,.85)':(b.col||'#00e5ff');
+      ctx.lineWidth=2.6; ctx.shadowColor=b.miss?'#ff5252':(b.col||'#00e5ff'); ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.moveTo(b.x1,b.y1);
+      ctx.lineTo(b.x1+(b.x2-b.x1)*Math.min(1,k*2.2), b.y1+(b.y2-b.y1)*Math.min(1,k*2.2));
+      ctx.stroke(); ctx.restore();
+    }
+    for(let i=booms.length-1;i>=0;i--){
+      const b=booms[i]; b.t+=dt;
+      if(b.t>=b.dur){ booms.splice(i,1); continue; }
+      const k=b.t/b.dur;
+      ctx.save(); ctx.globalAlpha=1-k;
+      const r=b.r*(0.4+k*1.1);
+      const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+      g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.45,b.col+'cc'); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='800 '+Math.round(20+k*14)+'px system-ui,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('💥',b.x,b.y+6);
+      ctx.restore();
+    }
+  }
+  function frame(t){
+    raf=requestAnimationFrame(frame);
+    if(!ctx) return;
+    const dt=Math.min(.05,lastT?(t-lastT)/1000:.016); lastT=t;
+    if(shock>0) shock=Math.max(0,shock-dt*2.2);
+    if(!visible){ return; }
+    const count=Math.max(1,players.length);
+    ctx.save();
+    if(shock>0) ctx.translate((Math.random()-.5)*shock*10,(Math.random()-.5)*shock*10);
+    drawStarfield(dt,t,wavePhase);
+    drawLanes(count,t);
+    for(const e of enemies) drawEnemy(e,count);
+    for(const p of players) drawPlayer(p,count,t);
+    drawFx(dt);
+    if(shock>0){ ctx.fillStyle='rgba(255,23,68,'+(shock*.14)+')'; ctx.fillRect(0,0,W,H); }
+    ctx.restore();
+  }
+  function ensureLoop(){
+    if(raf) return;
+    lastT=0; raf=requestAnimationFrame(frame);
+  }
+  function stopLoop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+
+  return {
+    attach(){
+      cv=document.getElementById('multiCanvas'); if(!cv) return false;
+      ctx=cv.getContext('2d');
+      if(!ctx) return false;
+      if(!this._bound){
+        this._bound=true;
+        window.addEventListener('resize',()=>{ resize(); });
+      }
+      resize(); ensureLoop();
+      return true;
+    },
+    resize,
+    enter(){ this.attach(); visible=true; buildStars(); ensureLoop(); },
+    leave(){ visible=false; stopLoop(); },
+    // Sincroniza el estado del servidor con el render local.
+    setState(match,meId,serverNowMs){
+      syncClock(serverNowMs);
+      if(!match) return;
+      me=meId||'';
+      players=match.players||[];
+      travelMs=match.travelMs||travelMs;
+      wavePhase=match.wave||1;
+      enemies=(match.enemies||[]).filter(e=>{
+        if(e.spawnAt>serverNow()+2500) return false;
+        return (serverNow()-e.spawnAt) < travelMs*1.25;
+      });
+      // eventos de ruptura de línea
+      (match.events||[]).forEach(ev=>{
+        if(seenEvents[ev.id]) return;
+        seenEvents[ev.id]=1;
+        if(ev.type==='breach'){ shock=1; this.flashBreach(); }
+      });
+      Object.keys(seenEvents).forEach(k=>{ if(!((match.events||[]).some(e=>e.id===k))) delete seenEvents[k]; });
+    },
+    // Disparo: traza el láser desde la nave del jugador hasta el objetivo.
+    // killed puede ser la nave (con id) o sólo su dueño, porque cuando llega
+    // la respuesta del servidor la nave ya no está en la lista local.
+    fire(killed,miss){
+      if(!ctx) return;
+      const count=Math.max(1,players.length);
+      const meP=players.find(p=>p.userId===me)||players[0];
+      if(!meP) return;
+      const pg=playerGeom(meP,count);
+      const target=this.findTarget(killed,count);
+      let x2=target?target.x:W/2, y2=target?target.y:H*0.3;
+      if(target){
+        booms.push({x:x2,y:y2,r:Math.min(70,Math.max(38,pg.L.w*.36)),t:0,dur:.55,col:'#00e5ff'});
+      }
+      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.35,miss:!!miss,col:'#00e5ff'});
+      if(miss) shock=Math.max(shock,.5);
+    },
+    // Dónde estaba la nave destruida: la buscamos por id y, si ya no está,
+    // reconstruimos la posición con la franja de su dueño.
+    findTarget(killed,count){
+      if(!killed) return null;
+      const n=count||Math.max(1,players.length);
+      const e=(killed.id&&enemies.find(x=>x.id===killed.id))||null;
+      if(e){ const g=enemyGeom(e,n); return {x:g.L.cx,y:Math.max(6,g.y)}; }
+      // La nave ya no está: se dibuja la explosión donde estaba más o menos,
+      // a un 45% del alto de la franja de su dueño.
+      const idx=players.findIndex(p=>p.userId===killed.ownerId);
+      if(idx<0) return null;
+      const L=laneRect(idx,n);
+      return { x:L.cx, y:H*0.45 };
+    },
+    // Disparo de otro jugador: mismo efecto pero con su color de nave.
+    remoteFire(s){
+      if(!ctx||!s) return;
+      const count=Math.max(1,players.length);
+      const p=players.find(x=>x.userId===s.userId);
+      if(!p) return;
+      const pg=playerGeom(p,count);
+      const sk=MultiSkins.find(x=>x.id===p.skin)||MultiSkins[0];
+      let x2=pg.x, y2=H*0.3;
+      const e=s.targetId&&enemies.find(x=>x.id===s.targetId);
+      if(e){ const g=enemyGeom(e,count); x2=g.L.cx; y2=Math.max(6,g.y); }
+      if(s.hit) booms.push({x:x2,y:y2,r:Math.min(60,Math.max(32,pg.L.w*.32)),t:0,dur:.45,col:sk.body});
+      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.3,miss:!s.hit,col:sk.body});
+    },
+    flashBreach(){
+      const f=document.getElementById('multiFlash'); if(!f) return;
+      f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+      const a=document.getElementById('multiBreachAlert');
+      if(a){ a.classList.remove('on'); void a.offsetWidth; a.classList.add('on'); }
+    },
+    ping(){ if(!ctx) return; shock=Math.max(shock,.35); }
+  };
+})();
 const MultiUI={
  open:false, timer:null, ready:false, mode:'normal', view:'rooms', currentRoom:null, rooms:[], lastKey:'', fetching:false, roomsFetching:false, lastRoomsAt:0, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null, createIsPublic:true, createMode:'normal', createMax:4,
  init(){
@@ -11,8 +291,9 @@ const MultiUI={
   const back=document.getElementById('multiBackBtn'); if(back) back.addEventListener('click',()=>this.backToRooms());
   const rb=document.getElementById('multiReadyBtn'); if(rb) rb.addEventListener('click',()=>this.toggleReady());
   const lv=document.getElementById('multiLeaveBtn'); if(lv) lv.addEventListener('click',()=>this.leave());
-  const cs=document.getElementById('multiChatSend'); if(cs) cs.addEventListener('click',()=>this.sendChat());
-  const ci=document.getElementById('multiChatInput'); if(ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendChat(); }});
+   const cs=document.getElementById('multiChatSend'); if(cs) cs.addEventListener('click',()=>this.sendChat());
+   const ci=document.getElementById('multiChatInput'); if(ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendChat(); } else if(e.key==='Escape'){ this.replyTo=null; this.renderReplyBar(); }});
+   const rc=document.getElementById('multiReplyCancel'); if(rc) rc.addEventListener('click',()=>{ this.replyTo=null; this.renderReplyBar(); });
   const ab=document.getElementById('multiAnswerBtn'); if(ab) ab.addEventListener('click',()=>this.sendAnswer());
   const ai=document.getElementById('multiAnswer'); if(ai) ai.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendAnswer(); }});
   const ex=document.getElementById('multiExitBtn'); if(ex) ex.addEventListener('click',()=>{ if(confirm('¿Abandonar la partida? Perderás la racha.')) this.leave(); });
@@ -190,11 +471,11 @@ const MultiUI={
   this.loadRooms(true);
   this.poll(true);
  },
- close(){
-  document.getElementById('multiOverlay').classList.add('hidden');
-  this.open=false;
-  if(this.timer){ clearInterval(this.timer); this.timer=null; }
- },
+  close(){
+   document.getElementById('multiOverlay').classList.add('hidden');
+   this.open=false; MultiArena.leave();
+   if(this.timer){ clearInterval(this.timer); this.timer=null; }
+  },
  async leave(){
   try{ await API.multiLeave(); }catch(e){}
   this.ready=false; this.currentRoom=null;
@@ -218,7 +499,26 @@ const MultiUI={
   if(which==='battle') document.getElementById('multiBattle').classList.remove('hidden');
   if(which==='results') document.getElementById('multiResults').classList.remove('hidden');
  },
- esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; },
+  esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; },
+  renderMultiBody(raw){
+   const t=String(raw==null?'':raw);
+   if(t.startsWith('[sticker]')) return '<div class="chat-sticker">'+this.esc(t.slice(9,20))+'</div>';
+   return this.esc(t);
+  },
+  setReplyTo(m){
+   if(!m){ this.replyTo=null; this.renderReplyBar(); return; }
+   this.replyTo={userId:m.userId||'',username:m.username||'?',text:ChatReply.decode(m.text).text};
+   this.renderReplyBar();
+   const i=document.getElementById('multiChatInput'); if(i) i.focus();
+  },
+  renderReplyBar(){
+   const bar=document.getElementById('multiReplyBar'); if(!bar) return;
+   const r=this.replyTo;
+   bar.classList.toggle('hidden',!r);
+   if(!r) return;
+   const t=document.getElementById('multiReplyText');
+   if(t) t.textContent=ChatReply.preview(r);
+  },
  catColor(c){ return c==='HTML'?'#ff7043':(c==='CSS'?'#40c4ff':'#ffd600'); },
  skinById(id){ return MultiSkins.find(s=>s.id===id)||MultiSkins[0]; },
  shipHtml(skinId, alive){
@@ -295,132 +595,117 @@ const MultiUI={
       const nearBottom=cb.dataset.userAtBottom!=='0'||(cb.scrollTop+cb.clientHeight>=cb.scrollHeight-60);
       cb.innerHTML=chat.length?chat.map(m=>{
         if(m.userId==='sys') return '<div class="chat-msg sys"><div class="chat-text">🤖 '+this.esc(m.text)+'</div></div>';
-        let body=this.esc(m.text);
-        if(m.text.startsWith('[sticker]')) body='<div class="chat-sticker">'+this.esc(m.text.slice(9,20))+'</div>';
+        const dec=ChatReply.decode(m.text);
+        let body=this.renderMultiBody(dec.text);
+        if(dec.reply) body='<div class="chat-quote"><span class="chat-quote-arrow">↩</span><span class="chat-quote-text">'+this.esc(ChatReply.preview(dec.reply))+'</span></div><div class="chat-reply-body">'+body+'</div>';
         const bub=(m.equippedBubble&&m.equippedBubble!=='none')?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
         const flag=(m.userId!==me)?'<button class="chat-flag" data-rep="'+m.userId+'" data-name="'+this.esc(m.username).replace(/"/g,'&quot;')+'" title="Denunciar jugador">🚩</button>':'';
-        return '<div class="chat-msg"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span>'+flag+'</div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
+        return '<div class="chat-msg" data-mid="'+m.id+'"><div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+this.esc(m.nameColor||'#00e5ff')+'">'+this.esc(m.username)+'</span><button class="chat-reply-btn" data-mreply="'+m.id+'" title="Responder">↩</button>'+flag+'</div><div class="chat-text'+bub+'">'+body+'</div></div></div>';
       }).join(''):'<p class="hint">Sin mensajes. ¡Saluda! 👋</p>';
       cb.querySelectorAll('.chat-flag').forEach(b=>b.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(b.dataset.rep,b.dataset.name); }));
+      cb.querySelectorAll('[data-mreply]').forEach(b=>b.addEventListener('click',()=>{
+        const m=chat.find(x=>x.id===b.dataset.mreply);
+        if(m) this.setReplyTo({userId:m.userId,username:m.username,text:m.text});
+      }));
       if(nearBottom) requestAnimationFrame(()=>{ cb.scrollTop=cb.scrollHeight; });
       else cb.scrollTop=prevTop;
     }
   }
-  if(!match){ this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; return; }
+  if(!match){ MultiArena.leave(); this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; return; }
   if(match.status==='playing'){
-    if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.seenShots={}; (match.shots||[]).forEach(s=>this.seenShots[s.id]=1); }
+    if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.seenShots={}; }
+    this._lastMatch=match; this._me=me;
     this.show('battle');
+    MultiArena.enter();
+    MultiArena.setState(match,me,d.now);
+    // Trayectorias de los disparos de todos: se ve a quién le pegó a qué.
+    (match.shots||[]).forEach(s=>{
+     if(this.seenShots[s.id]) return; this.seenShots[s.id]=1;
+     if(s.userId!==me) MultiArena.remoteFire(s);
+    });
     const my=match.players.find(p=>p.userId===me);
-    if(my) document.getElementById('multiWaveBanner').textContent=((d.room&&d.room.mode==='speedrun')?'⚡ SPEEDRUN · ':'⚔️ ')+(my.desc||('HORNADA '+my.wave))+(my.alive?'':' · 💀 ELIMINADO');
-    const cols=document.getElementById('multiColumns');
-    const key=match.players.map(p=>p.userId+':'+p.wave+':'+p.alive+':'+(p.lives==null?2:p.lives)+':'+p.enemies.length+':'+p.hits+':'+p.misses).join('|');
-    if(force||key!==this.lastKey){
-      this.lastKey=key;
-      cols.innerHTML=match.players.map(p=>{
-        const isMe=p.userId===me;
-        const pic=this.picHtml(p);
-        const lives=(p.lives==null?2:p.lives);
-        const hearts=lives>1?'❤️❤️':(lives===1?'❤️🤍':'🤍🤍');
-        const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
-        const ens=p.enemies.map(e=>'<div class="multi-enemy ship cat-'+e.cat+'" data-q="'+this.esc(e.q)+'" title="'+this.esc(e.q)+'"><span class="ship-cat" style="background:'+this.catColor(e.cat)+'">'+e.cat+'</span><span class="ship-q">'+this.esc(e.q)+'</span><span class="ship-type">⌨️ escribe la etiqueta</span></div>').join('')||'<p class="hint">¡Oleada superada!</p>';
-        return '<div class="multi-col'+(isMe?' me':'')+(!p.alive?' dead':'')+'" data-uid="'+p.userId+'"><div class="multi-col-head"><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><div><p class="multi-name">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">Oleada '+p.wave+' · <span class="lives">'+hearts+'</span> · 🔥'+p.streak+' · ✅'+p.hits+' ❌'+p.misses+'</p></div>'+(!p.alive?'<span class="dead-tag">💀</span>':'')+'</div><div class="multi-timer"><div class="multi-timer-fill" style="width:'+pct+'%"></div></div>'+(p.alive?'<p class="hint">⏱ '+p.timeLeft+'s · '+hearts+' '+lives+'/2 vidas</p>':'<p class="hint">Eliminado en oleada '+p.wave+'</p>')+'<div class="multi-enemies">'+ens+'</div>'+this.shipHtml(p.skin,p.alive)+'</div>';
-      }).join('');
-    } else {
-      match.players.forEach(p=>{
-        const idx=match.players.indexOf(p);
-        const col=cols.children[idx]; if(!col) return;
-        const pct=p.timeTotal?Math.min(100,Math.max(0,(1-p.timeLeft/p.timeTotal)*100)):0;
-        const f=col.querySelector('.multi-timer-fill'); if(f) f.style.width=pct+'%';
-      });
+    const lives=my?(my.lives==null?2:my.lives):0;
+    document.getElementById('multiWaveBanner').textContent=
+      ((d.room&&d.room.mode==='speedrun')?'⚡ SPEEDRUN · ':'⚔️ OLEADA '+(match.wave||1))+
+      ' · 👾 '+(match.enemies||[]).length+' naves · 🛡️ '+lives+' '+('❤️'.repeat(Math.max(0,lives))||'💀');
+    // HUD: una tarjeta por piloto, con su vida, destruidas y racha
+    const hud=document.getElementById('multiHud');
+    if(hud){
+      const hkey=(match.players||[]).map(p=>p.userId+':'+p.lives+':'+p.kills+':'+p.streak).join('|')+'|'+(match.wave||1);
+      if(force||hkey!==this._hudKey){
+        this._hudKey=hkey;
+        hud.innerHTML=(match.players||[]).map(p=>{
+          const isMe=p.userId===me; const pic=this.picHtml(p); const lv=Math.max(0,p.lives==null?2:p.lives);
+          return '<div class="multi-hud-card'+(isMe?' me':'')+(lv<=0?' out':'')+'"><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><div class="multi-hud-info"><p class="multi-name" style="color:'+this.esc(p.nameColor||'#00e5ff')+'">'+this.esc(p.username)+(isMe?' (TÚ)':'')+'</p><p class="hint">🛡️ '+(lv>0?'❤️'.repeat(lv):'💀')+' · 💥 '+p.kills+' · 🔥 '+p.streak+' · ❌ '+p.misses+'</p></div></div>';
+        }).join('');
+      }
     }
-    this.showRemoteShots(match,me);
     const ai=document.getElementById('multiAnswer');
-    if(my&&!my.alive&&ai){ ai.disabled=true; ai.placeholder='💀 Eliminado... esperando final'; }
+    if(my&&lives<=0&&ai){ ai.disabled=true; ai.placeholder='💀 Sin vidas — esperá a tus compañeros…'; }
     else if(ai){ ai.disabled=false; ai.placeholder='Escribe la etiqueta para disparar... (Enter)'; }
   } else if(match.status==='finished'){
+    MultiArena.leave();
     this.show('results');
-    const arr=[...match.players].sort((a,b)=>(b.wave-a.wave)||(b.hits-a.hits)||(a.misses-b.misses));
-    document.getElementById('multiTable').innerHTML='<div class="multi-table">'+arr.map((p,i)=>{
-      const medal=i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+'°'));
+    // Orden final: gana el que destruyó más naves enemigas; a igual cantidad
+    // se rompe con menos errores.
+    const arr=[...match.players].sort((a,b)=>(b.kills-a.kills)||(a.misses-b.misses));
+    const winIds=match.winnerIds&&match.winnerIds.length?match.winnerIds:(match.winnerId?[match.winnerId]:[]);
+    const isWinner=p=>winIds.indexOf(p.userId)>=0;
+    const head=winIds.length===0?'<p class="hint" style="text-align:center;margin-bottom:10px">Partida terminada</p>'
+      :(winIds.length>1?'<p class="hint" style="text-align:center;margin-bottom:10px">🤝 ¡Empate en el primer lugar!</p>'
+                    :'<p class="hint" style="text-align:center;margin-bottom:10px">🏆 Ganó <b>'+this.esc((arr[0]||{}).username||'')+'</b> con '+((arr[0]||{}).kills||0)+' naves destruidas</p>');
+    document.getElementById('multiTable').innerHTML=head+'<div class="multi-table">'+arr.map((p,i)=>{
+      const medal=isWinner(p)?(winIds.length>1?'🥇':'🥇'):(i===0?'🥈':(i===1?'🥉':(i+1)+'°'));
       const pic=this.picHtml(p);
-      return '<div class="multi-row'+(i===0?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">✅ '+p.hits+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">🌊 '+p.wave+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
+      return '<div class="multi-row'+(isWinner(p)?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🌊 oleada '+(match.wave||1)+'</span><span class="mini-badge">💥 '+p.kills+' destruidas</span><span class="mini-badge">⭐ '+(p.score||((p.kills||0)*100+(p.best||0)*25))+' pts</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
     }).join('')+'</div>';
     this.ready=false;
     const rb=document.getElementById('multiReadyBtn'); if(rb) rb.textContent='✅ ¡LISTO!';
   }
  },
- async sendChat(){
-  const i=document.getElementById('multiChatInput'); const t=(i.value||'').trim(); if(!t) return;
-  try{ await API.multiChatSend(t); i.value=''; this.poll(true); }catch(e){ Toast.error(e.message); }
- },
- fireLaserIn(col,killedQ,miss,quiet){
-  try{
-    if(!col) return;
-    const ship=col.querySelector('.multi-ship'); if(!ship) return;
-    const qs=col.querySelectorAll('.multi-enemy');
-    let target=null;
-    if(killedQ){ for(const el of qs){ if((el.dataset.q||'')===killedQ){ target=el; break; } } }
-    if(!target&&qs.length) target=qs[killedQ?0:Math.floor(Math.random()*qs.length)];
-    if(!target){ const zone=col.querySelector('.multi-enemies'); if(zone){ target=zone; } else return; }
-    const cRect=col.getBoundingClientRect(), sRect=ship.getBoundingClientRect(), tRect=target.getBoundingClientRect();
-    const x1=sRect.left-cRect.left+sRect.width/2, y1=sRect.top-cRect.top;
-    const x2=tRect.left-cRect.left+tRect.width/2, y2=tRect.top-cRect.top+tRect.height/2;
-    const dx=x2-x1, dy=y2-y1, len=Math.max(20,Math.sqrt(dx*dx+dy*dy)), ang=Math.atan2(dy,dx)*180/Math.PI;
-    const beam=document.createElement('div'); beam.className='multi-laser'+(miss?' miss':'');
-    beam.style.cssText='left:'+x1+'px;top:'+y1+'px;width:'+len+'px;transform:rotate('+ang+'deg)';
-    col.style.position='relative'; col.appendChild(beam);
-    requestAnimationFrame(()=>beam.classList.add('on'));
-    if(target.classList&&target.classList.contains('multi-enemy')) target.classList.add(miss?'shake':'dying');
-    setTimeout(()=>{ try{beam.remove();}catch(e){} },650);
-    if(!quiet&&!miss){ try{ const C=window.AudioContext||window.webkitAudioContext; if(C){ this._ac=this._ac||new C(); const o=this._ac.createOscillator(),g=this._ac.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(900,this._ac.currentTime); o.frequency.exponentialRampToValueAtTime(120,this._ac.currentTime+.35); o.connect(g); g.connect(this._ac.destination); g.gain.value=.06; o.start(); o.stop(this._ac.currentTime+.4); } }catch(e){} }
-  }catch(e){}
- },
- fireLaser(killedQ,miss){
-  try{
-    const cols=document.getElementById('multiColumns'); if(!cols) return;
-    const meCol=cols.querySelector('.multi-col.me'); if(!meCol) return;
-    this.fireLaserIn(meCol,killedQ,miss,false);
-  }catch(e){}
- },
- showRemoteShots(match,me){
-  try{
-    if(!match||!match.shots) return;
-    const cols=document.getElementById('multiColumns'); if(!cols) return;
-    for(const s of match.shots){
-      if(this.seenShots[s.id]) continue;
-      this.seenShots[s.id]=1;
-      if(s.userId===me) continue;
-      const col=cols.querySelector('.multi-col[data-uid="'+s.userId+'"]');
-      if(col) this.fireLaserIn(col,s.q,!s.hit,true);
-    }
-    const ids=Object.keys(this.seenShots); if(ids.length>60){ ids.slice(0,ids.length-60).forEach(k=>delete this.seenShots[k]); }
-  }catch(e){}
- },
- async sendAnswer(){
-  if(this.sending) return;
-  const i=document.getElementById('multiAnswer'); const t=(i.value||'').trim(); if(!t) return;
-  const fb=document.getElementById('multiFeedback');
-  i.value=''; this.sending=true;
-  try{
+  async sendChat(){
+   const i=document.getElementById('multiChatInput'); const t=(i.value||'').trim(); if(!t) return;
+   const reply=this.replyTo;
+   try{
+    await API.multiChatSend(ChatReply.encode(reply,t));
+    i.value=''; this.replyTo=null; this.renderReplyBar();
+    this.poll(true);
+   }catch(e){ Toast.error(e.message); }
+  },
+  feedback(txt,kind){
+   const el=document.getElementById('multiFeedback'); if(!el) return;
+   el.textContent=txt||'';
+   el.style.color=kind==='bad'?'#ff6b81':(kind==='good'?'#00e676':'#9fb3c8');
+   clearTimeout(this._fbT);
+   if(txt) this._fbT=setTimeout(()=>{ if(el.textContent===txt) el.textContent=''; },2600);
+  },
+  // Dispara la respuesta escrita contra las naves de la pantalla.
+  async sendAnswer(){
+   const inp=document.getElementById('multiAnswer'); const t=(inp.value||'').trim();
+   if(!t) return;
+   if(this._answerBusy) return;
+   const my=(this._lastMatch&&this._lastMatch.players||[]).find(p=>p.userId===this._me);
+   if(!this._lastMatch||this._lastMatch.status!=='playing'){ this.feedback('⚠️ No hay partida en curso','bad'); return; }
+   if(my&&(my.lives==null?2:my.lives)<=0){ this.feedback('💀 Te quedaste sin vidas','bad'); return; }
+   this._answerBusy=true;
+   try{
     const r=await API.multiAnswer(t);
+    inp.value='';
     if(r.hit){
-      const kq=r.killed&&r.killed.q;
-      this.fireLaser(kq,false);
-      fb.textContent='💥 ¡Destruido! '+(r.killed&&r.killed.a?r.killed.a+' · ':'')+'Oleada '+r.wave+' · racha '+r.streak; fb.style.color='#00e676';
-      if(r.waveUp) setTimeout(()=>Toast.success('¡Hornada superada! Oleada '+r.wave),600);
-      this.lastKey='';
-      setTimeout(()=>this.poll(true),550);
+     const k=r.killed||{};
+     MultiArena.fire(k,false);
+     this.feedback('💥 ¡'+this.esc((k.q||'').slice(0,24))+' → '+k.a+'!  ('+r.kills+')','good');
+    }else{
+     MultiArena.fire(null,true);
+     this.feedback('❌ Fallaste: -1 vida · '+r.misses+' errores','bad');
+     if(r.out) this.feedback('💀 Te quedaste sin vidas','bad');
     }
-    else {
-      this.fireLaser(null,true);
-      if(r.dead){ fb.textContent='💀 ¡Eliminado! Sin vidas (❌ '+r.misses+')'; }
-      else { fb.textContent='❌ Fallo ('+r.misses+') · Pierdes 1 vida '+(r.lives!=null?('· quedan '+(r.lives)+'/2'):''); }
-      fb.style.color='#ff5252';
-      this.lastKey='';
-      setTimeout(()=>this.poll(true),550);
-    }
-  }catch(e){ fb.textContent='💀 '+(e.message||'Error'); fb.style.color='#ff5252'; this.lastKey=''; setTimeout(()=>this.poll(true),550); }
-  finally{ this.sending=false; const ai=document.getElementById('multiAnswer'); if(ai&&!ai.disabled) ai.focus(); }
- }
+   }catch(e){ this.feedback('⚠️ '+(e.message||'error'),'bad'); }
+   finally{
+    this._answerBusy=false;
+    this.poll(true);
+    if(inp&&document.activeElement!==inp&&!inp.disabled) inp.focus();
+   }
+  }
 };
 document.addEventListener('DOMContentLoaded',()=>MultiUI.init());

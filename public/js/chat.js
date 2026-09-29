@@ -1,3 +1,47 @@
+/* ══ RESPONDER MENSAJES ═══════════════════════════════════════════════════
+   Se usa en el chat global, en el de las salas y en el privado. El mensaje
+   que responde se guarda con un prefijo "[reply]" y atrás un JSON chico con
+   los datos del mensaje citado, así no hay que tocar la base de datos.     */
+const ChatReply={
+ PREFIX:'[reply]',
+ // Arma el texto que se manda al servidor.
+ encode(reply,text){
+  const body=String(text==null?'':text);
+  if(!reply) return body;
+  // El separador "|" se escapa dentro del JSON porque un nombre de usuario
+  // podría contenerlo y romper el corte al leerlo de vuelta.
+  const meta=JSON.stringify({u:String(reply.userId||''),n:String(reply.username||'?').slice(0,40),t:String(reply.text||'').slice(0,160)}).replace(/\|/g,'%7C');
+  if(meta.length>220) return body;
+  return this.PREFIX+meta+'|'+body;
+ },
+ // Separa un texto recibido en {reply, text}.
+ decode(raw){
+  const t=String(raw==null?'':raw);
+  if(t.indexOf(this.PREFIX)!==0) return {reply:null,text:t};
+  const rest=t.slice(this.PREFIX.length);
+  const i=rest.indexOf('|');
+  if(i<1) return {reply:null,text:t};
+  let r=null;
+  try{ r=JSON.parse(rest.slice(0,i).replace(/%7C/g,'|')); }catch(e){ r=null; }
+  if(!r||typeof r!=='object'||!r.n) return {reply:null,text:t};
+  return { reply:{userId:String(r.u||''),username:String(r.n),text:String(r.t||'')},
+           text:rest.slice(i+1) };
+ },
+ // Texto corto para mostrar arriba del mensaje.
+ preview(reply){
+  if(!reply) return '';
+  const who=String(reply.username||'?');
+  let said=String(reply.text||'');
+  if(said.indexOf(ChatReply.PREFIX)===0) said=ChatReply.decode(said).text;
+  said=said.replace(/^\[(img|gif|sticker)\]/,'').trim();
+  if(!said) return 'respondiendo a '+who;
+  if(said.length>60) said=said.slice(0,60)+'…';
+  return who+': '+said;
+ },
+ // El texto visible de un mensaje ya sea respuesta o no.
+ textOf(raw){ return this.decode(raw).text; }
+};
+
 const Chat={
  interval:null, pendingImg:null,
  GIFS:[
@@ -16,11 +60,13 @@ const Chat={
   const btn=document.getElementById('chatSendBtn');
   if(!inp||!btn) return;
   btn.addEventListener('click',()=>this.send());
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.send(); }});
-  document.querySelectorAll('[data-view="chat"]').forEach(b=>b.addEventListener('click',()=>this.start()));
+   inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.send(); } else if(e.key==='Escape'){ this.replyTo=null; this.renderReplyBar(); }});
+   document.querySelectorAll('[data-view="chat"]').forEach(b=>b.addEventListener('click',()=>this.start()));
   document.querySelectorAll('[data-view]').forEach(b=>{ if(b.dataset.view!=='chat') b.addEventListener('click',()=>{ if(!document.getElementById('view-chat').classList.contains('active')) this.stop(); });});
-  if(document.getElementById('view-chat').classList.contains('active')) this.start();
-  this.initBg(); this.initMedia();
+   if(document.getElementById('view-chat').classList.contains('active')) this.start();
+   const rc=document.getElementById('chatReplyCancel');
+   if(rc) rc.addEventListener('click',()=>{ this.replyTo=null; this.renderReplyBar(); });
+   this.initBg(); this.initMedia();
  },
  initMedia(){
   const photoBtn=document.getElementById('chatPhotoBtn');
@@ -217,6 +263,17 @@ const Chat={
   _chatUserScrolling:false,
   renderBody(raw){
    if(!raw) return '';
+   // Si es una respuesta, se muestra la cita arriba y debajo el texto nuevo.
+   const dec=ChatReply.decode(raw);
+   let h=this.renderText(dec.text);
+   if(dec.reply){
+    const q='<div class="chat-quote"><span class="chat-quote-arrow">↩</span><span class="chat-quote-text">'+this.esc(ChatReply.preview(dec.reply))+'</span></div>';
+    h=q+'<div class="chat-reply-body">'+h+'</div>';
+   }
+   return h;
+  },
+  renderText(raw){
+   if(!raw) return '';
    if(raw.startsWith('[img]')){ const src=raw.slice(5,700000); if(!src.startsWith('data:image')) return '<span>⚠️ Foto no disponible</span>'; const safe=this.escAttr(src); return '<img class="chat-img" src="'+safe+'" loading="lazy" alt="foto">'; }
    if(raw.startsWith('[gif]')){ const src=raw.slice(5,600).trim(); if(!/^https?:\/\//.test(src)) return '<span>⚠️ GIF no disponible</span>'; const safe=this.escAttr(src); return '<img class="chat-img chat-gif" src="'+safe+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
    if(raw.startsWith('[sticker]')){ const s=raw.slice(9,20); return '<div class="chat-sticker">'+this.esc(s)+'</div>'; }
@@ -226,6 +283,22 @@ const Chat={
    h=h.replace(/(https?:\/\/[^\s<]+)/gi,'<a href="$1" target="_blank" rel="noopener">$1</a>');
    h=h.replace(/%%IMG(\d+)%%/g,(m,i)=>'<br><img class="chat-img" src="'+imgs[Number(i)]+'" loading="lazy" onerror="this.style.display=\'none\'">');
    return h;
+  },
+  // Guarda el mensaje al que se le está respondiendo y lo muestra en la barra.
+  setReplyTo(m){
+   if(!m){ this.replyTo=null; this.renderReplyBar(); return; }
+   this.replyTo={userId:m.userId||'',username:m.username||'?',text:ChatReply.decode(m.text).text};
+   this.renderReplyBar();
+   const inp=document.getElementById('chatInput');
+   if(inp) inp.focus();
+  },
+  renderReplyBar(){
+   const bar=document.getElementById('chatReplyBar'); if(!bar) return;
+   const r=this.replyTo;
+   bar.classList.toggle('hidden',!r);
+   if(!r) return;
+   const txt=document.getElementById('chatReplyText');
+   if(txt) txt.textContent=ChatReply.preview(r);
   },
   async load(force){
    const box=document.getElementById('chatMessages');
@@ -265,13 +338,20 @@ const Chat={
          const own=m.userId===meId;
          const date=new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
          const del=own?'<button class="chat-del" data-id="'+m.id+'" title="Borrar">🗑️</button>':'<button class="chat-flag" data-rep="'+m.userId+'" data-name="'+this.escAttr(m.username)+'" title="Denunciar jugador">🚩</button>';
+         const repBtn='<button class="chat-reply-btn" data-reply="'+m.id+'" title="Responder este mensaje">↩</button>';
          const frame=m.equippedFrame&&m.equippedFrame!=='none'?' frame-'+m.equippedFrame:'';
           const champClass=m.equippedFrame==='campeon'?' frame-campeon':(m.frames&&m.frames.includes('campeon')?' champion-active':'');
           const pic=m.profilePic?'<img class="chat-avatar '+frame+champClass+'" src="'+this.escAttr(m.profilePic)+'" alt="">':'<div class="chat-avatar chat-avatar-placeholder '+frame+champClass+'">👾</div>';
           const bub=m.equippedBubble&&m.equippedBubble!=='none'?' chat-bubble-wrap bubble-'+m.equippedBubble:'';
-          return '<div class="chat-msg '+(own?'own':'')+'">'+pic+'<div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+(m.nameColor||"#00e5ff")+';'+API.fontStyle(m.equippedFont)+API.fxStyle(m.equippedFx)+'">'+this.esc(m.username)+'</span><span class="chat-time">'+date+'</span>'+del+'</div><div class="chat-text'+bub+'">'+this.renderBody(m.text)+'</div></div></div>';
+          return '<div class="chat-msg '+(own?'own':'')+'" data-mid="'+m.id+'">'+pic+'<div class="chat-body"><div class="chat-head"><span class="chat-user" style="color:'+(m.nameColor||"#00e5ff")+';'+API.fontStyle(m.equippedFont)+API.fxStyle(m.equippedFx)+'">'+this.esc(m.username)+'</span><span class="chat-time">'+date+'</span>'+repBtn+del+'</div><div class="chat-text'+bub+'">'+this.renderBody(m.text)+'</div></div></div>';
        }).join('');
        box.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',()=>this.del(b.dataset.id)));
+       box.querySelectorAll('.chat-reply-btn').forEach(b=>b.addEventListener('click',()=>{
+         const wrap=b.closest('.chat-msg');
+         const m=msgs.find(x=>x.id===b.dataset.reply);
+         if(m) this.setReplyTo({userId:m.userId,username:m.username,text:m.text});
+         else if(wrap) this.replyTo=null;
+       }));
        box.querySelectorAll('.chat-flag').forEach(b=>b.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(b.dataset.rep,b.dataset.name); }));
        if(atBottom){
          requestAnimationFrame(()=>{ box.scrollTop=box.scrollHeight; });
@@ -285,12 +365,17 @@ const Chat={
   },
  esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; },
  escAttr(s){ return String(s||'').replace(/"/g,'&quot;'); },
- async send(){
-  const inp=document.getElementById('chatInput');
-  const t=(inp.value||'').trim();
-  if(!t) return;
-  try{ await API.sendChat(t); inp.value=''; await this.load(true); }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); else alert(e.message); }
- },
+  async send(){
+   const inp=document.getElementById('chatInput');
+   const t=(inp.value||'').trim();
+   if(!t) return;
+   const reply=this.replyTo;
+   try{
+    await API.sendChat(ChatReply.encode(reply,t));
+    inp.value=''; this.replyTo=null; this.renderReplyBar();
+    await this.load(true);
+   }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); else alert(e.message); }
+  },
  async del(id){
   if(!confirm('¿Borrar mensaje?')) return;
   try{ await API.deleteChat(id); await this.load(true); }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }

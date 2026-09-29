@@ -20,8 +20,10 @@ const Friends={
    if(addInp) addInp.addEventListener('keydown',e=>{ if(e.key==='Enter') this.add(); });
    const sendBtn=document.getElementById('privSendBtn');
    const sendInp=document.getElementById('privInput');
-   if(sendBtn) sendBtn.addEventListener('click',()=>this.sendPriv());
-   if(sendInp) sendInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendPriv(); }});
+  if(sendBtn) sendBtn.addEventListener('click',()=>this.sendPriv());
+  if(sendInp) sendInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendPriv(); } else if(e.key==='Escape'){ this.privReply=null; this.renderPrivReplyBar(); }});
+  const rc=document.getElementById('privReplyCancel');
+  if(rc) rc.addEventListener('click',()=>{ this.privReply=null; this.renderPrivReplyBar(); });
    const giftBtn=document.getElementById('giftSendBtn');
    if(giftBtn) giftBtn.addEventListener('click',()=>this.sendGift());
  },
@@ -89,7 +91,14 @@ const Friends={
    try{ await API.sendPrivate(this.sel,text); await this.loadPriv(true); }catch(e){ Toast.error(e.message); }
    finally{ this._sendingPriv=false; }
  },
- renderPrivBody(raw){
+  renderPrivBody(raw){
+   if(!raw) return '';
+   const dec=ChatReply.decode(raw);
+   let h=this.renderPrivText(dec.text);
+   if(dec.reply) h='<div class="chat-quote"><span class="chat-quote-arrow">↩</span><span class="chat-quote-text">'+this.esc(ChatReply.preview(dec.reply))+'</span></div><div class="chat-reply-body">'+h+'</div>';
+   return h;
+  },
+  renderPrivText(raw){
    if(!raw) return '';
    if(raw.startsWith('[img]')){ const src=raw.slice(5,700000); if(!src.startsWith('data:image')) return '<span>⚠️ Foto no disponible</span>'; return '<img class="chat-img" src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" alt="foto">'; }
    if(raw.startsWith('[gif]')){ const src=raw.slice(5,600).trim(); if(!/^https?:\/\//.test(src)) return '<span>⚠️ GIF no disponible</span>'; return '<img class="chat-img chat-gif" src="'+src.replace(/"/g,'&quot;')+'" loading="lazy" onerror="this.outerHTML=\'<span>⚠️ GIF no disponible</span>\'" alt="gif">'; }
@@ -139,7 +148,7 @@ const Friends={
    const sel=document.getElementById('privFriendSelect');
    if(!sel) return;
    sel.innerHTML='<option value="">💬 -- elige amigo --</option>'+accepted.map(f=>`<option value="${f.otherId}">${f.username} ${f.online?'🟢':'🔴'}</option>`).join('');
-   sel.onchange=()=>{ this.sel=sel.value||null; const box=document.getElementById('privMessages'); if(box) box.dataset.lastKey=''; if(this.sel) this.loadPriv(true); else if(box) box.innerHTML='<div class="empty-chat"><span class="empty-chat-icon">💬</span><p class="hint">Selecciona un amigo para chatear</p></div>'; };
+    sel.onchange=()=>{ this.sel=sel.value||null; const box=document.getElementById('privMessages'); if(box) box.dataset.lastKey=''; this.privReply=null; this.renderPrivReplyBar(); if(this.sel) this.loadPriv(true); else if(box) box.innerHTML='<div class="empty-chat"><span class="empty-chat-icon">💬</span><p class="hint">Selecciona un amigo para chatear</p></div>'; };
    if(this.sel && accepted.some(f=>f.otherId===this.sel)) { sel.value=this.sel; this.loadPriv(); }
  },
  async add(){
@@ -150,8 +159,9 @@ const Friends={
  async accept(id){ try{ await API.acceptFriend(id); Toast.success('Amistad aceptada'); this.load(); if(typeof Notifications!=='undefined') Notifications.sync(); }catch(e){ Toast.error(e.message); } },
  async reject(id){ try{ await API.rejectFriend(id); this.load(); }catch(e){ Toast.error(e.message); } },
  async remove(id){ if(!confirm('¿Eliminar amigo?')) return; try{ await API.removeFriend(id); this.load(); }catch(e){ Toast.error(e.message); } },
-  async openPriv(friendId){
+   async openPriv(friendId){
    this.sel=friendId;
+   this.privReply=null; this.renderPrivReplyBar();
    const box=document.getElementById('privMessages'); if(box) box.dataset.lastKey='';
    const sec=document.getElementById('view-friends');
    if(sec && !sec.classList.contains('active')){ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-friends')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='friends')); }
@@ -181,7 +191,11 @@ const Friends={
       const lastKey=msgs.length+'|'+msgs[msgs.length-1].id+'|'+msgs[msgs.length-1].createdAt;
       if(!force && box.dataset.lastKey===lastKey) return;
       const me=(typeof Auth!=='undefined'&&Auth.user)?Auth.user.id:null;
-      box.innerHTML=msgs.map(m=>{ const bub=(m.senderBubble&&m.senderBubble!=='none')?' chat-bubble-wrap bubble-'+m.senderBubble:''; return `<div class="chat-msg ${m.senderId===me?'own':''}"><div class="chat-body"><div class="chat-text${bub}">${this.renderPrivBody(m.text)}</div><div class="chat-time">${new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`; }).join('');
+      box.innerHTML=msgs.map(m=>{ const bub=(m.senderBubble&&m.senderBubble!=='none')?' chat-bubble-wrap bubble-'+m.senderBubble:''; return `<div class="chat-msg ${m.senderId===me?'own':''}" data-mid="${m.id}"><div class="chat-body"><div class="chat-text${bub}">${this.renderPrivBody(m.text)}</div><div class="chat-time"><button class="chat-reply-btn" data-preply="${m.id}" title="Responder">↩</button>${new Date(m.createdAt).toLocaleString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`; }).join('');
+      box.querySelectorAll('[data-preply]').forEach(b=>b.addEventListener('click',()=>{
+        const m=msgs.find(x=>x.id===b.dataset.preply);
+        if(m) this.setPrivReply({userId:m.senderId,username:this.privNameOf(m.senderId),text:m.text});
+      }));
       box.dataset.lastKey=lastKey;
       if(atBottom) requestAnimationFrame(()=>{ box.scrollTop=box.scrollHeight; });
       else box.scrollTop = prevTop;
@@ -191,7 +205,38 @@ const Friends={
    if(!this.sel) return Toast.info('Elige un amigo');
    const inp=document.getElementById('privInput');
    const t=(inp.value||'').trim(); if(!t) return;
-   try{ await API.sendPrivate(this.sel,t); inp.value=''; await this.loadPriv(true); }catch(e){ Toast.error(e.message); }
+   const reply=this.privReply;
+   try{
+    await API.sendPrivate(this.sel,ChatReply.encode(reply,t));
+    inp.value=''; this.privReply=null; this.renderPrivReplyBar();
+    await this.loadPriv(true);
+   }catch(e){ Toast.error(e.message); }
+  },
+  // Nombre del otro con el que se está chateando, para la cita.
+  privNameOf(id){
+   if((typeof Auth!=='undefined'&&Auth.user&&Auth.user.id)===id) return (Auth.user&&Auth.user.username)||'Tú';
+   const opt=document.querySelector('#privFriendSelect option[value="'+id+'"]');
+   if(opt) return (opt.textContent||'').replace(/\s*[🟢🔴]\s*$/,'').trim()||'?';
+   return '?';
+  },
+  setPrivReply(m){
+   if(!m){ this.privReply=null; this.renderPrivReplyBar(); return; }
+   this.privReply={userId:m.userId||'',username:m.username||'?',text:ChatReply.decode(m.text).text};
+   this.renderPrivReplyBar();
+   const inp=document.getElementById('privInput'); if(inp) inp.focus();
+  },
+  renderPrivReplyBar(){
+   const bar=document.getElementById('privReplyBar'); if(!bar) return;
+   const r=this.privReply;
+   bar.classList.toggle('hidden',!r);
+   if(!r) return;
+   const txt=document.getElementById('privReplyText');
+   if(txt) txt.textContent=ChatReply.preview(r);
+  },
+  clearPrivReply(){
+   const box=document.getElementById('privMessages');
+   if(box) box.dataset.lastKey='';
+   this.privReply=null; this.renderPrivReplyBar();
   },
  async sendGift(){
    const sel=document.getElementById('giftFriendSelect');

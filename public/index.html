@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/style.css?v=32">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -263,12 +263,21 @@
             </div>
             <h3 class="panel-sec-title"><span>💬</span> CHAT DEL LOBBY</h3>
             <div class="chat-messages arcade-chat" id="multiChatBox" style="height:150px"></div>
+            <div class="chat-reply-bar hidden" id="multiReplyBar">
+              <span class="chat-reply-bar-label">↩ Respondiendo a <b id="multiReplyText"></b></span>
+              <button class="btn btn-ghost btn-sm" id="multiReplyCancel" title="Cancelar (Esc)">✕</button>
+            </div>
             <div class="chat-input-bar arcade-chat-bar"><input type="text" id="multiChatInput" class="arcade-input" placeholder="Escribe... (Enter)" maxlength="300" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiChatSend">Enviar</button></div>
           </div>
           <!-- BATALLA -->
           <div id="multiBattle" class="hidden">
             <div class="multi-battle-top"><div class="multi-wave-banner" id="multiWaveBanner" style="flex:1">HORNADA 1</div><button class="btn btn-ghost btn-sm" id="multiExitBtn" title="Abandonar partida">🚪 Salir</button></div>
-            <div class="multi-columns" id="multiColumns"></div>
+            <div class="multi-hud" id="multiHud"></div>
+            <div class="multi-arena" id="multiArena">
+              <canvas id="multiCanvas"></canvas>
+              <div class="multi-flash" id="multiFlash"></div>
+              <div class="multi-breach-alert" id="multiBreachAlert">🚨 ¡ROMPIERON LA LÍNEA! −1 VIDA</div>
+            </div>
             <div class="chat-input-bar arcade-chat-bar" style="margin-top:10px"><input type="text" id="multiAnswer" class="arcade-input" placeholder="Escribe la etiqueta para disparar... (Enter)" autocomplete="off" spellcheck="false"><button class="btn btn-primary btn-sm arcade-btn" id="multiAnswerBtn">💥</button></div>
             <p class="hint" id="multiFeedback" style="text-align:center;min-height:20px"></p>
           </div>
@@ -330,6 +339,10 @@
         </div>
         <div class="chat-preview hidden" id="chatPreview"><img id="chatPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="chatPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="chatPreviewSend">📤 Enviar foto</button></div></div>
         <div class="chat-messages arcade-chat global" id="chatMessages"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>CARGANDO MENSAJES...</p></div></div>
+        <div class="chat-reply-bar hidden" id="chatReplyBar">
+          <span class="chat-reply-bar-label">↩ Respondiendo a <b id="chatReplyText"></b></span>
+          <button class="btn btn-ghost btn-sm" id="chatReplyCancel" title="Cancelar (Esc)">✕</button>
+        </div>
         <div class="chat-input-bar arcade-chat-bar">
           <input type="text" id="chatInput" class="arcade-input" placeholder="Escribe un mensaje... (Enter ↵)" maxlength="500" autocomplete="off">
           <button class="btn btn-primary btn-sm arcade-btn" id="chatSendBtn">Enviar</button>
@@ -381,6 +394,10 @@
             </div>
             <div class="chat-preview hidden" id="privPreview"><img id="privPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="privPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="privPreviewSend">📤</button></div></div>
             <div class="chat-messages arcade-chat" id="privMessages"><div class="empty-chat"><span class="empty-chat-icon">💬</span><p class="hint">Selecciona un amigo para chatear</p></div></div>
+            <div class="chat-reply-bar hidden" id="privReplyBar">
+              <span class="chat-reply-bar-label">↩ Respondiendo a <b id="privReplyText"></b></span>
+              <button class="btn btn-ghost btn-sm" id="privReplyCancel" title="Cancelar (Esc)">✕</button>
+            </div>
             <div class="chat-input-bar arcade-chat-bar"><input type="text" id="privInput" class="arcade-input" placeholder="Mensaje privado... (Enter ↵)" maxlength="500" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="privSendBtn">Enviar</button></div>
           </div>
           <div class="friends-sec">
@@ -627,20 +644,21 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=11"></script>
+  <script src="js/api.js?v=12"></script>
   <script src="js/qr.js?v=1"></script>
   <script src="js/auth.js?v=3"></script>
   <script src="js/notifications.js?v=2"></script>
   <script src="js/docs.js?v=6"></script>
-  <script src="js/intro.js?v=3"></script>
-  <script src="js/game.js?v=25"></script>
+    <script src="js/intro.js?v=3"></script>
+    <script src="js/ships.js?v=1"></script>
+    <script src="js/game.js?v=26"></script>
   <script src="js/profile.js?v=14"></script>
   <script src="js/ranked.js?v=9"></script>
-  <script src="js/chat.js?v=6"></script>
-  <script src="js/friends.js?v=8"></script>
-  <script src="js/multi.js?v=9"></script>
+  <script src="js/chat.js?v=7"></script>
+  <script src="js/friends.js?v=9"></script>
+    <script src="js/multi.js?v=11"></script>
   <script src="js/report.js?v=1"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=10"></script>
   <script>
   const LuckyRoyale={
     spinning:false, items:[], ledsTimer:null,
