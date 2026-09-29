@@ -22,15 +22,33 @@ function resolveConnectionString(){
   const candidates = ['DATABASE_URL','POSTGRES_URL','POSTGRES_PRISMA_URL','POSTGRESQL_URL'];
   for(const k of candidates){
     const v = process.env[k];
-    if(v && /^postgres(ql)?:\/\//.test(v)) return { url:v.trim(), source:k };
+    if(v && /^postgres(ql)?:\/\//.test(v)) return { url:v.trim(), source:k, presentes:[k], vacias:[] };
   }
   const host=process.env.PGHOST, user=process.env.PGUSER, pass=process.env.PGPASSWORD, db=process.env.PGDATABASE;
   const port=process.env.PGPORT||'5432';
   if(host && user && db){
-    return { url:`postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass||'')}@${host}:${port}/${db}`, source:'PGHOST/PGUSER/PGDATABASE' };
+    return { url:`postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass||'')}@${host}:${port}/${db}`, source:'PGHOST/PGUSER/PGDATABASE', presentes:['PGHOST','PGUSER','PGPASSWORD','PGDATABASE'], vacias:[] };
   }
-  const seen = candidates.filter(k=>process.env[k]).map(k=>k+'='+String(process.env[k]).slice(0,12)+'…');
-  return { url:null, source:null, hint: seen.length?('Variables presentes pero con formato inesperado: '+seen.join(', ')):'No hay ninguna variable de conexión (DATABASE_URL, POSTGRES_URL, PGHOST...)' };
+  // Diagnóstico: qué variables de base de datos vio el proceso (SOLO nombres,
+  // nunca el valor, para no filtrar la contraseña por /api/health).
+  // Ojo: Object.assign({}, array) copiaría los índices, no los nombres.
+  const all={};
+  candidates.forEach(k=>{ all[k]=process.env[k]; });
+  all.PGHOST=host; all.PGUSER=user; all.PGPASSWORD=pass; all.PGDATABASE=db; all.PGPORT=process.env.PGPORT;
+  const presentes=Object.keys(all).filter(k=>all[k]);
+  const vacias=Object.keys(all).filter(k=>k in process.env && !String(all[k]).trim());
+  const sueltas=!!(host||user||db);
+  let hint;
+  if(presentes.length && sueltas){
+    hint='Llegan algunas variables pero faltan otras. Si Railway te dio referencias separadas (PGHOST, PGUSER, PGDATABASE, PGPASSWORD), revisá que estén las cuatro.';
+  }else if(presentes.length){
+    hint='Hay variables de base de datos pero su valor no empieza con postgres:// — revisá que la referencia esté completa y no truncada.';
+  }else if(vacias.length){
+    hint='Las variables '+vacias.join(', ')+' están definidoras pero VACÍAS. En Railway eso pasa cuando la referencia al servicio Postgres no está conectada.';
+  }else{
+    hint='Este servicio no tiene ninguna variable de base de datos. En Railway tenés que agregar en el servicio de la app una referencia a la de Postgres (ver README).';
+  }
+  return { url:null, source:null, hint, presentes, vacias };
 }
 const PG_CONN = resolveConnectionString();
 const DATABASE_URL = PG_CONN.url;
@@ -54,7 +72,14 @@ if (USE_PG) {
     USE_PG = false; 
   }
 }
-if (!USE_PG) console.log('📁 PostgreSQL NO conectado → usando archivo JSON local. Motivo:', PG_ERROR);
+if (!USE_PG) {
+  console.log('📁 PostgreSQL NO conectado → usando archivo JSON local.');
+  console.log('   Motivo:', PG_ERROR);
+  if(PG_CONN.presentes&&PG_CONN.presentes.length) console.log('   Variables de BD encontradas:', PG_CONN.presentes.join(', '));
+  if(PG_CONN.vacias&&PG_CONN.vacias.length) console.log('   Variables de BD VACÍAS:', PG_CONN.vacias.join(', '));
+  console.log('   Pista:', PG_CONN.hint||'');
+  console.log('   ⚠️  Los datos guardados en el archivo se pierden en cada despliegue. Conectá Postgres.');
+}
 function defaultDb(){ return { users: [], sessions: [], notifications: [], tournaments: [], chat: [], friendships: [], privateMessages: [], gifts: [], reports: [], bans: [] }; }
 function loadDb(){ if(!fs.existsSync(DB_FILE)) return defaultDb(); try{ const d=JSON.parse(fs.readFileSync(DB_FILE,'utf8')); if(!d.friendships) d.friendships=[]; if(!d.privateMessages) d.privateMessages=[]; if(!d.chat) d.chat=[]; if(!d.gifts) d.gifts=[]; if(!d.reports) d.reports=[]; if(!d.bans) d.bans=[]; return d; }catch(e){ return defaultDb(); } }
 function saveDb(db){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); fs.writeFileSync(DB_FILE, JSON.stringify(db,null,2)); }
@@ -890,6 +915,14 @@ app.use((err,req,res,next)=>{ console.error('[server]',err.message||err); if(!re
 app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });
 app.get('/api/health', async (req,res)=>{
   const info = { database: USE_PG?'postgres':'json', connected: USE_PG, source: PG_CONN.source||null, error: PG_ERROR||null, users:0, checkedAt:new Date().toISOString() };
+  // Diagnóstico para cuando no se pudo conectar (solo nombres de variables,
+  // jamás sus valores).
+  if(!USE_PG){
+    info.hint = PG_CONN.hint || PG_ERROR || null;
+    info.variablesFound = PG_CONN.presentes || [];
+    info.variablesEmpty = PG_CONN.vacias || [];
+    info.warning = 'ATENCIÓN: los datos se están guardando en un archivo temporal. En Railway/Render ese archivo se borra en cada despliegue y los usuarios se pierden.';
+  }
   try{
     if(USE_PG && pool){
       await pool.query('SELECT 1');
@@ -899,6 +932,7 @@ app.get('/api/health', async (req,res)=>{
       info.users = fileDb.users.length;
     }
   }catch(e){ info.connected=false; info.error = e.message; }
+  res.set('Cache-Control','no-store');
   res.json(info);
 });
 (async()=>{ await initPg(); try{ const _u=await getUserByUsername('guguslu'); if(_u){ const _t=15020; _u.speedrunBest=_t; if(!_u.speedrunHistory) _u.speedrunHistory=[]; if(!_u.speedrunHistory.some(h=>h.time===_t)) _u.speedrunHistory.push({time:_t,at:new Date().toISOString()}); await updateUser(_u); console.log(`[fix] guguslu speedrun forced ${_t}ms`); } }catch(e){ console.log('fix guguslu',e.message); } try{ const _p=await getUserByUsername('piza'); if(_p){ const _t2=12020; _p.speedrunBest=_t2; if(!_p.speedrunHistory) _p.speedrunHistory=[]; if(!_p.speedrunHistory.some(h=>h.time===_t2)) _p.speedrunHistory.push({time:_t2,at:new Date().toISOString()}); await updateUser(_p); console.log(`[fix] piza speedrun forced ${_t2}ms`); } }catch(e){ console.log('fix piza',e.message); } try{ const _e=await getUserByUsername('enzo'); if(_e && _e.frames && _e.frames.includes('campeon')){ _e.frames=_e.frames.filter(f=>f!=='campeon'); if(_e.equippedFrame==='campeon') _e.equippedFrame='none'; await updateUser(_e); console.log(`[fix] Removed campeon frame from enzo`); } }catch(e){ console.log('fix enzo campeon',e.message); } app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG conectado ✅]':'[JSON ⚠️ '+(PG_ERROR||'sin Postgres')+']'}`); }); })();
