@@ -52,7 +52,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     { c:['rgba(255,140,0,.10)','rgba(200,0,255,.09)'],  r:.55, sx:-.00014, sy:-.00007, px:.85, py:.62 },
     { c:['rgba(80,0,255,.13)','rgba(0,200,255,.09)'],  r:.70, sx:.00011, sy:.00011, px:.08, py:.66 }
   ];
-  function drawStarfield(dt,t){
+  function drawStarfield(dt,t,phase){
     ctx.fillStyle='#04060f'; ctx.fillRect(0,0,W,H);
     const g=ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'rgba(8,14,40,.55)'); g.addColorStop(.55,'rgba(4,6,16,0)'); g.addColorStop(1,'rgba(2,4,12,.6)');
@@ -182,14 +182,21 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     if(!visible){ return; }
     const count=Math.max(1,players.length);
     ctx.save();
-    if(shock>0) ctx.translate((Math.random()-.5)*shock*10,(Math.random()-.5)*shock*10);
-    drawStarfield(dt,t,wavePhase);
-    drawLanes(count,t);
-    for(const e of enemies) drawEnemy(e,count);
-    for(const p of players) drawPlayer(p,count,t);
-    drawFx(dt);
-    if(shock>0){ ctx.fillStyle='rgba(255,23,68,'+(shock*.14)+')'; ctx.fillRect(0,0,W,H); }
-    ctx.restore();
+    try{
+      if(shock>0) ctx.translate((Math.random()-.5)*shock*10,(Math.random()-.5)*shock*10);
+      drawStarfield(dt,t,wavePhase);
+      drawLanes(count,t);
+      for(const e of enemies) drawEnemy(e,count);
+      for(const p of players) drawPlayer(p,count,t);
+      drawFx(dt);
+      if(shock>0){ ctx.fillStyle='rgba(255,23,68,'+(shock*.14)+')'; ctx.fillRect(0,0,W,H); }
+    }catch(err){
+      // Un error al dibujar no puede dejar el canvas a medias ni frenar la
+      // partida: se avisa una sola vez y el loop sigue.
+      if(!frame._warned){ frame._warned=true; console.error('[multi] error dibujando la arena:',err); }
+    }finally{
+      ctx.restore();
+    }
   }
   function ensureLoop(){
     if(raf) return;
