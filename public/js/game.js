@@ -22,6 +22,7 @@ const Game = (() => {
   let state='title';
   let score=0,lives=2,level=0;
   let coins=0,ownedSkins=['default'],equipped='default';
+  let ownedLasers=['default'],equippedLaser='default';
   let frameCount=0,shootCooldown=0;
   let keys={}; let titleStars=[];
   let particles=[],lasers=[];
@@ -235,6 +236,10 @@ const Game = (() => {
       const o=st.getItem(pref+'owned'); if(o) { try{ ownedSkins=JSON.parse(o); }catch(e){} } else ownedSkins=['default'];
       const e=st.getItem(pref+'equipped'); equipped=e||'default';
       if(!ownedSkins.includes('default')) ownedSkins.unshift('default');
+      const ol=st.getItem(pref+'ownedLasers'); if(ol){ try{ ownedLasers=JSON.parse(ol); }catch(e){} } else ownedLasers=['default'];
+      const el=st.getItem(pref+'equippedLaser'); equippedLaser=el||'default';
+      if(!ownedLasers.includes('default')) ownedLasers.unshift('default');
+      if(!ownedLasers.includes(equippedLaser)) equippedLaser='default';
       const sc=st.getItem(pref+'score'); if(sc!==null){ const s=parseInt(sc)||0; if(s>score) score=s; }
       const sb=st.getItem(pref+'speedrun_best'); if(sb!==null) speedrunBest=parseFloat(sb); else speedrunBest=null;
       updateShopUI(); updateHUD();
@@ -246,12 +251,14 @@ const Game = (() => {
       st.setItem(pref+'coins', String(coins));
       st.setItem(pref+'owned', JSON.stringify(ownedSkins));
       st.setItem(pref+'equipped', equipped);
+      st.setItem(pref+'ownedLasers', JSON.stringify(ownedLasers));
+      st.setItem(pref+'equippedLaser', equippedLaser);
       st.setItem(pref+'score', String(score));
       if(speedrunBest!==null) st.setItem(pref+'speedrun_best', String(speedrunBest));
     }catch(e){}
   }
   function clearGuestSession(){
-    try{ const pref='ci_guest_'; sessionStorage.removeItem(pref+'coins'); sessionStorage.removeItem(pref+'owned'); sessionStorage.removeItem(pref+'equipped'); sessionStorage.removeItem(pref+'score'); sessionStorage.removeItem(pref+'speedrun_best'); }catch(e){}
+    try{ const pref='ci_guest_'; sessionStorage.removeItem(pref+'coins'); sessionStorage.removeItem(pref+'owned'); sessionStorage.removeItem(pref+'equipped'); sessionStorage.removeItem(pref+'ownedLasers'); sessionStorage.removeItem(pref+'equippedLaser'); sessionStorage.removeItem(pref+'score'); sessionStorage.removeItem(pref+'speedrun_best'); }catch(e){}
   }
   async function syncShopFromServer(){
     if(typeof API==='undefined') return;
@@ -259,6 +266,7 @@ const Game = (() => {
       const me=await API.me();
       if(me && me.coins!==undefined){
         coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.equipped;
+        if(Array.isArray(me.lasers)) ownedLasers=me.lasers; if(me.equippedLaser) equippedLaser=me.equippedLaser;
         if(me.user && me.user.speedrunBest!=null) speedrunBest=me.user.speedrunBest;
         score=Math.max(score,coins);
         saveShopLocal(); updateShopUI(); updateHUD();
@@ -311,7 +319,7 @@ const Game = (() => {
   function refreshSession(){
     migrateIfNeeded();
     if(isLogged()){
-      coins=0; ownedSkins=['default']; equipped='default'; score=0; speedrunBest=null;
+      coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; score=0; speedrunBest=null;
       try{
         const uid=Auth.user.id;
         const backup=localStorage.getItem('ci_'+uid+'_progress');
@@ -327,15 +335,17 @@ const Game = (() => {
         const c=sessionStorage.getItem('ci_guest_coins'); coins=c?parseInt(c)||0:0;
         const o=sessionStorage.getItem('ci_guest_owned'); ownedSkins=o?JSON.parse(o):['default'];
         const e=sessionStorage.getItem('ci_guest_equipped'); equipped=e||'default';
+        const ol=sessionStorage.getItem('ci_guest_ownedLasers'); ownedLasers=ol?JSON.parse(ol):['default'];
+        const el=sessionStorage.getItem('ci_guest_equippedLaser'); equippedLaser=el||'default';
         const sc=sessionStorage.getItem('ci_guest_score'); score=sc?parseInt(sc)||0:0;
         const sb=sessionStorage.getItem('ci_guest_speedrun_best'); speedrunBest=sb?parseFloat(sb):null;
-      }catch(e){ coins=0; ownedSkins=['default']; equipped='default'; score=0; speedrunBest=null; }
+      }catch(e){ coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; score=0; speedrunBest=null; }
     }
     loadShopLocal();
   }
   function onLogoutCleanup(){
     coins=0; score=0; ownedSkins=['default']; equipped='default'; speedrunBest=null;
-    try{ clearGuestSession(); localStorage.removeItem('shop_coins'); localStorage.removeItem('shop_owned'); localStorage.removeItem('shop_equipped'); localStorage.removeItem('fx_score'); localStorage.removeItem('speedrun_best'); }catch(e){}
+    try{ clearGuestSession(); localStorage.removeItem('shop_coins'); localStorage.removeItem('shop_owned'); localStorage.removeItem('shop_equipped'); localStorage.removeItem('shop_ownedLasers'); localStorage.removeItem('shop_equippedLaser'); localStorage.removeItem('fx_score'); localStorage.removeItem('speedrun_best'); }catch(e){}
     updateShopUI(); updateHUD();
   }
   function formatTime(ms){ const s=ms/1000, m=Math.floor(s/60), sec=Math.floor(s%60), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
@@ -491,7 +501,10 @@ const Game = (() => {
       e.y=e.baseY+formationDrift; if(e.flash>0) e.flash--;
     }
   }
-  function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15}); }
+  // El disparo lleva el láser que el jugador tiene equipado y el reloj del
+  // disparo, para que la animación vaya por donde va la bala y no con el
+  // reloj de la pantalla.
+  function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15,fx:equippedLaser,born:frameCount}); }
   function explode(x,y,color,count){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,sp=1+Math.random()*4; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:25+Math.random()*20,maxLife:45,color,size:2+Math.random()*3}); } }
   let audioCtx=null;
   function initAudio(){ if(audioCtx) return; const Ctor=window.AudioContext||window.webkitAudioContext; if(!Ctor) return; audioCtx=new Ctor(); }
@@ -919,7 +932,7 @@ const Game = (() => {
       ctx.restore();
     }
   }
-  function drawLasers(){ for(const l of lasers){ ctx.save(); ctx.strokeStyle=l.color; ctx.lineWidth=3; ctx.shadowColor=l.color; ctx.shadowBlur=12; ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.stroke(); ctx.restore(); } }
+  function drawLasers(){ for(const l of lasers){ LaserFx.draw(ctx,l.fx,l.x1,l.y1,l.x2,l.y2,(frameCount-(l.born||0))/60,{tint:l.color,w:3,blur:12}); } }
   function drawParticles(){ for(const p of particles){ ctx.save(); ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size); ctx.restore(); } }
   function drawHUDCanvas(){
     ctx.textAlign='left'; ctx.fillStyle='#7a8a9a'; ctx.font='bold 10px monospace'; ctx.fillText('PUNTOS',12,16);
@@ -1028,9 +1041,21 @@ const Game = (() => {
   }
   function initShopUI(){
     const btn=document.getElementById('shopBtn'); const modal=document.getElementById('shopModal');
+    // El catálogo de láseres (nombres y precios) viene del servidor, así que
+    // no hay dos listas que puedan desincronizarse. Mientras no llegue, se
+    // usan los que trae el módulo del navegador.
+    if(typeof API!=='undefined'&&API.getLasers){
+      API.getLasers().then(d=>{
+        if(d&&Array.isArray(d.lasers)&&d.lasers.length) window.LaserCatalog=d.lasers;
+        if(d&&Array.isArray(d.owned)&&d.owned.length) ownedLasers=d.owned;
+        if(d&&d.equipped) equippedLaser=d.equipped;
+        const lg=document.getElementById('laserGrid');
+        if(lg&&!lg.classList.contains('hidden')) renderLasers();
+      }).catch(()=>{});
+    }
     const close=document.getElementById('shopClose'); const grid=document.getElementById('shopGrid');
     if(!btn||!modal) return;
-    btn.addEventListener('click', ()=>{ renderShop(); modal.classList.remove('hidden'); });
+    btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); modal.classList.remove('hidden'); });
     if(close) close.addEventListener('click', ()=>modal.classList.add('hidden'));
     modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.add('hidden'); });
     const tabs=document.getElementById('shopTabs');
@@ -1045,6 +1070,8 @@ const Game = (() => {
       const modal=document.getElementById('shopModal');
       const modalBox=modal?modal.querySelector('.modal-shop'):null;
       if(sg) sg.classList.toggle('hidden',t!=='skins');
+      const lg2=document.getElementById('laserGrid');
+      if(lg2){ lg2.classList.toggle('hidden',t!=='lasers'); if(t==='lasers') renderLasers(); }
       if(layout) layout.classList.toggle('hidden',t!=='lucky');
       if(lg) lg.classList.remove('hidden');
       if(lw) lw.classList.remove('hidden');
@@ -1065,6 +1092,58 @@ const Game = (() => {
       if(achBack) achBack.addEventListener('click',()=>achModal.classList.add('hidden'));
       achModal.addEventListener('click',e=>{ if(e.target===achModal) achModal.classList.add('hidden'); });
     }
+  }
+  // Vista previa animada del láser: un canvas chiquito con el mismo
+  // LaserFx que usa el juego, así se ve exactamente igual que al disparar.
+  function laserPreviewHtml(l){
+    const info=LaserFx.info(l.id);
+    const anim=info.animated?' laser-anim':'';
+    return '<div class="laser-preview'+anim+'" style="--lc:'+l.color+';--lg:'+l.glow+'"><canvas class="laser-preview-cv" width="150" height="54" data-laser="'+l.id+'"></canvas></div>';
+  }
+  // Arranca la animación de todas las vistas previas de la tienda.
+  function paintLaserPreviews(){
+    if(typeof LaserFx==='undefined') return;
+    document.querySelectorAll('.laser-preview-cv').forEach(cv=>{
+      const id=cv.dataset.laser; if(!id) return;
+      if(cv._raf) cancelAnimationFrame(cv._raf);
+      const ctx=cv.getContext('2d'); if(!ctx) return;
+      const t0=performance.now();
+      const loop=now=>{
+        const t=(now-t0)/1000;
+        ctx.clearRect(0,0,cv.width,cv.height);
+        LaserFx.draw(ctx,id,10,cv.height-9,cv.width-10,7,t,{w:3,blur:11});
+        cv._raf=requestAnimationFrame(loop);
+      };
+      cv._raf=requestAnimationFrame(loop);
+    });
+  }
+  function renderLasers(){
+    const grid=document.getElementById('laserGrid'); const bal=document.getElementById('shopBalance');
+    if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
+    const lista=(typeof LaserCatalog!=='undefined'&&LaserCatalog&&LaserCatalog.length)?LaserCatalog:LaserFx.TIPOS.map(x=>Object.assign({name:x.id,price:0},x));
+    grid.innerHTML=lista.map(l=>{
+      const owned=ownedLasers.includes(l.id); const eq=equippedLaser===l.id;
+      const anim=LaserFx.info(l.id).animated;
+      let action='';
+      if(eq) action='<span class="shop-badge equipped">✓ Equipado</span>';
+      else if(owned) action=`<button class="btn btn-ghost btn-sm" data-lequip="${l.id}">Equipar</button>`;
+      else action=`<button class="btn btn-primary btn-sm" data-lbuy="${l.id}" ${coins < l.price ? 'disabled' : ''}>Comprar ${l.price} 🪙</button>`;
+      return `<div class="shop-card laser-card${eq?' shop-equipped':''}" style="border-top-color:${l.color}">`
+        + laserPreviewHtml(l)
+        + `<h4>${l.name}${anim?' <span class="laser-tag-anim" title="Se mueve">✨</span>':''}</h4>`
+        + `<p class="shop-price">${l.price===0?'Gratis':l.price+' 🪙'}</p>${action}</div>`;
+    }).join('');
+    grid.querySelectorAll('[data-lbuy]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.lbuy; b.disabled=true; b.textContent='...';
+      try{ const r=await API.buyLaser(id); coins=r.coins; ownedLasers=r.lasers; saveShopLocal(); renderLasers(); updateHUD(); Toast.success('⚡ Láser comprado!'); }
+      catch(e){ Toast.error(e.message); b.disabled=false; b.textContent='Comprar'; }
+    }));
+    grid.querySelectorAll('[data-lequip]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.lequip;
+      try{ const r=await API.equipLaser(id); equippedLaser=r.equippedLaser; saveShopLocal(); renderLasers(); Toast.success('Láser equipado'); }
+      catch(e){ Toast.error(e.message); }
+    }));
+    paintLaserPreviews();
   }
   function renderShop(){
     const grid=document.getElementById('shopGrid'); const bal=document.getElementById('shopBalance');

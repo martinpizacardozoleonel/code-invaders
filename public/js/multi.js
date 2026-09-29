@@ -6,7 +6,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
 // su dueño y el fondo se desplaza como si el espacio avanzara. Las posiciones
 // se calculan acá con requestAnimationFrame a partir del spawnAt del servidor,
 // así el movimiento es fluido aunque el estado llegue cada 1,5 s.
-const MultiArena=(()=>{
+  const MultiArena=(()=>{
   let cv=null,ctx=null,raf=null,dpr=1,W=0,H=0;
   let stars=[],beams=[],booms=[],shock=0;
   let players=[],enemies=[],seenEvents={},me='',clockOff=0,travelMs=5000,lastT=0,visible=false,wavePhase=1;
@@ -146,12 +146,19 @@ const MultiArena=(()=>{
       const b=beams[i]; b.t+=dt;
       if(b.t>=b.dur){ beams.splice(i,1); continue; }
       const k=b.t/b.dur;
-      ctx.save(); ctx.globalAlpha=1-k;
-      ctx.strokeStyle=b.miss?'rgba(255,82,82,.85)':(b.col||'#00e5ff');
-      ctx.lineWidth=2.6; ctx.shadowColor=b.miss?'#ff5252':(b.col||'#00e5ff'); ctx.shadowBlur=12;
-      ctx.beginPath(); ctx.moveTo(b.x1,b.y1);
-      ctx.lineTo(b.x1+(b.x2-b.x1)*Math.min(1,k*2.2), b.y1+(b.y2-b.y1)*Math.min(1,k*2.2));
-      ctx.stroke(); ctx.restore();
+      // El haz crece desde la nave hacia el objetivo.
+      const reach=Math.min(1,k*2.2);
+      const x2=b.x1+(b.x2-b.x1)*reach, y2=b.y1+(b.y2-b.y1)*reach;
+      if(b.miss){
+        ctx.save(); ctx.globalAlpha=1-k;
+        ctx.strokeStyle='rgba(255,82,82,.85)'; ctx.lineWidth=2.6;
+        ctx.shadowColor='#ff5252'; ctx.shadowBlur=12;
+        ctx.beginPath(); ctx.moveTo(b.x1,b.y1); ctx.lineTo(x2,y2); ctx.stroke();
+        ctx.restore();
+      }else{
+        // El láser de cada jugador: mismo efecto que en la tienda.
+        LaserFx.draw(ctx,b.fx||'default',b.x1,b.y1,x2,y2,b.t,{alpha:1-k,w:2.6,blur:12});
+      }
     }
     for(let i=booms.length-1;i>=0;i--){
       const b=booms[i]; b.t+=dt;
@@ -213,6 +220,9 @@ const MultiArena=(()=>{
       players=match.players||[];
       travelMs=match.travelMs||travelMs;
       wavePhase=match.wave||1;
+      // El láser propio: el que tiene equipado en la tienda.
+      const yo=players.find(p=>p.userId===me);
+      this.equippedLaser=(yo&&yo.laser)||this.equippedLaser||'default';
       enemies=(match.enemies||[]).filter(e=>{
         if(e.spawnAt>serverNow()+2500) return false;
         return (serverNow()-e.spawnAt) < travelMs*1.25;
@@ -239,7 +249,7 @@ const MultiArena=(()=>{
       if(target){
         booms.push({x:x2,y:y2,r:Math.min(70,Math.max(38,pg.L.w*.36)),t:0,dur:.55,col:'#00e5ff'});
       }
-      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.35,miss:!!miss,col:'#00e5ff'});
+      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.35,miss:!!miss,fx:this.equippedLaser||'default',col:'#00e5ff'});
       if(miss) shock=Math.max(shock,.5);
     },
     // Dónde estaba la nave destruida: la buscamos por id y, si ya no está,
@@ -268,7 +278,7 @@ const MultiArena=(()=>{
       const e=s.targetId&&enemies.find(x=>x.id===s.targetId);
       if(e){ const g=enemyGeom(e,count); x2=g.L.cx; y2=Math.max(6,g.y); }
       if(s.hit) booms.push({x:x2,y:y2,r:Math.min(60,Math.max(32,pg.L.w*.32)),t:0,dur:.45,col:sk.body});
-      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.3,miss:!s.hit,col:sk.body});
+      beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.3,miss:!s.hit,fx:p.laser||'default',col:sk.body});
     },
     flashBreach(){
       const f=document.getElementById('multiFlash'); if(!f) return;

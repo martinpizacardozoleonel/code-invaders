@@ -149,6 +149,24 @@ body > main:has(#view-game.active) {
 .shop-card h4 { font-size:0.95rem; color:#fff; margin:0; }
 .shop-price { font-size:0.85rem; color:var(--gold); font-weight:700; }
 .shop-badge { font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:999px; }
+/* ── Tienda · Láseres ──────────────────────────────────────────────────── */
+/* La vista previa es un canvas que se anima solo (ver renderLasers en
+   game.js), así que acá sólo va el marco y el brillo con el color del láser. */
+.laser-card { min-height:200px; }
+.laser-preview{
+  width:100%; max-width:170px; height:64px; border-radius:10px;
+  border:1.5px solid color-mix(in srgb, var(--lc) 55%, transparent);
+  background:radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--lc) 16%, transparent), rgba(0,0,0,.35) 75%);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.laser-preview-cv{ display:block; width:150px; height:54px; }
+.laser-tag-anim{ font-size:.8rem; vertical-align:middle; filter:drop-shadow(0 0 4px var(--lc)); }
+.laser-card.shop-equipped .laser-preview{
+  box-shadow:0 0 14px color-mix(in srgb, var(--lc) 45%, transparent), inset 0 0 12px color-mix(in srgb, var(--lc) 18%, transparent);
+}
+.laser-card .laser-preview-cv{ transition:transform .2s; }
+.laser-card:hover .laser-preview-cv{ transform:scale(1.06); }
+
 .shop-badge.equipped { background:var(--green); color:#000; }
 
 /* ============ NOTIFICACIONES ============ */
