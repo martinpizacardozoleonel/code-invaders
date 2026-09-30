@@ -89,14 +89,22 @@ body > main:has(#view-game.active) {
 .logo-menu.hidden{ display:flex!important; opacity:0; visibility:hidden; transform-origin:top left; transform:scale(.85) translateY(-12px); pointer-events:none!important; }
 .arcade-menu{opacity:1;transform:scale(1) translateY(0);transition:opacity .22s ease,transform .28s cubic-bezier(.2,1.4,.4,1);}
 .arcade-menu.closing{opacity:0!important;transform:scale(.9) translateY(-8px)!important;transition:opacity .16s,transform .18s ease-in;}
-.arcade-menu .logo-menu-item{opacity:0;transform:translateX(-14px);}
-.arcade-menu:not(.hidden) .logo-menu-item{animation:itemSlide .32s cubic-bezier(.2,1.2,.4,1) forwards;}
-.arcade-menu:not(.hidden) .logo-menu-item:nth-child(2){animation-delay:.04s}
-.arcade-menu:not(.hidden) .logo-menu-item:nth-child(3){animation-delay:.09s}
-.arcade-menu:not(.hidden) .logo-menu-item:nth-child(4){animation-delay:.14s}
-.arcade-menu:not(.hidden) .logo-menu-item:nth-child(5){animation-delay:.19s}
-.arcade-menu:not(.hidden) .logo-menu-item:nth-child(6){animation-delay:.24s}
-@keyframes itemSlide{to{opacity:1;transform:translateX(0)}}
+/* Los botones del menú se ven SIEMPRE. La entrada deslizada es solo un
+   adorno: si la animación no corre (celular con "quitar animaciones",
+   prefers-reduced-motion, o si el navegador no la reinicia al abrir el menú)
+   antes quedaban en opacity:0, invisibles pero igual pulsables. Por eso el
+   estado visible es el estado normal y la animación usa 'backwards' (que
+   devuelve el botón a su estado normal al terminar). */
+.logo-menu .logo-menu-item{ opacity:1; }
+@media (prefers-reduced-motion: no-preference){
+  .arcade-menu:not(.hidden) .logo-menu-item{ animation:itemSlide .32s cubic-bezier(.2,1.2,.4,1) backwards; }
+  .arcade-menu:not(.hidden) .logo-menu-item:nth-child(2){animation-delay:.04s}
+  .arcade-menu:not(.hidden) .logo-menu-item:nth-child(3){animation-delay:.09s}
+  .arcade-menu:not(.hidden) .logo-menu-item:nth-child(4){animation-delay:.14s}
+  .arcade-menu:not(.hidden) .logo-menu-item:nth-child(5){animation-delay:.19s}
+  .arcade-menu:not(.hidden) .logo-menu-item:nth-child(6){animation-delay:.24s}
+}
+@keyframes itemSlide{ from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:translateX(0)} }
 .arcade-menu-title{margin:2px 2px 6px!important;text-align:center;font-family:monospace;font-size:.68rem;font-weight:900;letter-spacing:2px;color:#00e5ff;text-shadow:0 0 10px rgba(0,229,255,.6);}
 .blink-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e676;box-shadow:0 0 8px #00e676;margin-right:6px;animation:pulse 1.2s infinite;}
 .arcade-menu-foot{margin:6px 2px 0!important;text-align:center;font-size:.64rem;color:#5b6b82;font-family:monospace;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px!important;}
@@ -491,7 +499,12 @@ main{flex:1;min-height:0;overflow:hidden;padding:12px 20px 10px;max-width:98vw;d
 }
 .doc-card::after { content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.012) 3px 4px); border-radius:14px; }
 .doc-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.5), 0 0 18px rgba(0,229,255,.12); }
-.doc-anim { opacity: 0; animation: docIn .45s cubic-bezier(.2,1.2,.4,1) forwards; }
+/* Igual que en el menú: la tarjeta se ve siempre y la animación es solo el
+   adorno de entrada (si no corre, no puede quedar invisible). */
+.doc-anim { opacity: 1; }
+@media (prefers-reduced-motion: no-preference){
+  .doc-anim { animation: docIn .45s cubic-bezier(.2,1.2,.4,1) backwards; }
+}
 @keyframes docIn { from { opacity:0; transform: translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
 .doc-kicker { font-family: monospace; font-size: .64rem; font-weight: 800; letter-spacing: 2px; color: var(--accent); text-shadow: 0 0 8px rgba(0,229,255,.4); margin: 0 0 8px; }
 .doc-card h3 { color: #fff; margin: 0 0 12px; font-size: 1.02rem; display: flex; align-items: center; gap: 10px; font-family: 'Press Start 2P', monospace; font-size: .72rem; line-height: 1.5; text-shadow: 0 0 10px rgba(0,229,255,.35); }

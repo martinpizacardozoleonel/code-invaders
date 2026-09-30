@@ -583,23 +583,6 @@ function roomCard(r){
   const st=r.match?(r.match.status||'lobby'):'lobby';
   return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, maxPlayers:clampMaxPlayers(r.maxPlayers,4), status:st, createdAt:r.createdAt };
 }
-function multiWaveTime(w){ return Math.max(12, 32 - w*1.2); }
-function multiPickEnemies(){
-  const pools=[];
-  try{
-    const html=(LEVELS[0]&&LEVELS[0].questions)||[]; const css=(LEVELS[1]&&LEVELS[1].questions)||[]; const js=(LEVELS[2]&&LEVELS[2].questions)||[];
-    html.forEach(q=>pools.push({cat:'HTML',q:q.q,a:q.a})); css.forEach(q=>pools.push({cat:'CSS',q:q.q,a:q.a})); js.forEach(q=>pools.push({cat:'JS',q:q.q,a:q.a}));
-  }catch(e){}
-  if(!pools.length) pools.push({cat:'HTML',q:'Párrafo',a:'<p>'},{cat:'CSS',q:'Color de texto',a:'color'},{cat:'JS',q:'Variable mutable',a:'let'});
-  const out=[];
-  for(let i=0;i<3;i++){ const p=pools[Math.floor(Math.random()*pools.length)]; out.push({id:crypto.randomUUID().slice(0,8),cat:p.cat,q:p.q,a:p.a}); }
-  return out;
-}
-function multiWaveDesc(w,enemies){
-  const c={HTML:0,CSS:0,JS:0}; enemies.forEach(e=>{ if(c[e.cat]!==undefined) c[e.cat]++; });
-  const parts=[]; if(c.HTML) parts.push(c.HTML+' HTML'); if(c.CSS) parts.push(c.CSS+' CSS'); if(c.JS) parts.push(c.JS+' JS');
-  return 'HORNADA '+w+' · '+parts.join(' + ');
-}
 
 // ── Arena compartida multijugador ────────────────────────────────────────
 // Una sola pantalla. Cada jugador tiene su franja vertical y sus propias
@@ -609,6 +592,10 @@ function multiWaveDesc(w,enemies){
 const ARENA_FALL_BASE=0.30, ARENA_FALL_MAX=0.80, ARENA_FALL_WAVE=0.018;
 const ARENA_SPAWN_BASE=3000, ARENA_SPAWN_MIN=800, ARENA_SPAWN_KILL_STEP=130, ARENA_SPAWN_WAVE_STEP=90;
 const ARENA_MAX_ENEMIES=30, ARENA_START_LIVES=2, ARENA_KILLS_PER_WAVE=6;
+// Cuántas naves arranca cada piloto. Van todas con el mismo spawnAt para que el
+// cliente las arme como UNA formación en grilla (igual que la del nivel 1) y
+// no como una fila de naves paradas en el borde superior.
+const ARENA_START_SHIPS=6;
 function arenaFall(wave){ return Math.min(ARENA_FALL_MAX, ARENA_FALL_BASE + Math.max(0,(wave||1)-1)*ARENA_FALL_WAVE); }
 function arenaSpawnMs(ps,wave){ return Math.max(ARENA_SPAWN_MIN, ARENA_SPAWN_BASE - (ps.kills||0)*ARENA_SPAWN_KILL_STEP - Math.max(0,(wave||1)-1)*ARENA_SPAWN_WAVE_STEP); }
 function arenaTravelMs(fall){ return 1000/Math.max(0.05,fall||ARENA_FALL_BASE); }
@@ -635,29 +622,43 @@ function leaveRoomInternal(uid){
   if(!r) return;
   if(r.lobby) r.lobby.delete(uid);
   UserRoom.delete(uid);
-  if(r.match && r.match.status==='playing' && r.match.players[uid]){ r.match.players[uid].alive=false; r.match.players[uid].streak=0; }
+  if(r.match && r.match.status==='playing' && r.match.players[uid]){
+    const ps=r.match.players[uid];
+    // Se lo saca de la partida pero su franja y su puesto en la lista se
+    // conservan, así las naves de los demás no cambian de lado a mitad de la
+    // partida. Solo deja de aparecer nuevas naves en su carril.
+    ps.alive=false; ps.streak=0; ps.nextSpawnAt=Infinity;
+  }
   if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
 }
 function tickRoom(r){
   const now=Date.now();
   for(const [id,p] of [...r.lobby]){ if(now-p.lastSeen>45000){ r.lobby.delete(id); if(UserRoom.get(id)===r.id) UserRoom.delete(id); } }
-  if(r.match && r.match.status==='finished' && now-r.match.finishedAt>90000){ r.match=null; for(const p of r.lobby.values()) p.ready=false; }
+  if(r.match && r.match.status==='finished'){
+    // Nadie está "listo" al terminar: si no, el tick siguiente arrancaba una
+    // partida nueva sola y los resultados se veían un instante.
+    for(const p of r.lobby.values()) p.ready=false;
+    if(now-r.match.finishedAt>90000){ r.match=null; }
+  }
   if(r.match && r.match.status==='playing'){
     const m=r.match;
     m.wave=1+Math.floor((m.totalKills||0)/ARENA_KILLS_PER_WAVE);
     const ids=Object.keys(m.players);
-    if(!ids.length){ /* todos se fueron */ }
     for(const pid of ids){
       const ps=m.players[pid];
-      if(now>=ps.nextSpawnAt){
+      // Alguien que ya no está en la sala no genera más naves.
+      if(ps.alive===false) continue;
+      if(now>=ps.nextSpawnAt && m.enemies.length<(m.maxEnemies||ARENA_MAX_ENEMIES)){
         m.enemies.push(arenaMakeEnemy(pid,m.wave));
-        ps.nextSpawnAt=now+(m.enemies.length<ARENA_MAX_ENEMIES?arenaSpawnMs(ps,m.wave):500);
+        ps.nextSpawnAt=now+arenaSpawnMs(ps,m.wave);
       }
     }
-    const travel=arenaTravelMs(arenaFall(m.wave));
+    // Cada nave rompe la línea cuando pasa SU propio tiempo de caída (el que
+    // tenía cuando salió). Usar el de la oleada en curso las borraba antes de
+    // tiempo al subir la velocidad: se perdían vidas sin haber llegado.
     const breaches=[];
     m.enemies=m.enemies.filter(e=>{
-      if(now-e.spawnAt<travel) return true;
+      if(now-e.spawnAt<arenaTravelMs(e.fall)) return true;
       breaches.push(e); return false;
     });
     if(breaches.length){
@@ -672,7 +673,8 @@ function tickRoom(r){
       m.finishing=true;
       (async()=>{
          try{
-          const pls=ids.map(id=>m.players[id]);
+          const pls=ids.map(id=>m.players[id]).filter(p=>p&&p.alive!==false);
+          if(!pls.length){ m.status='finished'; m.finishedAt=Date.now(); m.winnerIds=[]; return; }
           // Gana el que destruye MÁS NAVES ENEMIGAS. Sólo como desempate
           // cuenta tener menos errores, y si siguen empatados no hay ganador
           // único: el premio se reparte entre los que quedaron en cabeza.
@@ -700,7 +702,7 @@ function tickRoom(r){
           m.status='finished'; m.finishedAt=Date.now();
           m.winnerId=(pls.length>1&&tied.length===1)?win.userId:null;
           m.winnerIds=winIds;
-        }catch(e){ console.error('[multi finish]',e.message); m.status='finished'; m.finishedAt=Date.now(); }
+        }catch(e){ console.error('[multi finish]',e.message); m.status='finished'; m.finishedAt=Date.now(); m.winnerIds=m.winnerIds||[]; }
       })();
     }
   }
@@ -710,16 +712,22 @@ function tickRoom(r){
       const now=Date.now();
       const players={};
       l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+1500,expWon:0,coinsWon:0}; });
-      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[]};
-      l.forEach(p=>{ for(let i=0;i<3;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now-i*800)); });
+      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[],
+        // El tope de naves en pantalla crece con los jugadores: con 4 pilotos
+        // hay el doble de carriles, así el mismo tope dejaría la pantalla
+        // vacía y no aparecería ninguna nave nueva.
+        maxEnemies:ARENA_MAX_ENEMIES+Math.max(0,l.length-2)*8};
+      // Las naves iniciales salen TODAS juntas y con el mismo spawnAt, para que
+      // el cliente las ordene en una grilla de varias filas (la formación del
+      // nivel 1) y no en una fila sola pegada al borde.
+      l.forEach(p=>{ for(let i=0;i<ARENA_START_SHIPS;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now)); });
       r.match=m;
       r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada en '+r.name+'! Todos contra la oleada. No hay tiempo: sobrevive.',createdAt:new Date().toISOString()});
     }
   }
   if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
 }
-function tickAllRooms(){ for(const r of [...Rooms.values()]){ try{ tickRoom(r); }catch(e){} } }
-function multiPublicState(){ tickAllRooms(); }
+function tickAllRooms(){ for(const r of [...Rooms.values()]){ try{ tickRoom(r); }catch(e){ console.error('[multi tick]',e.message); } } }
 function multiSlimPic(pic){ if(!pic) return ''; if(pic.startsWith('data:') && pic.length>500) return ''; return pic; }
 app.get('/api/multi/rooms', async (req,res)=>{
   try{
@@ -818,7 +826,7 @@ app.get('/api/multi/state', async (req,res)=>{
       const order=Object.keys(m.players);
       const players=order.map((pid,idx)=>{
         const p=m.players[pid];
-        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,aliveNow:true};
+        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,aliveNow:p.alive!==false};
       });
       if(m.shots) m.shots=m.shots.filter(s=>now-s.at<6000).slice(-20);
       if(m.events) m.events=m.events.filter(e=>now-e.at<6000).slice(-10);
@@ -874,23 +882,28 @@ app.post('/api/multi/answer', async (req,res)=>{
   if((ps.lives==null?ARENA_START_LIVES:ps.lives)<=0) return res.status(400).json({error:'No te quedan vidas'});
   const now=Date.now();
   const norm=s=>String(s).trim().replace(/\s+/g,' ').toLowerCase();
+  const order=Object.keys(m.players);
   m.shots=m.shots||[];
-  const pushShot=(hit,targetId)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,lane:Object.keys(m.players).indexOf(user.id),hit:!!hit,targetId:targetId||null,at:now}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
-  // Se puede disparar a cualquier nave de la pantalla: manda la que coincida
-  // con la respuesta escrita, priorizando las que son del propio jugador.
-  const mine=order=>m.enemies.map((e,i)=>({e,i})).filter(x=>(order!==0||x.e.ownerId===user.id));
-  const candidates=mine(1).concat(mine(0));
-  const found=candidates.find(x=>norm(x.e.a)===norm(t));
+  const pushShot=(hit,targetId)=>{ m.shots.push({id:crypto.randomUUID(),userId:user.id,lane:order.indexOf(user.id),hit:!!hit,targetId:targetId||null,at:now}); if(m.shots.length>30) m.shots=m.shots.slice(-30); };
+  // Se puede disparar a cualquier nave de la pantalla. Primero se busca entre
+  // las naves del propio jugador (que son las que tiene que.defender) y si no
+  // hay ninguna que coincida, entre las del resto.
+  const candidates=m.enemies.map((e,i)=>({e,i}));
+  const found=candidates.filter(x=>x.e.ownerId===user.id).find(x=>norm(x.e.a)===norm(t))
+          || candidates.find(x=>norm(x.e.a)===norm(t));
   if(found){
     const killed=m.enemies[found.i];
     m.enemies.splice(found.i,1);
     ps.kills=(ps.kills||0)+1; ps.streak=(ps.streak||0)+1; if(ps.streak>(ps.best||0)) ps.best=ps.streak;
     m.totalKills=(m.totalKills||0)+1;
     // Cada destrucción acelera la aparición de las naves de su dueño.
-    const own=m.players[killed.ownerId]; if(own) own.nextSpawnAt=Math.min(own.nextSpawnAt, now+Math.max(ARENA_SPAWN_MIN, arenaSpawnMs(ps,m.wave)));
+    const own=m.players[killed.ownerId];
+    if(own) own.nextSpawnAt=Math.min(own.nextSpawnAt, now+Math.max(ARENA_SPAWN_MIN, arenaSpawnMs(own,m.wave)));
     pushShot(true,killed.id);
     if(_room) tickRoom(_room);
-    return res.json({hit:true,killed:{id:killed.id,cat:killed.cat,q:killed.q,a:killed.a,ownerId:killed.ownerId},wave:m.wave,kills:ps.kills,streak:ps.streak,best:ps.best,lives:(ps.lives==null?ARENA_START_LIVES:ps.lives),totalKills:m.totalKills,enemiesLeft:m.enemies.length});
+    // Se manda dónde estaba la nave (franja, momento y velocidad) para que el
+    // cliente dibuje la explosión en el lugar exacto y no en el centro.
+    return res.json({hit:true,killed:{id:killed.id,cat:killed.cat,q:killed.q,a:killed.a,ownerId:killed.ownerId,lane:order.indexOf(killed.ownerId),spawnAt:killed.spawnAt,fall:killed.fall},wave:m.wave,kills:ps.kills,streak:ps.streak,best:ps.best,lives:(ps.lives==null?ARENA_START_LIVES:ps.lives),totalKills:m.totalKills,enemiesLeft:m.enemies.length});
   }
   ps.misses=(ps.misses||0)+1; ps.streak=0;
   ps.lives=Math.max(0,(ps.lives==null?ARENA_START_LIVES:ps.lives)-1);
