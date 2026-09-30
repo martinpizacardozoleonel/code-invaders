@@ -25,8 +25,8 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   // pantalla antes de tiempo y hacía perder vidas sin que se vieran llegar.
   // Si el servidor no manda la velocidad, se usa la de la oleada.
   function travelOf(e){
-    const fb=travelMs?1000/travelMs:0.30;
-    return 1000/Math.max(0.05,(e&&e.fall)||fb);
+    const fb=travelMs?1000/travelMs:0.26;
+    return 1000/Math.max(0.008,(e&&e.fall)||fb);
   }
   function laneRect(lane,count){
     const n=Math.max(1,count||1); const w=W/n;
@@ -63,52 +63,89 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   function laneLayout(lane,count){
     const L=laneRect(lane,count);
     const span=Math.max(40,L.w-L.pad*2);
-    const cols=Math.max(1,Math.min(5,Math.round(span/126)));
+    const cols=Math.max(1,Math.min(5,Math.round(span/100)));
     const step=span/cols;
-    const w=Math.max(40,Math.min(112,step*0.78));
-    const h=Math.max(30,Math.min(84,w*0.78));
+    const w=Math.max(38,Math.min(112,step*0.78));
+    const h=Math.max(28,Math.min(84,w*0.78));
     return { L, cols, step, w, h };
   }
-  // Altura de la línea de peligro, de la fila más alta de la formación y cuántas
-  // filas de la formación entran enteras en ese espacio.
+  // Altura de la línea de peligro y de la fila más alta de la formación.
   function geomBounds(h){
     const hh=Math.max(30,h||60);
     const danger=H*0.86;
     const top=Math.max(hh*0.7,H*0.10);
-    const room=Math.max(20,danger-top);
-    return { danger, top, room, fit:1+Math.floor(Math.max(0,room-hh)/(hh*1.06)) };
+    return { danger, top, room:Math.max(20,danger-top) };
   }
-  // Separación entre filas: la justa para que las naves no se pisen, y si el
-  // alto es poco se achica para que la formación entera entre antes de la
-  // línea de peligro.
-  function rowGap(h,rows){
-    const hh=Math.max(30,h||60);
+  // Separación entre filas de la formación: la justa para que las naves no se
+  // pisen entre sí.
+  function rowGap(h){ const hh=Math.max(30,h||60); return Math.max(8,hh*1.06); }
+  // Distancia que recorre una nave desde que aparece hasta la línea de
+  // peligro. Es la MISMA para todas: así la formación y las naves que van
+  // apareciendo después bajan a la misma velocidad y ninguna termina
+  // atravesando a la otra. La fila de adelante (row 1) es la que queda sobre
+  // la línea; las de atrás (row 0, -1...) entran desde el borde de arriba.
+  function travelPx(h){
+    const b=geomBounds(h);
+    return Math.max(20,b.danger-b.top-rowGap(h));
+  }
+  // Altura de una nave según el puesto que tiene en la formación, SIN el
+  // corrimiento anti-choque (ver relaxLanes).
+  function baseY(slot,e){
+    const hh=Math.max(30,slot.h||60);
     const b=geomBounds(hh);
-    if(rows<=1) return hh*1.06;
-    return Math.max(6,Math.min(hh*1.06,(b.room-hh)/(rows-1),b.room/rows));
+    const row=(slot.row==null?1:slot.row);
+    const frac=Math.min(1.12,((serverNow()-e.spawnAt)/1000)*(e.fall||0.033));
+    return b.top+row*rowGap(hh)+travelPx(hh)*frac;
   }
+  function slotY(slot,e){ return baseY(slot,e)+(slot.dy||0); }
+  // Anti-choque: si una nave que entra por arriba no tiene hueco (carril
+  // angosto con 4 jugadores) se la sube lo justo para que entre mirando hacia
+  // abajo, en vez de taparse con la de al lado. Con la caída uniforme casi no
+  // hace falta, pero evita que dos naves queden pegadas.
+  function relaxLanes(count){
+    const byLane={};
+    for(const e of enemies){ const l=e.lane||0; (byLane[l]||(byLane[l]=[])).push(e); }
+    for(const lane in byLane){
+      const lay=laneLayout(+lane,count);
+      const info=[];
+      for(const e of byLane[lane]){
+        const s=slotMap.get(e.id); if(!s) continue;
+        info.push({ e, s, x:colX(lay,s), y:baseY(s,e), flex:!!s.solo, id:e.id });
+      }
+      info.sort((a,b)=>(a.y-b.y)||String(a.id).localeCompare(String(b.id)));
+      const sep=lay.h*1.02;
+      for(let i=0;i<info.length;i++){
+        for(let j=0;j<info.length;j++){
+          if(i===j) continue;
+          const A=info[i],B=info[j];
+          if(B.y-A.y<=0) continue;            // A va por encima de B
+          if(B.y-A.y>=sep) continue;          // ya hay hueco
+          if(Math.abs(A.x-B.x)>=lay.w*0.92) continue;  // columnas distintas
+          if(A.flex) A.y-=(sep-(B.y-A.y));
+        }
+      }
+      // Red de seguridad: una nave nunca sube más de un tercio de la pantalla
+      // por encima de donde le tocaría (si subiera tanto, no se vería).
+      const tope=H*0.35;
+      for(const o of info) o.s.dy=Math.max(-tope,o.y-baseY(o.s,o.e));
+    }
+  }
+  // Columna x de un puesto. Todas las naves de la franja usan la misma grilla
+  // (las del grupo y las sueltas), si no una formation de 3 columnas y una
+  // suelta de 4 se pisan: sus x quedaban a medio paso la una de la otra.
+  function colX(lay,slot){ return lay.L.cx+((slot.col||0)-(slot.cols-1)/2)*lay.step; }
   function enemyGeom(e,count){
     const lay=laneLayout(e.lane||0,count);
     const slot=slotMap.get(e.id)||deadSlot.get(e.id)
       ||{row:0,rows:1,cols:lay.cols,col:Math.floor(lay.cols/2),w:lay.w,h:lay.h};
     const t=serverNow()-e.spawnAt;
-    const frac=Math.min(1.12,(t/1000)*(e.fall||0.30));
-    const b=geomBounds(slot.h);
-    const rows=Math.max(1,slot.rows||1);
-    const gap=rowGap(slot.h,rows);
-    const row=Math.max(0,Math.min(rows-1,slot.row||0));
-    // La formación es un bloque RÍGIDO: todas las filas avanzan la misma
-    // distancia y llegan a la línea de peligro al mismo tiempo, tal cual la
-    // formación del nivel 1. Antes cada fila caía a su velocidad y se juntaban
-    // unas con otras al final de la caída.
-    const travel=Math.max(1,b.danger-(rows-1)*gap-b.top);
-    const y=b.top+row*gap+travel*frac;
+    const y=slotY(slot,e);
     // Vaivén suave en píxeles para que la formación no quede rígida.
     const sway=Math.sin(t/1500+(slot.col||0)*6.283)*lay.step*0.05;
     // Ojo: hay que sumar el centro de la franja del dueño (L.cx), si no todas
     // las naves de todos los jugadores se dibujan una encima de otra.
-    const x=lay.L.cx+((slot.col||0)-(slot.cols-1)/2)*lay.step+sway;
-    return { L:lay.L, x, y, w:slot.w, h:slot.h, col:slot.col, row };
+    const x=colX(lay,slot)+sway;
+    return { L:lay.L, x, y, w:slot.w, h:slot.h, col:slot.col, row:slot.row||0 };
   }
   // Reparte a las naves de cada franja en una grilla de varias filas, como la
   // formación del nivel 1.
@@ -134,25 +171,60 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
         if(g&&g.at===e.spawnAt) g.list.push(e);
         else groups.push({at:e.spawnAt,list:[e]});
       }
-      // Cuántas filas de la formación entran antes de la línea de peligro.
-      const fit=Math.max(1,geomBounds(lay.h).fit);
+      const puestos=arr.map(e=>({e,s:slotMap.get(e.id)})).filter(o=>o.s);
       let sueltas=0;
       for(const g of groups){
         const len=g.list.length;
         if(len<2){
           const e=g.list[0]; live.add(e.id);
-          const col=centerOut(lay.cols)[sueltas%lay.cols]; sueltas++;
-          if(!slotMap.has(e.id)) slotMap.set(e.id,{row:0,rows:1,cols:lay.cols,col,w:lay.w,h:lay.h});
+          if(!slotMap.has(e.id)){
+            // Se busca la primera columna donde la nave ENTRE sin tapar a
+            // ninguna de las que ya están (si se pisan, se ve un grupo de
+            // naves arriba y no se puede apuntar a ninguna).
+            const cand={row:1,rows:2,solo:1,cols:lay.cols,col:0,w:lay.w,h:lay.h};
+            const sep=lay.h*1.02;
+            const y0=baseY(cand,e);
+            let col=null,dy=0;
+            for(const c of centerOut(lay.cols)){
+              cand.col=c;
+              const x=colX(lay,cand);
+              let libre=true,subir=0;
+              for(const o of puestos){
+                if(Math.abs(colX(lay,o.s)-x)>=lay.w*0.92) continue;
+                const oy=slotY(o.s,o.e);
+                if(Math.abs(oy-y0)>=sep) continue;
+                libre=false;
+                // Si termina pisando, se sube lo justo para que entre por
+                // arriba, como cuando las naves hacen fila para bajar.
+                subir=Math.min(subir, oy-sep-y0);
+              }
+              if(libre){ col=c; break; }
+              if(subir<dy){ col=c; dy=subir; }
+            }
+            // Carril lleno de verdad: se sube lo justo y se sigue.
+            if(col==null) col=centerOut(lay.cols)[sueltas%lay.cols];
+            const s={row:1,rows:2,solo:1,cols:lay.cols,col,dy:Math.max(-rowGap(lay.h)*1.2,dy),w:lay.w,h:lay.h};
+            slotMap.set(e.id,s); puestos.push({e,s});
+          }
+          sueltas++;
           continue;
         }
-        let rows=Math.min(fit,Math.ceil(len/lay.cols));
-        let perRow=Math.min(lay.cols,Math.ceil(len/rows));
-        rows=Math.ceil(len/perRow);
+        // La formación usa un bloque CONTIGUO de columnas del carril, con el
+        // mismo paso que las sueltas, y de centro hacia afuera. Si puede deja
+        // una columna libre para que las naves que van apareciendo entren por
+        // ahí en vez de montarse encima.
+        const maxCols=Math.min(lay.cols,Math.max(2,lay.cols-1));
+        const perRow=Math.min(maxCols,Math.ceil(len/2));
+        const rows=Math.ceil(len/perRow);
+        const start=Math.floor((lay.cols-perRow)/2);
         const perm=centerOut(perRow);
         g.list.forEach((e,i)=>{
           live.add(e.id);
           if(slotMap.has(e.id)) return;
-          slotMap.set(e.id,{row:Math.floor(i/perRow),rows,cols:perRow,col:perm[i%perRow],w:lay.w,h:lay.h});
+          // Fila 1 = la de adelante (termina sobre la línea de peligro), 0 y
+          // -1 las de atrás, que entran desde el borde de arriba.
+          const s={row:1-Math.floor(i/perRow),rows,cols:lay.cols,col:start+perm[i%perRow],w:lay.w,h:lay.h};
+          slotMap.set(e.id,s); puestos.push({e,s});
         });
       }
     }
@@ -313,6 +385,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     ctx.save();
     try{
       if(shock>0) ctx.translate((Math.random()-.5)*shock*10,(Math.random()-.5)*shock*10);
+      relaxLanes(count);
       drawStarfield(dt,t,wavePhase);
       drawLanes(count,t);
       for(const e of enemies) drawEnemy(e,count);
@@ -441,7 +514,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   };
 })();
 const MultiUI={
- open:false, timer:null, ready:false, mode:'normal', view:'rooms', currentRoom:null, rooms:[], lastKey:'', fetching:false, roomsFetching:false, lastRoomsAt:0, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null, createIsPublic:true, createMode:'normal', createMax:4,
+ open:false, timer:null, ready:false, mode:'normal', view:'rooms', currentRoom:null, rooms:[], lastKey:'', fetching:false, roomsFetching:false, lastRoomsAt:0, failCount:0, picCache:{}, seenShots:{}, lastMatchId:null, dismissedMatchId:null, createIsPublic:true, createMode:'normal', createMax:4,
  init(){
   const mb=document.getElementById('multiBtn'); if(mb) mb.addEventListener('click',()=>this.openLobby());
   const mn=document.getElementById('multiModeNormalBtn'); if(mn) mn.addEventListener('click',()=>this.setRoomMode('normal'));
@@ -458,7 +531,11 @@ const MultiUI={
   const ab=document.getElementById('multiAnswerBtn'); if(ab) ab.addEventListener('click',()=>this.sendAnswer());
   const ai=document.getElementById('multiAnswer'); if(ai) ai.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.sendAnswer(); }});
   const ex=document.getElementById('multiExitBtn'); if(ex) ex.addEventListener('click',()=>{ if(confirm('¿Abandonar la partida? Perderás la racha.')) this.leave(); });
-  const st=document.getElementById('multiStayBtn'); if(st) st.addEventListener('click',async()=>{ this.ready=false; try{ await API.multiReady(false); }catch(e){} this.show('lobby'); this.poll(true); });
+   const st=document.getElementById('multiStayBtn'); if(st) st.addEventListener('click',async()=>{ this.ready=false; try{ await API.multiReady(false); }catch(e){}
+    // La partida sigue terminada en el servidor, así que sin esto el siguiente
+    // poll volvía a mostrar la tabla al instante y el lobby se veía un rayo.
+    this.dismissedMatchId=this.lastMatchId||null;
+    MultiArena.leave(); this.show('lobby'); this.poll(true); });
   const qt=document.getElementById('multiQuitBtn'); if(qt) qt.addEventListener('click',()=>this.leave());
   const cr=document.getElementById('multiCreateBtn'); if(cr) cr.addEventListener('click',()=>this.createRoom());
   const rn=document.getElementById('multiRoomName'); if(rn) rn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.createRoom(); }});
@@ -615,7 +692,7 @@ const MultiUI={
  async openLobby(){
   if(typeof Auth==='undefined'||!Auth.isLogged){ Toast.info('Inicia sesión para jugar online'); return; }
   document.getElementById('multiOverlay').classList.remove('hidden');
-  this.open=true; this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null;
+  this.open=true; this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null;
   this.setMode(this.mode||'normal');
   this.show('rooms');
   this.failCount=0;
@@ -626,7 +703,7 @@ const MultiUI={
  },
  async backToRooms(){
   try{ await API.multiLeave(); }catch(e){}
-  this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null;
+  this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null;
   const rb=document.getElementById('multiReadyBtn'); if(rb) rb.textContent='✅ ¡LISTO!';
   this.show('rooms');
   this.loadRooms(true);
@@ -772,9 +849,9 @@ const MultiUI={
       else cb.scrollTop=prevTop;
     }
   }
-   if(!match){ MultiArena.leave(); this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; return; }
+   if(!match){ MultiArena.leave(); this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null; return; }
    if(match.status==='playing'){
-     if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.seenShots={}; }
+     if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.dismissedMatchId=null; this.seenShots={}; }
      this._lastMatch=match; this._me=me;
      this.show('battle');
      MultiArena.enter(match.id);
@@ -810,6 +887,9 @@ const MultiUI={
      else if(ai){ ai.disabled=false; ai.placeholder='Escribe la etiqueta para disparar... (Enter)'; }
    } else if(match.status==='finished'){
      MultiArena.leave();
+     // El jugador ya пода esta partida ("Volver al lobby"): la tabla no vuelve
+     // a aparecer hasta que empiece una partida nueva.
+     if(this.dismissedMatchId===match.id){ this.show('lobby'); return; }
      this.show('results');
      // Orden final: gana el que destruyó más naves enemigas; a igual cantidad
      // se rompe con menos errores.

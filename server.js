@@ -589,16 +589,23 @@ function roomCard(r){
 // naves cayendo dentro de ella, pero todos las ven y cualquiera puede
 // disparar a cualquiera. Cuando una nave toca el fondo TODOS pierden 1 vida.
 // No hay reloj de oleada: la presión sube sola a medida que se destruyen.
-const ARENA_FALL_BASE=0.30, ARENA_FALL_MAX=0.80, ARENA_FALL_WAVE=0.018;
-const ARENA_SPAWN_BASE=3000, ARENA_SPAWN_MIN=800, ARENA_SPAWN_KILL_STEP=130, ARENA_SPAWN_WAVE_STEP=90;
-const ARENA_MAX_ENEMIES=30, ARENA_START_LIVES=2, ARENA_KILLS_PER_WAVE=6;
+const ARENA_FALL_BASE=0.026, ARENA_FALL_MAX=0.060, ARENA_FALL_WAVE=0.0012;
+const ARENA_SPAWN_BASE=5000, ARENA_SPAWN_MIN=2600, ARENA_SPAWN_KILL_STEP=100, ARENA_SPAWN_WAVE_STEP=400;
+const ARENA_MAX_PER_LANE=8, ARENA_START_LIVES=2, ARENA_KILLS_PER_WAVE=6;
 // Cuántas naves arranca cada piloto. Van todas con el mismo spawnAt para que el
 // cliente las arme como UNA formación en grilla (igual que la del nivel 1) y
 // no como una fila de naves paradas en el borde superior.
 const ARENA_START_SHIPS=6;
+// Espera inicial antes de la primera nave suelta: la formación de arranque
+// tiene que bajar un poco para que las nuevas aparezcan ARRIBA y no encima
+// de ella. Es el "cuenta atrás" del nivel 1.
+const ARENA_FIRST_SPAWN_MS=10000;
 function arenaFall(wave){ return Math.min(ARENA_FALL_MAX, ARENA_FALL_BASE + Math.max(0,(wave||1)-1)*ARENA_FALL_WAVE); }
 function arenaSpawnMs(ps,wave){ return Math.max(ARENA_SPAWN_MIN, ARENA_SPAWN_BASE - (ps.kills||0)*ARENA_SPAWN_KILL_STEP - Math.max(0,(wave||1)-1)*ARENA_SPAWN_WAVE_STEP); }
-function arenaTravelMs(fall){ return 1000/Math.max(0.05,fall||ARENA_FALL_BASE); }
+// El piso es 0.008 y no 0.05: con 0.05 ninguna nave podía tardar más de 20 s
+// en caer y el límite se comía la velocidad lenta del nivel 1 (el servidor
+// sacaba la nave antes de que llegara abajo).
+function arenaTravelMs(fall){ return 1000/Math.max(0.008,fall||ARENA_FALL_BASE); }
 function multiPool(){
   const pools=[];
   try{
@@ -648,10 +655,14 @@ function tickRoom(r){
       const ps=m.players[pid];
       // Alguien que ya no está en la sala no genera más naves.
       if(ps.alive===false) continue;
-      if(now>=ps.nextSpawnAt && m.enemies.length<(m.maxEnemies||ARENA_MAX_ENEMIES)){
-        m.enemies.push(arenaMakeEnemy(pid,m.wave));
-        ps.nextSpawnAt=now+arenaSpawnMs(ps,m.wave);
-      }
+      if(now<ps.nextSpawnAt) continue;
+      // Tope por carril: cada jugador tiene su carril y no se le llena de naves
+      // (con 2 jugadores el tope global dejaba la mitad de la pantalla vacía).
+      let enCarril=0;
+      for(const e of m.enemies) if(e.ownerId===pid) enCarril++;
+      if(enCarril>=ARENA_MAX_PER_LANE){ ps.nextSpawnAt=now+1000; continue; }
+      m.enemies.push(arenaMakeEnemy(pid,m.wave));
+      ps.nextSpawnAt=now+arenaSpawnMs(ps,m.wave);
     }
     // Cada nave rompe la línea cuando pasa SU propio tiempo de caída (el que
     // tenía cuando salió). Usar el de la oleada en curso las borraba antes de
@@ -711,12 +722,8 @@ function tickRoom(r){
     if(l.length>=2 && l.every(p=>p.ready)){
       const now=Date.now();
       const players={};
-      l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+1500,expWon:0,coinsWon:0}; });
-      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[],
-        // El tope de naves en pantalla crece con los jugadores: con 4 pilotos
-        // hay el doble de carriles, así el mismo tope dejaría la pantalla
-        // vacía y no aparecería ninguna nave nueva.
-        maxEnemies:ARENA_MAX_ENEMIES+Math.max(0,l.length-2)*8};
+      l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+ARENA_FIRST_SPAWN_MS,expWon:0,coinsWon:0}; });
+      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[]};
       // Las naves iniciales salen TODAS juntas y con el mismo spawnAt, para que
       // el cliente las ordene en una grilla de varias filas (la formación del
       // nivel 1) y no en una fila sola pegada al borde.
