@@ -2154,8 +2154,11 @@ body.light .lobby-info b{color:#0f172a!important;}
 .chat-flag{background:none;border:0;cursor:pointer;font-size:.85rem;opacity:.55;margin-left:auto;padding:2px 4px;}
 .chat-flag:hover{opacity:1;transform:scale(1.15);}
 /* ── Responder mensajes (chat global, de sala y privado) ───────────────── */
-.chat-reply-btn{background:none;border:0;cursor:pointer;font-size:.85rem;opacity:.5;padding:2px 4px;margin-left:auto;}
-.chat-reply-btn:hover{opacity:1;transform:scale(1.15);}
+/* Fondo blanco para que el botón se vea siempre: antes era transparente sobre
+   el negro del chat y no se distinguía nada. */
+.chat-reply-btn{background:#fff;border:0;cursor:pointer;font-size:.85rem;line-height:1;opacity:1;padding:3px 7px;margin-left:auto;border-radius:7px;color:#0b1a2a;box-shadow:0 1px 4px rgba(0,0,0,.35);transition:transform .12s ease,background .12s ease;}
+.chat-reply-btn:hover{opacity:1;transform:scale(1.15);background:#e6f9ff;}
+body.light .chat-reply-btn{background:#fff;border:1px solid #cbd5e1;color:#0f172a;box-shadow:none;}
 .chat-msg .chat-head .chat-reply-btn{margin-left:auto;}
 .chat-msg .chat-head .chat-flag,.chat-msg .chat-head .chat-del{margin-left:0;}
 .chat-quote{display:flex;align-items:flex-start;gap:6px;margin:0 0 5px;padding:5px 9px;border-left:3px solid #00e5ff;border-radius:6px;background:rgba(0,229,255,.08);font-size:.76rem;color:#9fd8ff;line-height:1.35;max-width:100%;}

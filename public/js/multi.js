@@ -10,6 +10,9 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   let cv=null,ctx=null,raf=null,dpr=1,W=0,H=0;
   let stars=[],beams=[],booms=[],shock=0;
   let players=[],enemies=[],seenEvents={},me='',clockOff=0,travelMs=5000,lastT=0,visible=false,wavePhase=1;
+  // Columna asignada a cada nave dentro de su franja, para que no salgan todas
+  // apiladas en el centro formando una fila.
+  const slotMap=new Map();
 
   function serverNow(){ return Date.now()+clockOff; }
   function syncClock(serverNowMs){ if(serverNowMs) clockOff=serverNowMs-Date.now(); }
@@ -31,12 +34,70 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     const n=Math.round((W*H)/5200)+40; stars=[];
     for(let i=0;i<n;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, z:0.25+Math.random()*1.15, s:0.6+Math.random()*1.5 });
   }
+  // Las naves se reparten en varias columnas dentro de la franja de su dueño,
+  // igual que la formación escalonada del nivel 1, en vez de apilarse todas en
+  // el centro. El ancho de la nave sale del paso entre columnas, así nunca se
+  // pisan entre sí, y hay separación tanto con 2 jugadores como con 8.
+  function laneLayout(lane,count){
+    const L=laneRect(lane,count);
+    const span=L.w-L.pad*2;
+    const cols=Math.max(1,Math.min(5,Math.floor(span/96)));
+    return { L, cols, step:span/cols };
+  }
   function enemyGeom(e,count){
-    const L=laneRect(e.lane||0,count);
+    const ly=laneLayout(e.lane||0,count);
     const t=Math.max(0,serverNow()-e.spawnAt);
     const frac=Math.min(1.15,(t/1000)*(e.fall||0.3));
     const usable=H*0.86;
-    return { L, y:usable*frac, w:Math.min(96,Math.max(56,L.w-18)), h:Math.min(74,Math.max(42,L.w*0.62)) };
+    const w=Math.max(46,Math.min(112,ly.step*0.72));
+    const h=Math.max(34,Math.min(84,w*0.78));
+    // Columna dentro de la franja. Se le asigna una sola vez a cada nave, así
+    // nunca salta de columna mientras cae.
+    let col=slotMap.get(e.id); if(typeof col!=='number') col=Math.floor(ly.cols/2);
+    col=Math.max(0,Math.min(ly.cols-1,col));
+    // Vaivén suave en píxeles para que la formación no quede rígida.
+    const sway=Math.sin(t/1500+col*6.283)*ly.step*0.05;
+    // Ojo: hay que sumar el origen de la franja (L.x), si no todas las naves
+    // de todos los jugadores se dibujan una encima de otra en la primera.
+    const x=ly.L.x+ly.L.pad+ly.step*(col+0.5)+sway;
+    return { L:ly.L, x, y:usable*frac, w, h, col };
+  }
+  // Reparte a las naves de cada franja en columnas separadas.
+  //  - Si entran en la grilla, se reparten en escalón a lo ancho de TODA la
+  //    franja (como la formación del nivel 1) y se entregan serpenteadas: la
+  //    más nueva cae en un borde, la siguiente en el otro, y así al centro.
+  //  - Si son más que columnas, se repite el orden serpenteado de la grilla,
+  //    así dos naves en la misma columna llegan con cols de diferencia y nunca
+  //    se pisan (quedan separadas en vertical, no en horizontal).
+  function assignSlots(list,count){
+    const byLane={};
+    for(const e of list){ const lane=e.lane||0; (byLane[lane]||(byLane[lane]=[])).push(e); }
+    const live=new Set();
+    const n=Math.max(1,count||1);
+    for(const lane in byLane){
+      const arr=byLane[lane].slice().sort((a,b)=>b.spawnAt-a.spawnAt);
+      const cols=laneLayout(+lane,n).cols;
+      const len=arr.length;
+      // Orden serpenteado de la grilla: 0, última, 1, anteúltima, ...
+      const perm=[];
+      for(let a2=0,b2=cols-1;a2<=b2;a2++,b2--){ perm.push(a2); if(b2!==a2) perm.push(b2); }
+      // Columnas donde cae cada nave, separadas lo más posible entre sí.
+      const slots=[];
+      if(len<=cols){
+        for(let k=0;k<len;k++) slots[k]=len>1?Math.round(k*(cols-1)/(len-1)):Math.floor(cols/2);
+      }else{
+        for(let k=0;k<len;k++) slots[k]=perm[k%perm.length];
+      }
+      for(let i=0;i<len;i++){
+        const e=arr[i];
+        live.add(e.id);
+        if(slotMap.has(e.id)) continue;
+        // Se entregan serpenteadas: primero los bordes, después el centro.
+        const pick=(i%2===0)?Math.floor(i/2):(len-1)-Math.floor(i/2);
+        slotMap.set(e.id,slots[Math.max(0,Math.min(len-1,pick))]);
+      }
+    }
+    for(const id of slotMap.keys()) if(!live.has(id)) slotMap.delete(id);
   }
   function playerGeom(p,count){
     const L=laneRect(p.lane||0,count);
@@ -82,7 +143,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   }
   function drawEnemy(e,count){
     const g=enemyGeom(e,count); if(g.y>H+40||g.y<-40) return;
-    const x=g.L.cx, w=g.w, h=g.h, bob=Math.sin((serverNow()/260)+(e.lane||0))*h*.06;
+    const x=g.x, w=g.w, h=g.h, bob=Math.sin((serverNow()/260)+(e.lane||0))*h*.06;
     const y=g.y+bob;
     // Diseño de nave al azar: cada una se ve distinta a las de al lado.
     EnemyShips.draw(ctx,e.design||'html',x,y,w,h);
@@ -217,7 +278,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       return true;
     },
     resize,
-    enter(){ this.attach(); visible=true; buildStars(); ensureLoop(); },
+    enter(){ this.attach(); visible=true; buildStars(); slotMap.clear(); ensureLoop(); },
     leave(){ visible=false; stopLoop(); },
     // Sincroniza el estado del servidor con el render local.
     setState(match,meId,serverNowMs){
@@ -234,6 +295,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
         if(e.spawnAt>serverNow()+2500) return false;
         return (serverNow()-e.spawnAt) < travelMs*1.25;
       });
+      assignSlots(enemies,players.length);
       // eventos de ruptura de línea
       (match.events||[]).forEach(ev=>{
         if(seenEvents[ev.id]) return;
@@ -265,7 +327,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       if(!killed) return null;
       const n=count||Math.max(1,players.length);
       const e=(killed.id&&enemies.find(x=>x.id===killed.id))||null;
-      if(e){ const g=enemyGeom(e,n); return {x:g.L.cx,y:Math.max(6,g.y)}; }
+      if(e){ const g=enemyGeom(e,n); return {x:g.x,y:Math.max(6,g.y)}; }
       // La nave ya no está: se dibuja la explosión donde estaba más o menos,
       // a un 45% del alto de la franja de su dueño.
       const idx=players.findIndex(p=>p.userId===killed.ownerId);
@@ -283,7 +345,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       const sk=MultiSkins.find(x=>x.id===p.skin)||MultiSkins[0];
       let x2=pg.x, y2=H*0.3;
       const e=s.targetId&&enemies.find(x=>x.id===s.targetId);
-      if(e){ const g=enemyGeom(e,count); x2=g.L.cx; y2=Math.max(6,g.y); }
+      if(e){ const g=enemyGeom(e,count); x2=g.x; y2=Math.max(6,g.y); }
       if(s.hit) booms.push({x:x2,y:y2,r:Math.min(60,Math.max(32,pg.L.w*.32)),t:0,dur:.45,col:sk.body});
       beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.3,miss:!s.hit,fx:p.laser||'default',col:sk.body});
     },
