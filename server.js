@@ -289,7 +289,7 @@ const LASERS=[
 //   anim  1 = tiene movimiento (en la tienda y en el juego)
 //   a/b   con qué se anima la forma
 const IMPACTS=[
-  { id:'default',     name:'Chispa',                price:0,      color:'#ffca28', glow:'#ffea00', kind:'chispa'      },
+  { id:'default',     name:'Normal',                price:0,      color:'#ffca28', glow:'#ffea00', kind:'chispa'      },
   { id:'fuego',       name:'🔥 Impacto Fuego',     price:3000,   color:'#ff6d00', glow:'#ff3d00', kind:'fuego',      anim:1, a:1.1, b:10   },
   { id:'hielo',       name:'❄️ Impacto Hielo',     price:7000,   color:'#80d8ff', glow:'#e1f5fe', kind:'hielo',      anim:1, a:1.4, b:4    },
   { id:'onda',        name:'🌊 Onda de Choque',    price:14000,  color:'#40c4ff', glow:'#82b4ff', kind:'onda',       anim:1, a:1.2, b:6    },

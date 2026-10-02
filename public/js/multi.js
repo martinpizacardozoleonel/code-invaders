@@ -366,15 +366,23 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       const b=booms[i]; b.t+=dt;
       if(b.t>=b.dur){ booms.splice(i,1); continue; }
       const k=b.t/b.dur;
-      // El impacto de cada jugador: mismo efecto que en la tienda, con el
-      // mismo módulo que usa el modo de un jugador.
-      ImpactFx.draw(ctx,b.impact||'default',b.x,b.y,k,{t:b.t,r:b.r,alpha:1-k,tint:b.col});
-      if(b.mark){
-        ctx.save(); ctx.globalAlpha=Math.max(0,1-k);
-        ctx.fillStyle='#fff'; ctx.font='800 '+Math.round(20+k*14)+'px system-ui,sans-serif'; ctx.textAlign='center';
-        ctx.fillText('💥',b.x,b.y+6);
+      // Si el jugador compró un impacto en la tienda, se dibuja ese (es el
+      // mismo módulo que en el modo de un jugador). Con el "normal" queda la
+      // explosión de siempre: una bolita de luz con el 💥.
+      if(b.impact&&b.impact!=='default'){
+        ImpactFx.draw(ctx,b.impact,b.x,b.y,k,{t:b.t,r:b.r,alpha:1-k,tint:b.col});
+      }else{
+        ctx.save(); ctx.globalAlpha=1-k;
+        const r=b.r*(0.4+k*1.1);
+        const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+        g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.45,b.col+'cc'); g.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,r,0,Math.PI*2); ctx.fill();
         ctx.restore();
       }
+      ctx.save(); ctx.globalAlpha=Math.max(0,1-k);
+      ctx.fillStyle='#fff'; ctx.font='800 '+Math.round(20+k*14)+'px system-ui,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('💥',b.x,b.y+6);
+      ctx.restore();
     }
   }
   function frame(t){

@@ -13,6 +13,7 @@
 const ImpactFx=(()=>{
   // El mismo catálogo que usa la tienda (el servidor lo manda en /api/shop).
   // Está duplicado acá a propósito para poder pintar sin esperar al servidor.
+  // El primero es el "normal": la explosión de siempre, no se compra.
   const TIPOS=[
     { id:'default',     color:'#ffca28', glow:'#ffea00', kind:'chispa'      },
     { id:'fuego',       color:'#ff6d00', glow:'#ff3d00', kind:'fuego',      a:1.1, b:10   },
@@ -25,6 +26,8 @@ const ImpactFx=(()=>{
     { id:'destruccion', color:'#ff1744', glow:'#ff5252', kind:'destruccion', a:1,   b:4    }
   ];
   const byId=id=>TIPOS.find(x=>x.id===id)||TIPOS[0];
+  // Semilla fija para el pseudo-aleatorio de la chispa normal.
+  function frac(v){ return v-Math.floor(v); }
 
   // ── Ayuditas que usan varias formas ──────────────────────────────────────
   // El destello redondo del centro: casi todos los impactos lo tienen.
@@ -49,27 +52,32 @@ const ImpactFx=(()=>{
   //   ctx, x, y, color, glow, t (segundos), k (0→1), R (radio final), ficha
   // A = la opacidad queVenía puesta (para no pisar la del que llama).
   const formas={
-    // Chispa: el básico. Destello blanco, ocho púas que salen disparadas y una
-    // onda que se abre. No se mueve (L.a vacío): lo que se paga es lo que
-    // tiene movimiento de verdad.
+    // Chispa: LA EXPLOSIÓN NORMAL DE SIEMPRE, la que ya usaba el juego: un montón
+    // de cuadraditos de colores que salen volando y se van apagando. El impacto
+    // por defecto es justamente esta, así que tiene que verse igualito a como
+    // se veía antes de que existieran las skins (por eso el juego no dibuja
+    // nada encima cuando el equipped es "default": las chispas de explode()
+    // ya son el efecto).
     chispa(ctx,x,y,col,glow,t,k,R,L){
-      const A=ctx.globalAlpha==null?1:ctx.globalAlpha;
-      ctx.globalAlpha=A*(1-k*k);
-      bola(ctx,x,y,R*k*1.05,col,1-k*.4);
-      ctx.shadowColor=glow; ctx.shadowBlur=10;
-      ctx.strokeStyle=col; ctx.lineWidth=Math.max(.6,3.5*(1-k));
-      const n=8, spin=(L.a||0)*t;
+      const A=(ctx.globalAlpha==null?1:ctx.globalAlpha)*(1-k);
+      if(A<=0) return;
+      // Pseudo-aleatorio estable por índice: la ráfaga siempre sale igual, sin
+      // tener que guardar las partículas en ningún lado.
+      const n=18, fr=k*42;
+      ctx.shadowBlur=6;
       for(let i=0;i<n;i++){
-        const a=(i/n)*Math.PI*2+spin;
-        ctx.beginPath();
-        ctx.moveTo(x+Math.cos(a)*R*k*.5,y+Math.sin(a)*R*k*.5);
-        ctx.lineTo(x+Math.cos(a)*R*k*1.3,y+Math.sin(a)*R*k*1.3);
-        ctx.stroke();
+        const r1=frac(Math.sin(i*12.9898)*43758.5453);
+        const r2=frac(Math.sin(i*78.2330)*43758.5453);
+        const r3=frac(Math.sin(i*39.3460)*43758.5453);
+        const a=r1*Math.PI*2, sp=1+r2*4;
+        const px=x+Math.cos(a)*sp*fr;
+        const py=y+Math.sin(a)*sp*fr+0.5*0.06*fr*fr;
+        const sz=2+r3*3;
+        ctx.globalAlpha=A*(1-r3*0.35);
+        ctx.fillStyle=col; ctx.shadowColor=col;
+        ctx.fillRect(px-sz/2,py-sz/2,sz,sz);
       }
       ctx.shadowBlur=0;
-      ctx.globalAlpha=A*(1-k)*.8;
-      ctx.strokeStyle='#ffffff'; ctx.lineWidth=Math.max(.5,2*(1-k));
-      ctx.beginPath(); ctx.arc(x,y,R*k*1.15,0,Math.PI*2); ctx.stroke();
     },
     // Fuego: pétalos de llama que se abren y brasas que suben.
     fuego(ctx,x,y,col,glow,t,k,R,L){

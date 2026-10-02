@@ -533,16 +533,17 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
   // disparo, para que la animación vaya por donde va la bala y no con el
   // reloj de la pantalla.
   function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15,fx:equippedLaser,born:frameCount}); }
-  // Chispas sueltas de siempre. Cuando la nave desaparece de verdad (big), además
-// se agrega un impacto con el radio "r": eso es lo que dibuja la skin comprada
-// en la tienda, así que se agranda con la nave que acaba de morir.
-function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,sp=1+Math.random()*4; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:25+Math.random()*20,maxLife:45,color,size:2+Math.random()*3}); } if(big) impacts.push({x,y,born:frameCount,dur:42,color,r:r||34}); }
+  // Chispas sueltas de siempre. Cuando la nave desaparece de verdad (big) se
+// agrega además el impacto de la skin comprada, con el radio "r" (que se
+// agranda con la nave que acaba de morir). Con el impacto "normal" no se agrega
+// nada: las chispas de acá mismo SON la explosión de siempre.
+function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,sp=1+Math.random()*4; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:25+Math.random()*20,maxLife:45,color,size:2+Math.random()*3}); } if(big&&equippedImpact!=='default') impacts.push({x,y,born:frameCount,dur:42,color,r:r||34}); }
   // Los impactos van por su propia cuenta: nacen con un "born" y se van cuando
   // pasan los cuadros que dura. Se actualizan arriba de todo (junto con el
   // reloj) para que la explosión siga terminándose aunque el nivel se termine
   // en el mismo disparo. El avance (k) lo calcula el que dibuja.
   function updateImpacts(){ for(let i=impacts.length-1;i>=0;i--){ const im=impacts[i]; if(frameCount-im.born>im.dur) impacts.splice(i,1); } }
-  function drawImpacts(){ for(const im of impacts){ const age=frameCount-(im.born||0); ImpactFx.draw(ctx,equippedImpact,im.x,im.y,age/im.dur,{t:age/60,r:im.r||34}); } }
+  function drawImpacts(){ if(equippedImpact==='default') return; for(const im of impacts){ const age=frameCount-(im.born||0); ImpactFx.draw(ctx,equippedImpact,im.x,im.y,age/im.dur,{t:age/60,r:im.r||34}); } }
   let audioCtx=null;
   function initAudio(){ if(audioCtx) return; const Ctor=window.AudioContext||window.webkitAudioContext; if(!Ctor) return; audioCtx=new Ctor(); }
   function resumeAudio(){ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }
@@ -1326,5 +1327,5 @@ function stopAllPreviews(){ for(const k in previewBufs) stopPreviews(k); }
   function showToast(msg){ const t=document.createElement('div'); t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1b2838;color:#00e676;padding:12px 24px;border-radius:8px;font-family:monospace;font-size:14px;z-index:9999;border:1px solid #00e676;box-shadow:0 4px 16px rgba(0,0,0,0.5);'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
   function loadProgress(){ refreshSession(); syncShopFromServer(); }
   function loop(){ update(); render(); requestAnimationFrame(loop); }
-  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession,showBtns,showSingleModes,openMultiEntry, stopPreviews:stopAllPreviews, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}};
+  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession,showBtns,showSingleModes,openMultiEntry, stopPreviews:stopAllPreviews, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}, get impact(){return equippedImpact;}, get laser(){return equippedLaser;}, get labelSkin(){return equippedLabelSkin;}, get ownedImpacts(){return ownedImpacts;}, get ownedLabelSkins(){return ownedLabelSkins;} };
 })();
