@@ -1,4 +1,4 @@
-const Game = (() => {
+﻿const Game = (() => {
   const SKINS=[
     {id:'default',name:'DEV Cyan',price:0,body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     {id:'crimson',name:'Crimson Fury',price:120,body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},
@@ -23,9 +23,11 @@ const Game = (() => {
   let score=0,lives=2,level=0;
   let coins=0,ownedSkins=['default'],equipped='default';
   let ownedLasers=['default'],equippedLaser='default';
+  let ownedImpacts=['default'],equippedImpact='default';
+  let ownedLabelSkins=['default'],equippedLabelSkin='default';
   let frameCount=0,shootCooldown=0;
   let keys={}; let titleStars=[];
-  let particles=[],lasers=[];
+  let particles=[],lasers=[],impacts=[];
   let enemies=[],currentEnemy=null;
   let levelData=null,questionsLeft=[];
   let bossPool=[];
@@ -240,6 +242,15 @@ const Game = (() => {
       const el=st.getItem(pref+'equippedLaser'); equippedLaser=el||'default';
       if(!ownedLasers.includes('default')) ownedLasers.unshift('default');
       if(!ownedLasers.includes(equippedLaser)) equippedLaser='default';
+      const oi=st.getItem(pref+'ownedImpacts'); if(oi){ try{ ownedImpacts=JSON.parse(oi); }catch(e){} } else ownedImpacts=['default'];
+      const ei=st.getItem(pref+'equippedImpact'); equippedImpact=ei||'default';
+      if(!ownedImpacts.includes('default')) ownedImpacts.unshift('default');
+      if(!ownedImpacts.includes(equippedImpact)) equippedImpact='default';
+      const ok2=st.getItem(pref+'ownedLabelSkins'); if(ok2){ try{ ownedLabelSkins=JSON.parse(ok2); }catch(e){} } else ownedLabelSkins=['default'];
+      const ek=st.getItem(pref+'equippedLabelSkin'); equippedLabelSkin=ek||'default';
+      if(!ownedLabelSkins.includes('default')) ownedLabelSkins.unshift('default');
+      if(!ownedLabelSkins.includes(equippedLabelSkin)) equippedLabelSkin='default';
+      applyLabelSkin();
       const sc=st.getItem(pref+'score'); if(sc!==null){ const s=parseInt(sc)||0; if(s>score) score=s; }
       const sb=st.getItem(pref+'speedrun_best'); if(sb!==null) speedrunBest=parseFloat(sb); else speedrunBest=null;
       updateShopUI(); updateHUD();
@@ -253,21 +264,31 @@ const Game = (() => {
       st.setItem(pref+'equipped', equipped);
       st.setItem(pref+'ownedLasers', JSON.stringify(ownedLasers));
       st.setItem(pref+'equippedLaser', equippedLaser);
+      st.setItem(pref+'ownedImpacts', JSON.stringify(ownedImpacts));
+      st.setItem(pref+'equippedImpact', equippedImpact);
+      st.setItem(pref+'ownedLabelSkins', JSON.stringify(ownedLabelSkins));
+      st.setItem(pref+'equippedLabelSkin', equippedLabelSkin);
       st.setItem(pref+'score', String(score));
       if(speedrunBest!==null) st.setItem(pref+'speedrun_best', String(speedrunBest));
     }catch(e){}
   }
-  function clearGuestSession(){
-    try{ const pref='ci_guest_'; sessionStorage.removeItem(pref+'coins'); sessionStorage.removeItem(pref+'owned'); sessionStorage.removeItem(pref+'equipped'); sessionStorage.removeItem(pref+'ownedLasers'); sessionStorage.removeItem(pref+'equippedLaser'); sessionStorage.removeItem(pref+'score'); sessionStorage.removeItem(pref+'speedrun_best'); }catch(e){}
+function clearGuestSession(){
+    try{ const pref='ci_guest_'; sessionStorage.removeItem(pref+'coins'); sessionStorage.removeItem(pref+'owned'); sessionStorage.removeItem(pref+'equipped'); sessionStorage.removeItem(pref+'ownedLasers'); sessionStorage.removeItem(pref+'equippedLaser'); sessionStorage.removeItem(pref+'ownedImpacts'); sessionStorage.removeItem(pref+'equippedImpact'); sessionStorage.removeItem(pref+'ownedLabelSkins'); sessionStorage.removeItem(pref+'equippedLabelSkin'); sessionStorage.removeItem(pref+'score'); sessionStorage.removeItem(pref+'speedrun_best'); }catch(e){}
   }
+  // La skin de etiqueta vive en ships.js para que el modo de un jugador y el
+  // multijugador muestren las etiquetas iguales sin pasar nada por parámetro.
+  function applyLabelSkin(){ try{ if(typeof EnemyShips!=='undefined'&&EnemyShips.setLabelSkin) EnemyShips.setLabelSkin(equippedLabelSkin); }catch(e){} }
   async function syncShopFromServer(){
     if(typeof API==='undefined') return;
     try{
       const me=await API.me();
       if(me && me.coins!==undefined){
-        coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.equipped;
+coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.equipped;
         if(Array.isArray(me.lasers)) ownedLasers=me.lasers; if(me.equippedLaser) equippedLaser=me.equippedLaser;
+        if(Array.isArray(me.impacts)) ownedImpacts=me.impacts; if(me.equippedImpact) equippedImpact=me.equippedImpact;
+        if(Array.isArray(me.labelSkins)) ownedLabelSkins=me.labelSkins; if(me.equippedLabelSkin) equippedLabelSkin=me.equippedLabelSkin;
         if(me.user && me.user.speedrunBest!=null) speedrunBest=me.user.speedrunBest;
+        applyLabelSkin();
         score=Math.max(score,coins);
         saveShopLocal(); updateShopUI(); updateHUD();
       }
@@ -319,7 +340,9 @@ const Game = (() => {
   function refreshSession(){
     migrateIfNeeded();
     if(isLogged()){
-      coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; score=0; speedrunBest=null;
+      coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default';
+      ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default';
+      score=0; speedrunBest=null;
       try{
         const uid=Auth.user.id;
         const backup=localStorage.getItem('ci_'+uid+'_progress');
@@ -337,15 +360,20 @@ const Game = (() => {
         const e=sessionStorage.getItem('ci_guest_equipped'); equipped=e||'default';
         const ol=sessionStorage.getItem('ci_guest_ownedLasers'); ownedLasers=ol?JSON.parse(ol):['default'];
         const el=sessionStorage.getItem('ci_guest_equippedLaser'); equippedLaser=el||'default';
+        const oi=sessionStorage.getItem('ci_guest_ownedImpacts'); ownedImpacts=oi?JSON.parse(oi):['default'];
+        const ei=sessionStorage.getItem('ci_guest_equippedImpact'); equippedImpact=ei||'default';
+        const os=sessionStorage.getItem('ci_guest_ownedLabelSkins'); ownedLabelSkins=os?JSON.parse(os):['default'];
+        const es=sessionStorage.getItem('ci_guest_equippedLabelSkin'); equippedLabelSkin=es||'default';
         const sc=sessionStorage.getItem('ci_guest_score'); score=sc?parseInt(sc)||0:0;
         const sb=sessionStorage.getItem('ci_guest_speedrun_best'); speedrunBest=sb?parseFloat(sb):null;
-      }catch(e){ coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; score=0; speedrunBest=null; }
+      }catch(e){ coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default'; score=0; speedrunBest=null; }
     }
     loadShopLocal();
   }
   function onLogoutCleanup(){
     coins=0; score=0; ownedSkins=['default']; equipped='default'; speedrunBest=null;
-    try{ clearGuestSession(); localStorage.removeItem('shop_coins'); localStorage.removeItem('shop_owned'); localStorage.removeItem('shop_equipped'); localStorage.removeItem('shop_ownedLasers'); localStorage.removeItem('shop_equippedLaser'); localStorage.removeItem('fx_score'); localStorage.removeItem('speedrun_best'); }catch(e){}
+    ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default'; applyLabelSkin();
+    try{ clearGuestSession(); localStorage.removeItem('shop_coins'); localStorage.removeItem('shop_owned'); localStorage.removeItem('shop_equipped'); localStorage.removeItem('shop_ownedLasers'); localStorage.removeItem('shop_equippedLaser'); localStorage.removeItem('shop_ownedImpacts'); localStorage.removeItem('shop_equippedImpact'); localStorage.removeItem('shop_ownedLabelSkins'); localStorage.removeItem('shop_equippedLabelSkin'); localStorage.removeItem('fx_score'); localStorage.removeItem('speedrun_best'); }catch(e){}
     updateShopUI(); updateHUD();
   }
   function formatTime(ms){ const s=ms/1000, m=Math.floor(s/60), sec=Math.floor(s%60), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
@@ -402,7 +430,7 @@ const Game = (() => {
   }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
-  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
+  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){
     if(startBtnEl) startBtnEl.classList.add('hidden');
     if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden');
@@ -505,7 +533,16 @@ const Game = (() => {
   // disparo, para que la animación vaya por donde va la bala y no con el
   // reloj de la pantalla.
   function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15,fx:equippedLaser,born:frameCount}); }
-  function explode(x,y,color,count){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,sp=1+Math.random()*4; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:25+Math.random()*20,maxLife:45,color,size:2+Math.random()*3}); } }
+  // Chispas sueltas de siempre. Cuando la nave desaparece de verdad (big), además
+// se agrega un impacto con el radio "r": eso es lo que dibuja la skin comprada
+// en la tienda, así que se agranda con la nave que acaba de morir.
+function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,sp=1+Math.random()*4; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:25+Math.random()*20,maxLife:45,color,size:2+Math.random()*3}); } if(big) impacts.push({x,y,born:frameCount,dur:42,color,r:r||34}); }
+  // Los impactos van por su propia cuenta: nacen con un "born" y se van cuando
+  // pasan los cuadros que dura. Se actualizan arriba de todo (junto con el
+  // reloj) para que la explosión siga terminándose aunque el nivel se termine
+  // en el mismo disparo. El avance (k) lo calcula el que dibuja.
+  function updateImpacts(){ for(let i=impacts.length-1;i>=0;i--){ const im=impacts[i]; if(frameCount-im.born>im.dur) impacts.splice(i,1); } }
+  function drawImpacts(){ for(const im of impacts){ const age=frameCount-(im.born||0); ImpactFx.draw(ctx,equippedImpact,im.x,im.y,age/im.dur,{t:age/60,r:im.r||34}); } }
   let audioCtx=null;
   function initAudio(){ if(audioCtx) return; const Ctor=window.AudioContext||window.webkitAudioContext; if(!Ctor) return; audioCtx=new Ctor(); }
   function resumeAudio(){ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }
@@ -518,7 +555,7 @@ const Game = (() => {
     shootCooldown=15; bossBullets--;
     makeLaser(player.x,player.y-22,bossX,bossY,'#ff0');
     bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion');
-    if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } }
+    if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,58); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } }
     updateHUD(); return true;
   }
   function damagePlayer(){
@@ -658,7 +695,7 @@ const Game = (() => {
       }
     }
     if(bossHP<=0){
-      explode(bossX,bossY,'#ff0',40); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100);
+      explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100);
       if(level < LEVELS.length-1){
         state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500);
       } else {
@@ -727,7 +764,7 @@ const Game = (() => {
   function checkBossDefeat(){
     if(!levelData||!levelData.isBoss) return;
     if(enemies.length&&enemies[0].health<=0){
-      explode(enemies[0].x,enemies[0].y,'#ff0',40);
+      explode(enemies[0].x,enemies[0].y,'#ff0',40,true,78);
       enemies=[]; currentEnemy=null;
       addCoins(100);
       if(level < LEVELS.length-1){
@@ -787,13 +824,13 @@ const Game = (() => {
       }
       const matching=enemies.filter(e=>e.answer.toLowerCase()===typed.toLowerCase());
       if(matching.length>0){
-        for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15); e.health=0; }
+        for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15,true,28); e.health=0; }
         const before=enemies.length;
         enemies=enemies.filter(e=>e.health>0);
         if(enemies.length < before){ score+=15; addCoins(5); scorePop=12; playSound('explosion'); showCssBubble(CSS_HIT_MSGS[Math.floor(Math.random()*CSS_HIT_MSGS.length)],70); }
         if(enemies.length===0){
           bossHP-=2; if(bossHP<0) bossHP=0; explode(bossX,bossY,'#0f0',10); showCssBubble(CSS_KILL_MSGS[Math.floor(Math.random()*CSS_KILL_MSGS.length)],90); playSound('explosion');
-          if(bossHP<=0){ explode(bossX,bossY,'#ff0',40); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true); }
+          if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true); }
           else { cssBossSpawnTimer=60; }
         }
       } else {
@@ -823,7 +860,7 @@ const Game = (() => {
     const matching=enemies.filter(e=>e.answer.toLowerCase()===typed.toLowerCase());
     if(matching.length>0){
       let destroyed=0;
-      for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15); e.health--; e.flash=12; if(e.health<=0){ explode(e.x,e.y,'#ff0',30); destroyed++; } }
+      for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15); e.health--; e.flash=12; if(e.health<=0){ explode(e.x,e.y,'#ff0',30,true,44); destroyed++; } }
       if(destroyed>0){
         enemies=enemies.filter(e=>e.health>0);
         if(currentEnemy&&currentEnemy.health<=0) currentEnemy=null;
@@ -842,7 +879,7 @@ const Game = (() => {
     inputEl.value=''; if(inputEl) inputEl.focus(); updateHUD();
   }
   function update(){
-    frameCount++; if(shootCooldown>0) shootCooldown--; if(scorePop>0) scorePop--; else if(scorePop<0) scorePop++; if(comboPop>0) comboPop--;
+    frameCount++; updateImpacts(); if(shootCooldown>0) shootCooldown--; if(scorePop>0) scorePop--; else if(scorePop<0) scorePop++; if(comboPop>0) comboPop--;
     if((state==='playing'||state==='intro') && frameCount%60===0){
       playSecAcc+=1;
       if(playSecAcc>=10 && typeof Profile!=='undefined' && Profile.addPlaytime){
@@ -879,7 +916,7 @@ const Game = (() => {
           showBtns();
           saveProgress(false); continue;
         }
-        if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20); damagePlayer(); } }
+        if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); continue; } const dx=e.x-player.x, dy=e.y-player.y; if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',20,true,44); damagePlayer(); } }
     }
     for(let i=lasers.length-1;i>=0;i--){ lasers[i].life--; if(lasers[i].life<=0) lasers.splice(i,1); }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
@@ -926,14 +963,14 @@ const Game = (() => {
         ctx.fillStyle=hp>0.5?'#00e676':(hp>0.25?'#ffd600':'#ff1744');
         ctx.fillRect(e.x-bw/2,e.y-e.h/2-7,bw*hp,4);
       }
-      // Texto legible dentro de la nave: misma cajita y mismo estilo de
-      // letras que se usan siempre, asi no hay que adivinar que pide.
-      EnemyShips.drawLabel(ctx,e.question,e.x,e.y+(isBoss?e.h*.1:e.h*.06),e.w-(isBoss?20:10),{fontSize:isBoss?12:11});
+      // Texto legible dentro de la nave: la cajita se pinta con la skin de
+      // etiqueta que tenga equipada el jugador (la de la tienda).
+      EnemyShips.drawLabel(ctx,e.question,e.x,e.y+(isBoss?e.h*.1:e.h*.06),e.w-(isBoss?20:10),{fontSize:isBoss?12:11,t:frameCount/60});
       ctx.restore();
     }
   }
   function drawLasers(){ for(const l of lasers){ LaserFx.draw(ctx,l.fx,l.x1,l.y1,l.x2,l.y2,(frameCount-(l.born||0))/60,{tint:l.color,w:3,blur:12}); } }
-  function drawParticles(){ for(const p of particles){ ctx.save(); ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size); ctx.restore(); } }
+  function drawParticles(){ for(const p of particles){ ctx.save(); ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size); ctx.restore(); } drawImpacts(); }
   function drawHUDCanvas(){
     ctx.textAlign='left'; ctx.fillStyle='#7a8a9a'; ctx.font='bold 10px monospace'; ctx.fillText('PUNTOS',12,16);
     const pop=scorePop>0; ctx.fillStyle='#ffd600'; ctx.shadowColor='#ffd600'; ctx.shadowBlur=pop?18:8; ctx.font=(pop?'bold 24px':'bold 18px')+' monospace'; ctx.fillText('★ '+score,12,36); ctx.shadowBlur=0; if(scorePop<0){ ctx.fillStyle='#f66'; ctx.fillText('-'+Math.min(3,score),12,52); }
@@ -1041,9 +1078,9 @@ const Game = (() => {
   }
   function initShopUI(){
     const btn=document.getElementById('shopBtn'); const modal=document.getElementById('shopModal');
-    // El catálogo de láseres (nombres y precios) viene del servidor, así que
-    // no hay dos listas que puedan desincronizarse. Mientras no llegue, se
-    // usan los que trae el módulo del navegador.
+    // Los catálogos (nombres y precios) vienen del servidor, así que no hay dos
+    // listas que puedan desincronizarse. Mientras no lleguen, se usan los que
+    // traen los módulos del navegador.
     if(typeof API!=='undefined'&&API.getLasers){
       API.getLasers().then(d=>{
         if(d&&Array.isArray(d.lasers)&&d.lasers.length) window.LaserCatalog=d.lasers;
@@ -1053,11 +1090,29 @@ const Game = (() => {
         if(lg&&!lg.classList.contains('hidden')) renderLasers();
       }).catch(()=>{});
     }
+    if(typeof API!=='undefined'&&API.getImpacts){
+      API.getImpacts().then(d=>{
+        if(d&&Array.isArray(d.impacts)&&d.impacts.length) window.ImpactCatalog=d.impacts;
+        if(d&&Array.isArray(d.owned)&&d.owned.length) ownedImpacts=d.owned;
+        if(d&&d.equipped) equippedImpact=d.equipped;
+        const ig=document.getElementById('impactGrid');
+        if(ig&&!ig.classList.contains('hidden')) renderImpacts();
+      }).catch(()=>{});
+    }
+    if(typeof API!=='undefined'&&API.getLabelSkins){
+      API.getLabelSkins().then(d=>{
+        if(d&&Array.isArray(d.labelSkins)&&d.labelSkins.length) window.LabelSkinCatalog=d.labelSkins;
+        if(d&&Array.isArray(d.owned)&&d.owned.length) ownedLabelSkins=d.owned;
+        if(d&&d.equipped){ equippedLabelSkin=d.equipped; applyLabelSkin(); }
+        const kg=document.getElementById('labelGrid');
+        if(kg&&!kg.classList.contains('hidden')) renderLabelSkins();
+      }).catch(()=>{});
+    }
     const close=document.getElementById('shopClose'); const grid=document.getElementById('shopGrid');
     if(!btn||!modal) return;
-    btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); modal.classList.remove('hidden'); });
-    if(close) close.addEventListener('click', ()=>modal.classList.add('hidden'));
-    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.add('hidden'); });
+    btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); renderImpacts(); renderLabelSkins(); modal.classList.remove('hidden'); });
+    if(close) close.addEventListener('click', ()=>{ modal.classList.add('hidden'); stopAllPreviews(); });
+    modal.addEventListener('click', e=>{ if(e.target===modal){ modal.classList.add('hidden'); stopAllPreviews(); } });
     const tabs=document.getElementById('shopTabs');
     if(tabs) tabs.querySelectorAll('.shop-tab').forEach(tab=>tab.addEventListener('click',()=>{
       tabs.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
@@ -1072,6 +1127,10 @@ const Game = (() => {
       if(sg) sg.classList.toggle('hidden',t!=='skins');
       const lg2=document.getElementById('laserGrid');
       if(lg2){ lg2.classList.toggle('hidden',t!=='lasers'); if(t==='lasers') renderLasers(); }
+      const ig=document.getElementById('impactGrid');
+      if(ig){ ig.classList.toggle('hidden',t!=='impacts'); if(t==='impacts') renderImpacts(); }
+      const kg=document.getElementById('labelGrid');
+      if(kg){ kg.classList.toggle('hidden',t!=='labels'); if(t==='labels') renderLabelSkins(); }
       if(layout) layout.classList.toggle('hidden',t!=='lucky');
       if(lg) lg.classList.remove('hidden');
       if(lw) lw.classList.remove('hidden');
@@ -1100,23 +1159,59 @@ const Game = (() => {
     const anim=info.animated?' laser-anim':'';
     return '<div class="laser-preview'+anim+'" style="--lc:'+l.color+';--lg:'+l.glow+'"><canvas class="laser-preview-cv" width="150" height="54" data-laser="'+l.id+'"></canvas></div>';
   }
-  // Arranca la animación de todas las vistas previas de la tienda.
-  function paintLaserPreviews(){
-    if(typeof LaserFx==='undefined') return;
-    document.querySelectorAll('.laser-preview-cv').forEach(cv=>{
-      const id=cv.dataset.laser; if(!id) return;
-      if(cv._raf) cancelAnimationFrame(cv._raf);
-      const ctx=cv.getContext('2d'); if(!ctx) return;
-      const t0=performance.now();
-      const loop=now=>{
-        const t=(now-t0)/1000;
-        ctx.clearRect(0,0,cv.width,cv.height);
-        LaserFx.draw(ctx,id,10,cv.height-9,cv.width-10,7,t,{w:3,blur:11});
-        cv._raf=requestAnimationFrame(loop);
-      };
+// ── Vistas previas animadas de la tienda ────────────────────────────────
+// Cada tarjeta tiene un canvas chiquito que se dibuja solo con el mismo
+// módulo que usa el juego, así se ve exactamente igual que al disparar o al
+// destruir una nave.
+//
+// Ojo con esto: la grilla se vuelve a armar con innerHTML cada vez que se abre
+// la tienda, así que los canvas viejos quedan sueltos en la página. Si sus
+// bucles de animación siguieran vivos se irían acumulando (abrir la tienda N
+// veces = N bucles pintando sobre nada, quemando CPU en el celular). Por eso
+// antes de arrancar se cancelan todos los bucles anteriores de esa vista y
+// sólo se animan los canvas que siguen conectados a la página.
+const previewBufs={};
+function stopPreviews(kind){
+  const viejos=previewBufs[kind]||[];
+  for(const cv of viejos){ try{ if(cv._raf) cancelAnimationFrame(cv._raf); }catch(e){} cv._raf=0; }
+  previewBufs[kind]=[];
+}
+function paintPreviews(kind,attr,paint){
+  stopPreviews(kind);
+  const lista=[];
+  document.querySelectorAll('['+attr+']').forEach(cv=>{
+    if(!cv.isConnected) return;
+    const id=cv.getAttribute(attr); if(!id) return;
+    const ctx=cv.getContext('2d'); if(!ctx) return;
+    const t0=performance.now();
+    const loop=now=>{
+      const t=(now-t0)/1000;
+      ctx.clearRect(0,0,cv.width,cv.height);
+      paint(ctx,cv,id,t);
       cv._raf=requestAnimationFrame(loop);
-    });
-  }
+    };
+    cv._raf=requestAnimationFrame(loop);
+    lista.push(cv);
+  });
+  previewBufs[kind]=lista;
+}
+// Vista previa del láser: el mismo LaserFx que el disparo del juego.
+function paintLaserPreviews(){
+  if(typeof LaserFx==='undefined') return;
+  paintPreviews('laser','data-laser',(ctx,cv,id,t)=>LaserFx.draw(ctx,id,10,cv.height-9,cv.width-10,7,t,{w:3,blur:11}));
+}
+// Vista previa del impacto: recorre toda la explosión en bucle.
+function paintImpactPreviews(){
+  if(typeof ImpactFx==='undefined') return;
+  paintPreviews('impact','data-impact',(ctx,cv,id,t)=>ImpactFx.draw(ctx,id,cv.width/2,cv.height/2,(t*0.9)%1,{t:t,r:cv.height*0.42}));
+}
+// Vista previa de la etiqueta: el mismo EnemyShips.drawLabel del juego.
+function paintLabelPreviews(){
+  if(typeof EnemyShips==='undefined') return;
+  paintPreviews('label','data-labelskin',(ctx,cv,id,t)=>EnemyShips.drawLabel(ctx,'Párrafo',cv.width/2,cv.height/2,cv.width-6,{fontSize:12,t:t,skin:id}));
+}
+// Cuando la tienda se cierra no hace falta seguir animando nada.
+function stopAllPreviews(){ for(const k in previewBufs) stopPreviews(k); }
   function renderLasers(){
     const grid=document.getElementById('laserGrid'); const bal=document.getElementById('shopBalance');
     if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
@@ -1145,6 +1240,73 @@ const Game = (() => {
     }));
     paintLaserPreviews();
   }
+  // El HTML de la tarjeta de impacto: el canvas es el que se anima solo (ver
+  // paintImpactPreviews) y el "--ic" le da el marco y el brillo de su color.
+  function impactPreviewHtml(im){
+    const anim=ImpactFx.info(im.id).animated;
+    return '<div class="impact-preview'+(anim?' impact-anim':'')+'" style="--ic:'+im.color+';--ig:'+im.glow+'"><canvas class="impact-preview-cv" width="120" height="90" data-impact="'+im.id+'"></canvas></div>';
+  }
+  function renderImpacts(){
+    const grid=document.getElementById('impactGrid'); const bal=document.getElementById('shopBalance');
+    if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
+    const lista=(typeof ImpactCatalog!=='undefined'&&ImpactCatalog&&ImpactCatalog.length)?ImpactCatalog:ImpactFx.TIPOS.map(x=>Object.assign({name:x.id,price:0},x));
+    grid.innerHTML=lista.map(im=>{
+      const owned=ownedImpacts.includes(im.id); const eq=equippedImpact===im.id;
+      const anim=ImpactFx.info(im.id).animated;
+      let action='';
+      if(eq) action='<span class="shop-badge equipped">✓ Equipado</span>';
+      else if(owned) action=`<button class="btn btn-ghost btn-sm" data-ibuy-eq="${im.id}">Equipar</button>`;
+      else action=`<button class="btn btn-primary btn-sm" data-ibuy="${im.id}" ${coins < im.price ? 'disabled' : ''}>Comprar ${im.price} 🪙</button>`;
+      return `<div class="shop-card impact-card${eq?' shop-equipped':''}" style="border-top-color:${im.color}">`
+        + impactPreviewHtml(im)
+        + `<h4>${im.name}${anim?' <span class="impact-tag-anim" title="Se mueve">✨</span>':''}</h4>`
+        + `<p class="shop-price">${im.price===0?'Gratis':im.price+' 🪙'}</p>${action}</div>`;
+    }).join('');
+    grid.querySelectorAll('[data-ibuy]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.ibuy; b.disabled=true; b.textContent='...';
+      try{ const r=await API.buyImpact(id); coins=r.coins; ownedImpacts=r.impacts; saveShopLocal(); renderImpacts(); updateHUD(); Toast.success('💥 Impacto comprado!'); }
+      catch(e){ Toast.error(e.message); b.disabled=false; b.textContent='Comprar'; }
+    }));
+    grid.querySelectorAll('[data-ibuy-eq]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.ibuyEq;
+      try{ const r=await API.equipImpact(id); equippedImpact=r.equippedImpact; saveShopLocal(); renderImpacts(); Toast.success('Impacto equipado'); }
+      catch(e){ Toast.error(e.message); }
+    }));
+    paintImpactPreviews();
+  }
+  // El HTML de la tarjeta de etiqueta: el canvas es el que se anima solo (ver
+  // paintLabelPreviews) y el "--lc" le da el marco del color de la skin.
+  function labelPreviewHtml(sk){
+    return '<div class="label-preview" style="--lc:'+sk.border+'"><canvas class="label-preview-cv" width="150" height="46" data-labelskin="'+sk.id+'"></canvas></div>';
+  }
+  function renderLabelSkins(){
+    const grid=document.getElementById('labelGrid'); const bal=document.getElementById('shopBalance');
+    if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
+    const lista=(typeof LabelSkinCatalog!=='undefined'&&LabelSkinCatalog&&LabelSkinCatalog.length)?LabelSkinCatalog:EnemyShips.LABEL_SKINS;
+    grid.innerHTML=lista.map(sk=>{
+      const owned=ownedLabelSkins.includes(sk.id); const eq=equippedLabelSkin===sk.id;
+      let action='';
+      if(eq) action='<span class="shop-badge equipped">✓ Equipado</span>';
+      else if(owned) action=`<button class="btn btn-ghost btn-sm" data-kbuy-eq="${sk.id}">Equipar</button>`;
+      else action=`<button class="btn btn-primary btn-sm" data-kbuy="${sk.id}" ${coins < sk.price ? 'disabled' : ''}>Comprar ${sk.price} 🪙</button>`;
+      const mov=!!(sk.anim||sk.hue);
+      return `<div class="shop-card label-card${eq?' shop-equipped':''}" style="border-top-color:${sk.border}">`
+        + labelPreviewHtml(sk)
+        + `<h4>${sk.name}${mov?' <span class="label-tag-anim" title="Se mueve">✨</span>':''}</h4>`
+        + `<p class="shop-price">${sk.price===0?'Gratis':sk.price+' 🪙'}</p>${action}</div>`;
+    }).join('');
+    grid.querySelectorAll('[data-kbuy]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.kbuy; b.disabled=true; b.textContent='...';
+      try{ const r=await API.buyLabelSkin(id); coins=r.coins; ownedLabelSkins=r.labelSkins; saveShopLocal(); renderLabelSkins(); updateHUD(); Toast.success('🏷️ Etiqueta comprada!'); }
+      catch(e){ Toast.error(e.message); b.disabled=false; b.textContent='Comprar'; }
+    }));
+    grid.querySelectorAll('[data-kbuy-eq]').forEach(b=>b.addEventListener('click', async()=>{
+      const id=b.dataset.kbuyEq;
+      try{ const r=await API.equipLabelSkin(id); equippedLabelSkin=r.equippedLabelSkin; applyLabelSkin(); saveShopLocal(); renderLabelSkins(); Toast.success('Etiqueta equipada'); }
+      catch(e){ Toast.error(e.message); }
+    }));
+    paintLabelPreviews();
+  }
   function renderShop(){
     const grid=document.getElementById('shopGrid'); const bal=document.getElementById('shopBalance');
     if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
@@ -1160,9 +1322,9 @@ const Game = (() => {
     grid.querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.dataset.equip; try{ const r=await API.equipSkin(id); equipped=r.equipped; saveShopLocal(); renderShop(); Toast.success('Skin equipada'); }catch(e){ Toast.error(e.message); } }));
   }
   function updateShopUI(){ const el=document.getElementById('coinVal'); if(el) el.textContent=coins; }
-  function resetGame(){ score=0; level=0; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; startLevel(0); }
+  function resetGame(){ score=0; level=0; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; startLevel(0); }
   function showToast(msg){ const t=document.createElement('div'); t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1b2838;color:#00e676;padding:12px 24px;border-radius:8px;font-family:monospace;font-size:14px;z-index:9999;border:1px solid #00e676;box-shadow:0 4px 16px rgba(0,0,0,0.5);'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
   function loadProgress(){ refreshSession(); syncShopFromServer(); }
   function loop(){ update(); render(); requestAnimationFrame(loop); }
-  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession,showBtns,showSingleModes,openMultiEntry, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}};
+  return {init,loadProgress,refreshSession,onLogoutCleanup,clearGuestSession,showBtns,showSingleModes,openMultiEntry, stopPreviews:stopAllPreviews, get SKINS(){return SKINS;}, get coins(){return coins;}, set coins(v){coins=v;}};
 })();

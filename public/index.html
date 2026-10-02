@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CODE INVADERS — Galaga de Programación</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=34">
+  <link rel="stylesheet" href="css/style.css?v=35">
 </head>
 <body>
   <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
@@ -465,10 +465,14 @@
       <div class="shop-tabs" id="shopTabs">
         <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
         <button class="shop-tab" data-tab="lasers">⚡ Láseres</button>
+        <button class="shop-tab" data-tab="impacts">💥 Impactos</button>
+        <button class="shop-tab" data-tab="labels">🏷️ Etiquetas</button>
         <button class="shop-tab" data-tab="lucky">🎰 Lucky Coders</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
       <div class="shop-grid hidden" id="laserGrid"></div>
+      <div class="shop-grid hidden" id="impactGrid"></div>
+      <div class="shop-grid hidden" id="labelGrid"></div>
       <div id="luckyLayout" class="lucky-layout hidden">
         <div id="luckyWheelWrap" class="galaga-panel">
           <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
@@ -646,20 +650,21 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=12"></script>
+  <script src="js/api.js?v=13"></script>
   <script src="js/qr.js?v=1"></script>
   <script src="js/auth.js?v=3"></script>
   <script src="js/notifications.js?v=2"></script>
-  <script src="js/docs.js?v=6"></script>
+  <script src="js/docs.js?v=7"></script>
     <script src="js/intro.js?v=3"></script>
-    <script src="js/ships.js?v=1"></script>
+    <script src="js/ships.js?v=2"></script>
     <script src="js/lasers.js?v=1"></script>
-    <script src="js/game.js?v=27"></script>
+    <script src="js/impacts.js?v=1"></script>
+    <script src="js/game.js?v=28"></script>
   <script src="js/profile.js?v=14"></script>
   <script src="js/ranked.js?v=9"></script>
   <script src="js/chat.js?v=7"></script>
   <script src="js/friends.js?v=9"></script>
-    <script src="js/multi.js?v=13"></script>
+    <script src="js/multi.js?v=14"></script>
   <script src="js/report.js?v=1"></script>
   <script src="js/app.js?v=10"></script>
   <script>

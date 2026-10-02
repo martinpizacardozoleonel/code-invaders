@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node scripts/smoke-ships.js && node scripts/smoke-laser.js && node scripts/smoke-db.js && node scripts/smoke-arena.js"
+    "test": "node scripts/smoke-ships.js && node scripts/smoke-laser.js && node scripts/smoke-skins.js && node scripts/smoke-db.js && node scripts/smoke-arena.js"
   },
   "keywords": [
     "galaga",

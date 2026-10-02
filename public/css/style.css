@@ -174,6 +174,41 @@ body > main:has(#view-game.active) {
 }
 .laser-card .laser-preview-cv{ transition:transform .2s; }
 .laser-card:hover .laser-preview-cv{ transform:scale(1.06); }
+/* ── Tienda · Impactos ──────────────────────────────────────────────────── */
+/* La vista previa es un canvas que se anima solo (ver paintImpactPreviews en
+   game.js): va pasando por la explosión entera en bucle, con el mismo módulo
+   que dibuja el impacto en el juego. */
+.impact-card { min-height:200px; }
+.impact-preview{
+  width:100%; max-width:170px; height:90px; border-radius:10px;
+  border:1.5px solid color-mix(in srgb, var(--ic) 55%, transparent);
+  background:radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--ic) 16%, transparent), rgba(0,0,0,.4) 78%);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.impact-preview-cv{ display:block; width:120px; height:90px; }
+.impact-tag-anim{ font-size:.8rem; vertical-align:middle; filter:drop-shadow(0 0 4px var(--ic)); }
+.impact-card.shop-equipped .impact-preview{
+  box-shadow:0 0 14px color-mix(in srgb, var(--ic) 45%, transparent), inset 0 0 12px color-mix(in srgb, var(--ic) 18%, transparent);
+}
+.impact-card .impact-preview-cv{ transition:transform .2s; }
+.impact-card:hover .impact-preview-cv{ transform:scale(1.06); }
+/* ── Tienda · Etiquetas ─────────────────────────────────────────────────── */
+/* La vista previa también es un canvas: usa EnemyShips.drawLabel, que es la
+   misma función que dibuja el texto de las naves en el juego. */
+.label-card { min-height:150px; }
+.label-preview{
+  width:100%; max-width:170px; height:46px; border-radius:10px;
+  border:1.5px solid color-mix(in srgb, var(--lc) 55%, transparent);
+  background:radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--lc) 14%, transparent), rgba(0,0,0,.4) 78%);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.label-preview-cv{ display:block; width:150px; height:46px; }
+.label-tag-anim{ font-size:.8rem; vertical-align:middle; filter:drop-shadow(0 0 4px var(--lc)); }
+.label-card.shop-equipped .label-preview{
+  box-shadow:0 0 14px color-mix(in srgb, var(--lc) 45%, transparent), inset 0 0 12px color-mix(in srgb, var(--lc) 18%, transparent);
+}
+.label-card .label-preview-cv{ transition:transform .2s; }
+.label-card:hover .label-preview-cv{ transform:scale(1.06); }
 
 .shop-badge.equipped { background:var(--green); color:#000; }
 

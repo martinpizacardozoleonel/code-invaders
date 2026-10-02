@@ -2,14 +2,45 @@
    Un único lugar donde se dibujan las naves, para que el modo de un jugador
    y el multijugador se vean IGUALES.
 
-   - DISEÑOS[0..4]  → un modelo por nivel (1 HTML, 2 CSS, 3 JS, 4 jefe final,
-                      5 jefe CSS).
+- DISEÑOS[0..4]  → un modelo por nivel (1 HTML, 2 CSS, 3 JS, 4 jefe final,
+                       5 jefe CSS).
    - EnemyShips.draw()        dibuja la nave.
-   - EnemyShips.drawLabel()   dibuja el texto legible dentro de la nave
-                              (el mismo estilo de siempre: cajita negra con
-                              borde y letras blancas con contorno).
+   - EnemyShips.drawLabel()   dibuja el texto legible dentro de la nave con
+                               la skin de etiqueta que tenga equipada el
+                               jugador (la comprada en la tienda).
    Las rutas están normalizadas en un lienzo de 100x100 y se escalan al
    tamaño que pida cada juego, así sirve para cualquier resolución.        */
+
+/* ══ SKINS DE ETIQUETAS ═══════════════════════════════════════════════════
+   Cómo se ve la cajita con el texto de la nave enemiga. Cada skin dice de
+   qué color es la caja, el borde y las letras, con qué tipografía se escriben
+   y si tienen algo que se mueva.
+
+   - bg / border / color / stroke → los cuatro colores de la etiqueta.
+   - font  → la familia de la letra (si no, la de siempre).
+   - weight→ el grosor de la letra.
+   - glow  → el brillo que lleva el borde.
+   - hue   → las letras cambian de color con el tiempo (arcoíris).
+   - anim  → el borde late con el tiempo.
+
+   El mismo catálogo que usa la tienda (el servidor lo manda en /api/shop).
+   Está duplicado acá a propósito para poder pintar sin esperar al servidor. */
+const LABEL_SKINS=[
+  { id:'default',   name:'Clásica',     price:0,     bg:'rgba(0,0,0,.86)',    border:'rgba(255,255,255,.35)', color:'#ffffff', stroke:'rgba(0,0,0,.9)' },
+  { id:'neon',      name:'💙 Neón',     price:2000,  bg:'rgba(0,40,70,.86)',  border:'#00e5ff', color:'#e0faff', stroke:'#00364a', glow:'#00e5ff', anim:1 },
+  { id:'pixel',     name:'🕹️ Pixel',   price:6000,  bg:'#101820',            border:'#ffd600', color:'#ffd600', stroke:'#000000', glow:'#ffd600', font:'"Courier New", monospace' },
+  { id:'minecraft', name:'⛏️ Bloque',   price:12000, bg:'rgba(18,18,18,.92)', border:'#8bc34a', color:'#ffffff', stroke:'#000000', glow:'#8bc34a', weight:900, font:'"Trebuchet MS", Verdana, sans-serif' },
+  { id:'oro',       name:'👑 Dorada',   price:25000, bg:'rgba(40,26,0,.9)',   border:'#ffd600', color:'#ffe082', stroke:'#3a2600', glow:'#ffd600', font:'Georgia, serif', weight:700 },
+  { id:'hacker',    name:'💻 Hacker',   price:40000, bg:'#04120a',            border:'#00ff66', color:'#00ff66', stroke:'#00220f', glow:'#00ff66', font:'"Courier New", monospace' },
+  { id:'arcoiris',  name:'🌈 Arcoíris', price:60000, bg:'rgba(10,0,25,.88)',  border:'#e040fb', color:'#ff80ab', stroke:'#1a0033', glow:'#e040fb', hue:1 },
+  { id:'infernol',  name:'🔥 Infernal', price:90000, bg:'rgba(45,10,0,.9)',   border:'#ff6d00', color:'#ffca28', stroke:'#2b0600', glow:'#ff6d00', anim:1, hue:1 }
+];
+const labelSkinById=id=>LABEL_SKINS.find(s=>s.id===id)||LABEL_SKINS[0];
+// La skin equipada. Se escribe con EnemyShips.setLabelSkin() desde la tienda y
+// drawLabel la usa sola, así el modo de un jugador y el multijugador muestran
+// las etiquetas iguales sin que nadie pase nada extra.
+let equippedLabelSkin='default';
+
 const EnemyShips=(()=>{
   // Cada diseño: id, nombre, colores y las partes que lo componen.
   const DISEÑOS=[
@@ -219,17 +250,24 @@ const EnemyShips=(()=>{
   }
 
   // ── Texto legible dentro de la nave ────────────────────────────────────
-  // Mismo estilo que el modo de un jugador: caja negra con borde, letras
-  // blancas gruesas y un contorno oscuro para que se lean de un vistazo.
-  // Ajusta el tamaño de letra y parte el texto en dos líneas si no entra.
+  // La cajita y las letras con la skin de etiqueta que tenga equipada el
+  // jugador (la comprada en la tienda). Por defecto es la de siempre: caja
+  // negra con borde, letras blancas gruesas y un contorno oscuro para que se
+  // lean de un vistazo. Ajusta el tamaño de letra y parte el texto en dos
+  // líneas si no entra.
+  // opt: { fontSize, dy, t (segundos, para las que se mueven),
+  //        skin (forzar una skin), bg, border, color, stroke }
   function drawLabel(ctx,text,x,y,maxW,opt){
     opt=opt||{};
+    const S=opt.skin?labelSkinById(opt.skin):labelSkinById(equippedLabelSkin);
+    const t=opt.t||0;
     const label=String(text==null?'':text).trim()||'?';
     const base=opt.fontSize||11;
     let fs=base;
     ctx.save();
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    const setFont=()=>{ ctx.font='800 '+fs+'px "Segoe UI", system-ui, -apple-system, sans-serif'; };
+    const family=S.font||'"Segoe UI", system-ui, -apple-system, sans-serif';
+    const setFont=()=>{ ctx.font=(S.weight||800)+' '+fs+'px '+family; };
     setFont();
 
     let lines=[label];
@@ -282,15 +320,21 @@ const EnemyShips=(()=>{
     ctx.lineTo(bx,by+r);
     ctx.quadraticCurveTo(bx,by,bx+r,by);
     ctx.closePath();
-    ctx.fillStyle=opt.bg||'rgba(0,0,0,.86)';
+    ctx.fillStyle=opt.bg||S.bg||'rgba(0,0,0,.86)';
     ctx.fill();
-    ctx.strokeStyle=opt.border||'rgba(255,255,255,.35)';
-    ctx.lineWidth=1;
+    // El borde puede latir (skin "neon"/"infernal") y dejar un brillo.
+    const lat=S.anim?(0.55+Math.abs(Math.sin(t*2.4))*0.45):1;
+    ctx.strokeStyle=opt.border||S.border||'rgba(255,255,255,.35)';
+    ctx.lineWidth=S.anim?1.8:1;
+    if(S.glow){ ctx.shadowColor=S.glow; ctx.shadowBlur=6*lat; }
     ctx.stroke();
+    ctx.shadowBlur=0;
 
-    // Letras
-    ctx.fillStyle=opt.color||'#ffffff';
-    ctx.strokeStyle=opt.stroke||'rgba(0,0,0,.9)';
+    // Letras. Con "hue" van cambiando de color con el tiempo (arcoíris).
+    let ink=opt.color||S.color||'#ffffff';
+    if(S.hue&&!opt.color) ink='hsl('+Math.round((t*90+200)%360)+',100%,64%)';
+    ctx.fillStyle=ink;
+    ctx.strokeStyle=opt.stroke||S.stroke||'rgba(0,0,0,.9)';
     ctx.lineWidth=Math.max(2,fs*.22);
     ctx.lineJoin='round';
     const y0=boxY-((lines.length-1)*lineH)/2;
@@ -303,5 +347,9 @@ const EnemyShips=(()=>{
     return {w:boxW,h:boxH};
   }
 
-  return { DISEÑOS, byId, random, draw, drawLabel };
+  // Cambiar la skin de etiqueta con la que se dibuja todo lo de ahora en más.
+  function setLabelSkin(id){ equippedLabelSkin=(LABEL_SKINS.some(s=>s.id===id)?id:'default'); return equippedLabelSkin; }
+  function currentLabelSkin(){ return equippedLabelSkin; }
+
+  return { DISEÑOS, byId, random, draw, drawLabel, LABEL_SKINS, labelSkinById, setLabelSkin, currentLabelSkin };
 })();

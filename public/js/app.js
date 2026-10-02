@@ -69,6 +69,9 @@
       if (shopBack) shopBack.addEventListener('click', () => {
         const m = document.getElementById('shopModal');
         if (m) m.classList.add('hidden');
+        // Las vistas previas de la tienda se animan solas: si la tienda está
+        // cerrada no hace falta seguir dibujándolas.
+        if (window.Game && Game.stopPreviews) Game.stopPreviews();
       });
     }
 

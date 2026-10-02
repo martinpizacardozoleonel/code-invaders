@@ -286,8 +286,9 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     ctx.textAlign='center';
     ctx.fillStyle=d.glow; ctx.font='800 9px system-ui,sans-serif';
     ctx.fillText(d.cat,x,y-h*.36);
-    // Texto legible dentro de la nave, igual que en el modo de un jugador.
-    EnemyShips.drawLabel(ctx,e.q,x,y+h*.16,w-10,{fontSize:10});
+    // Texto legible dentro de la nave, igual que en el modo de un jugador y con
+    // la misma skin de etiqueta de la tienda.
+    EnemyShips.drawLabel(ctx,e.q,x,y+h*.16,w-10,{fontSize:10,t:serverNow()/1000});
     ctx.restore();
   }
   function drawPlayer(p,count,t){
@@ -365,14 +366,15 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       const b=booms[i]; b.t+=dt;
       if(b.t>=b.dur){ booms.splice(i,1); continue; }
       const k=b.t/b.dur;
-      ctx.save(); ctx.globalAlpha=1-k;
-      const r=b.r*(0.4+k*1.1);
-      const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
-      g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.45,b.col+'cc'); g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,r,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='800 '+Math.round(20+k*14)+'px system-ui,sans-serif'; ctx.textAlign='center';
-      ctx.fillText('💥',b.x,b.y+6);
-      ctx.restore();
+      // El impacto de cada jugador: mismo efecto que en la tienda, con el
+      // mismo módulo que usa el modo de un jugador.
+      ImpactFx.draw(ctx,b.impact||'default',b.x,b.y,k,{t:b.t,r:b.r,alpha:1-k,tint:b.col});
+      if(b.mark){
+        ctx.save(); ctx.globalAlpha=Math.max(0,1-k);
+        ctx.fillStyle='#fff'; ctx.font='800 '+Math.round(20+k*14)+'px system-ui,sans-serif'; ctx.textAlign='center';
+        ctx.fillText('💥',b.x,b.y+6);
+        ctx.restore();
+      }
     }
   }
   function frame(t){
@@ -438,9 +440,10 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       players=match.players||[];
       travelMs=match.travelMs||travelMs;
       wavePhase=match.wave||1;
-      // El láser propio: el que tiene equipado en la tienda.
+      // El láser y el impacto propios: los que tiene equipados en la tienda.
       const yo=players.find(p=>p.userId===me);
       this.equippedLaser=(yo&&yo.laser)||this.equippedLaser||'default';
+      this.equippedImpact=(yo&&yo.impact)||this.equippedImpact||'default';
       // Cada nave se borra cuando la pasa su propio tiempo de caída (el del
       // servidor), con un margen para que se vea tocar la línea.
       const now=serverNow();
@@ -467,7 +470,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       const target=this.findTarget(killed,count);
       let x2=target?target.x:W/2, y2=target?target.y:H*0.3;
       if(target){
-        booms.push({x:x2,y:y2,r:Math.min(70,Math.max(38,pg.L.w*.36)),t:0,dur:.55,col:'#00e5ff'});
+        booms.push({x:x2,y:y2,r:Math.min(70,Math.max(38,pg.L.w*.36)),t:0,dur:.55,col:'#00e5ff',impact:this.equippedImpact||'default'});
       }
       beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.35,miss:!!miss,fx:this.equippedLaser||'default',col:'#00e5ff'});
       if(miss) shock=Math.max(shock,.5);
@@ -501,7 +504,7 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
       let x2=pg.x, y2=H*0.3;
       const e=s.targetId&&enemies.find(x=>x.id===s.targetId);
       if(e){ const g=enemyGeom(e,count); x2=g.x; y2=Math.max(6,g.y); }
-      if(s.hit) booms.push({x:x2,y:y2,r:Math.min(60,Math.max(32,pg.L.w*.32)),t:0,dur:.45,col:sk.body});
+      if(s.hit) booms.push({x:x2,y:y2,r:Math.min(60,Math.max(32,pg.L.w*.32)),t:0,dur:.45,col:sk.body,impact:p.impact||'default'});
       beams.push({x1:pg.x,y1:pg.y-Math.min(30,pg.L.w*.22)*1.1,x2,y2,t:0,dur:.3,miss:!s.hit,fx:p.laser||'default',col:sk.body});
     },
     flashBreach(){

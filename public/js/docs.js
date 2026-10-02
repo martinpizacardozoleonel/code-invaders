@@ -1,4 +1,4 @@
-const Docs = {
+﻿const Docs = {
   sections: [
     {
       icon: '👾',
@@ -97,6 +97,7 @@ const Docs = {
       title: 'Tienda y Personalización',
       content: `
         <p><b>Skins</b> (0–500 🪙) + <b>Marcos</b> + <b>Colores de nombre</b> (3000-5000 EXP): blanco, cyan, dorado, rosa, verde, violeta, rojo, arcoíris. Comprar descuenta EXP, equipar cambia tu nombre en chat/ranked. Fondo de chat se guarda en tu cuenta.</p>
+        <p>La tienda tiene <b>una sección para cada cosa</b>: 🚀 <b>Naves</b>, ⚡ <b>Láseres</b> (tu disparo), 💥 <b>Impactos</b> (la explosión al destruir una nave) y 🏷️ <b>Etiquetas</b> (la cajita con el texto de las naves enemigas). Las cuatro se compran con los 🪙 puntos que ganás jugando, y las vistas previas de la tienda se animan con el mismo efecto que ves en el juego.</p>
       `
     },
     {
