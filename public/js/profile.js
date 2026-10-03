@@ -733,10 +733,23 @@ const Profile = {
     try{
       const data=await this.api('/api/achievements');
       const owned=data.owned||[];
+      const fmt=(ms)=>{ if(ms==null) return '—'; const s=ms/1000; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor((ms%1000)/10)).padStart(2,'0'); };
       grid.innerHTML=(data.achievements||[]).map(a=>{
         const isOwned=owned.includes(a.id);
         const icon=a.name.match(/^[\p{Emoji}]/u)?.[0]||'🏆';
-        return `<div class="achievement-card${isOwned?' owned':''}"><div class="achievement-icon">${icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div><div class="achievement-reward">Recompensa: ${a.reward}</div>${isOwned?'<div class="achievement-claimed">✅ Desbloqueado</div>':''}</div>`;
+        // Barra de progreso para los logros con requisito medible.
+        let prog='';
+        if(!isOwned&&a.id==='speed_demon'){
+          const best=Number(a.current)||0;
+          if(best>0){
+            prog=`<div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${a.progressPct||0}%"></div></div>`
+               +`<small>Tu mejor: <b>${fmt(best)}</b> · necesitás <b>${fmt(a.target)}</b></small>`
+               +(a.missing?`<small class="ach-missing">Te faltan ${a.missing} ms</small>`:'<small class="ach-missing">¡Casi! Un intento más 👀</small>')+'</div>';
+          } else {
+            prog=`<div class="ach-progress"><small>Sin speedrun registrado todavía</small></div>`;
+          }
+        }
+        return `<div class="achievement-card${isOwned?' owned':''}"><div class="achievement-icon">${icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div><div class="achievement-reward">Recompensa: ${a.reward}</div>${prog}${isOwned?'<div class="achievement-claimed">✅ Desbloqueado</div>':''}</div>`;
       }).join('');
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar logros</p>'; }
   }

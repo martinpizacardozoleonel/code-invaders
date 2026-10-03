@@ -1890,6 +1890,50 @@ body.light .multi-room{background:#fff!important;border-color:rgba(15,23,42,.08)
 .achievement-desc{ font-size:.78rem; opacity:.7; margin-bottom:6px; }
 .achievement-reward{ font-size:.75rem; color:#00e676; font-weight:700; }
 .achievement-claimed{ font-size:.75rem; color:#ffd600; font-weight:700; margin-top:6px; }
+.ach-progress{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+.ach-progress-bar{ height:6px; border-radius:99px; background:rgba(255,255,255,.14); overflow:hidden; }
+.ach-progress-fill{ height:100%; border-radius:99px; background:linear-gradient(90deg,#00e5ff,#00e676,#ffd600); transition:width .4s ease; }
+.ach-progress small{ font-size:.68rem; opacity:.8; font-weight:600; }
+.ach-progress .ach-missing{ color:#ffab00; opacity:1; font-weight:700; }
+
+/* --- Celebración de logro desbloqueado --- */
+@keyframes achPopIn{0%{transform:scale(.7) rotate(-6deg);opacity:0}60%{transform:scale(1.08) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes achPopRays{0%{transform:rotate(0) scale(1)}100%{transform:rotate(360deg) scale(1.15)}}
+@keyframes achPopGlow{0%,100%{box-shadow:0 0 30px rgba(255,214,0,.35),0 0 70px rgba(255,214,0,.15)}50%{box-shadow:0 0 55px rgba(255,214,0,.65),0 0 120px rgba(255,214,0,.3)}}
+.ach-pop-overlay{
+  position:fixed; inset:0; z-index:99999; display:flex;
+  align-items:center; justify-content:center;
+  background:rgba(2,6,14,.86); backdrop-filter:blur(6px);
+  animation:achPopIn .25s ease-out;
+}
+.ach-pop-overlay.hidden{ display:none; }
+.ach-pop{
+  position:relative; overflow:hidden; text-align:center;
+  padding:34px 40px 28px; border-radius:20px; max-width:400px; width:92vw;
+  background:linear-gradient(160deg,#1b2436,#0d1420 60%,#141c2c);
+  border:2px solid #ffd600; animation:achPopGlow 1.6s ease-in-out infinite;
+}
+.ach-pop-rays{
+  position:absolute; top:50%; left:50%; width:340px; height:340px;
+  margin:-170px 0 0 -170px; pointer-events:none; opacity:.16;
+  background:conic-gradient(from 0deg,#ffd600 0deg 12deg,transparent 12deg 30deg,#ffd600 30deg 42deg,transparent 42deg 60deg,#ffd600 60deg 72deg,transparent 72deg 90deg,#ffd600 90deg 102deg,transparent 102deg 120deg,#ffd600 120deg 132deg,transparent 132deg 150deg,#ffd600 150deg 162deg,transparent 162deg 180deg,#ffd600 180deg 192deg,transparent 192deg 210deg,#ffd600 210deg 222deg,transparent 222deg 240deg,#ffd600 240deg 252deg,transparent 252deg 270deg,#ffd600 270deg 282deg,transparent 282deg 300deg,#ffd600 300deg 312deg,transparent 312deg 330deg,#ffd600 330deg 342deg,transparent 342deg 360deg);
+  animation:achPopRays 9s linear infinite;
+}
+.ach-pop-icon{ font-size:3.4rem; position:relative; filter:drop-shadow(0 0 14px rgba(255,214,0,.8)); animation:achPopIn .45s ease-out; }
+.ach-pop-title{
+  margin:6px 0 2px; position:relative;
+  font-size:1.35rem; font-weight:900; letter-spacing:2px;
+  color:#ffd600; text-shadow:0 0 16px rgba(255,214,0,.7);
+}
+.ach-pop-name{ margin:0 0 6px; position:relative; font-size:1.05rem; font-weight:900; color:#fff; }
+.ach-pop-desc{ margin:0 0 10px; position:relative; font-size:.82rem; opacity:.8; }
+.ach-pop-reward{
+  margin:0 0 16px; position:relative;
+  display:inline-block; padding:6px 14px; border-radius:99px;
+  background:rgba(0,230,118,.14); border:1px solid #00e676;
+  font-size:.84rem; font-weight:800; color:#00e676;
+}
+.ach-pop .btn{ position:relative; }
 
 /* ============ CHAT BUBBLE STYLES ============ */
 .chat-bubble-wrap{ border-radius:16px; padding:10px 14px; margin:2px 4px; }

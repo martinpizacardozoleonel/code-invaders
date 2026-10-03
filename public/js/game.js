@@ -292,6 +292,12 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
         if(Array.isArray(me.titles)) ownedTitles=me.titles; if(me.equippedTitle) equippedTitle=me.equippedTitle;
         if(me.user && me.user.speedrunBest!=null) speedrunBest=me.user.speedrunBest;
         applyLabelSkin();
+        // Logros ganados retroactivamente (p. ej. un speedrun de 11.5s que se
+        // habíaQualificado antes de que existiera el chequeo). Se avisa al
+        // usuario al entrar, no queda en silencio.
+        if(Array.isArray(me.unlocked) && me.unlocked.length){
+          setTimeout(()=>showAchievementPop(me.unlocked),700);
+        }
         score=Math.max(score,coins);
         saveShopLocal(); updateShopUI(); updateHUD();
       }
@@ -301,6 +307,36 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
       }
     }
   }
+  const ACH_INFO={
+  speed_demon:{icon:'⚡',name:'Demonio Veloz',desc:'Speedrun de 11.5s o menos',reward:'🌠 Banner Aurora'},
+  triple_champion:{icon:'👑',name:'Tricampeón',desc:'3 torneos seguidos',reward:'🌌 Marco Universo'},
+  centurion:{icon:'💯',name:'Centurión',desc:'100.000 EXP alcanzados',reward:'👻 Letra Fantasma + 100.000 pts'}
+};
+// Aviso grande y visible cuando se desbloquea un logro. Antes sólo se enviaba
+// la notificación del campanita, que se pasa desapercibida.
+function showAchievementPop(ids){
+  const list=Array.isArray(ids)?ids.filter(x=>x&&ACH_INFO[x]):[];
+  if(!list.length) return;
+  const ov=document.getElementById('achPopOverlay');
+  if(!ov) return;
+  const a=list[0];
+  const info=ACH_INFO[a];
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('achPopIcon',info.icon);
+  set('achPopTitle','¡LOGRO DESBLOQUEADO!');
+  set('achPopName',info.name);
+  set('achPopDesc',info.desc);
+  set('achPopReward','Recompensa: '+info.reward);
+  ov.classList.remove('hidden');
+  try{ if(typeof Toast!=='undefined') Toast.success('🏆 '+info.name+' desbloqueado'); }catch(e){}
+}
+function bindAchievementPop(){
+  const ov=document.getElementById('achPopOverlay'), ok=document.getElementById('achPopOk');
+  if(ok) ok.addEventListener('click',()=>{ if(ov) ov.classList.add('hidden'); });
+  if(ov) ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.add('hidden'); });
+}
+document.addEventListener('DOMContentLoaded',bindAchievementPop);
+
   async function pushSpeedrun(time){
     if(typeof API==='undefined' || typeof API.saveSpeedrun!=='function') return;
     const t=Math.round(Number(time)||0);
@@ -320,6 +356,8 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
         const savedToDb=r.savedToDb!==false;
         if(savedToDb){
           try{ if(typeof Toast!=='undefined') Toast.success('⚡ Nuevo récord '+formatTime(t)+' guardado en ranked'); else showToast('⚡ Récord '+formatTime(t)+' guardado en ranked'); }catch(e){}
+          // Logro desbloqueado: se muestra el aviso grande apenas se guarda.
+          if(r && Array.isArray(r.unlocked) && r.unlocked.length) showAchievementPop(r.unlocked);
         } else {
           try{ if(typeof Toast!=='undefined') Toast.warning('⚡ Nuevo récord '+formatTime(t)+' guardado localmente (problema con servidor)'); else showToast('⚡ Récord guardado localmente'); }catch(e){}
         }

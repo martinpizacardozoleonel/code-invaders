@@ -492,9 +492,10 @@ const LUCKY_ITEMS=[
  {id:'bubble_exclusive_00',type:'bubble',bubbleId:'exclusive_00',weight:1,rarity:'mythic'}
 ];
 
+const SPEEDRUN_ACHIEVEMENT_MS=11500;   // 11.5s o menos desbloquea "Demonio Veloz"
 const ACHIEVEMENTS=[
  {id:'triple_champion',name:'👑 Tricampeón',desc:'Gana 3 torneos seguidos',reward:'🌌 Marco Universo'},
- {id:'speed_demon',name:'⚡ Demonio Veloz',desc:'Haz speedrun en 11s o menos',reward:'🌠 Banner Aurora'},
+ {id:'speed_demon',name:'⚡ Demonio Veloz',desc:'Haz speedrun en 11.5s o menos',reward:'🌠 Banner Aurora'},
  {id:'centurion',name:'💯 Centurión',desc:'Llega a 100.000 EXP',reward:'👻 Letra Fantasma + 100.000 pts'}
 ];
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -508,20 +509,23 @@ async function checkAchievements(user){
    newly.push('triple_champion');
    await pushNotification(user.id,'🏆 ¡LOGRO DESBLOQUEADO!','Tricampeón: 3 torneos seguidos → 🌌 Marco Universo desbloqueado','success');
  }
- if(!user.achievements.includes('speed_demon') && user.speedrunBest!=null && user.speedrunBest<=11000){
+if(!user.achievements.includes('speed_demon') && user.speedrunBest!=null && user.speedrunBest<=SPEEDRUN_ACHIEVEMENT_MS){
    user.achievements.push('speed_demon');
    if(!user.banners.includes('aurora')) user.banners.push('aurora');
    newly.push('speed_demon');
-   await pushNotification(user.id,'⚡ ¡LOGRO DESBLOQUEADO!','Demonio Veloz: 11s o menos → 🌠 Banner Aurora desbloqueado','success');
- }
- if(!user.achievements.includes('centurion') && (user.exp||0)>=100000){
+   await pushNotification(user.id,'⚡ ¡LOGRO DESBLOQUEADO!','Demonio Veloz: '+(user.speedrunBest/1000).toFixed(2)+'s ≤ 11.5s → 🌠 Banner Aurora desbloqueado','success');
+  }
+if(!user.achievements.includes('centurion') && (user.exp||0)>=100000){
    user.achievements.push('centurion');
    if(!user.fonts.includes('phantom')) user.fonts.push('phantom');
    user.coins=(user.coins||0)+100000;
    newly.push('centurion');
    await pushNotification(user.id,'💯 ¡LOGRO DESBLOQUEADO!','Centurión: 100k EXP → 👻 Letra Fantasma + 100.000 pts','success');
- }
- return newly;
+  }
+  // Persiste acá siuos mismo: antes dependedía de que el llamador guardara
+  // DESPUÉS, y /api/speedrun guardaba antes -> el logro se perdía siempre.
+  if(newly.length){ try{ await updateUser(user); }catch(e){ console.error('[checkAchievements] persist fail',e.message); } }
+  return newly;
 }
 function pickLuckyItem(){
  const total=LUCKY_ITEMS.reduce((s,i)=>s+i.weight,0);
@@ -557,7 +561,13 @@ app.get('/favicon.ico',(req,res)=>res.status(204).end());
 app.post('/api/register', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(!username||!password) return res.status(400).json({error:'Usuario y contraseña son obligatorios'}); if(String(username).length<3) return res.status(400).json({error:'El usuario debe tener al menos 3 caracteres'}); if(String(password).length<4) return res.status(400).json({error:'La contraseña debe tener al menos 4 caracteres'}); if(await isBanned('',String(username))) return res.status(403).json({error:'⛔ Este nombre está vetado para siempre'}); if(await getUserByUsername(username)) return res.status(409).json({error:'Ese usuario ya existe'}); const salt=crypto.randomBytes(16).toString('hex'); const user={ id:crypto.randomUUID(), username, salt, passwordHash:hashPassword(password,salt), progress:[], coins:0, skins:['default'], equipped:'default', profilePic:'', theme:'dark', hoursPlayed:0, exp:0, frames:['none'], equippedFrame:'none', speedrunBest:null, speedrunHistory:[], createdAt:new Date().toISOString(), lastSeen:new Date().toISOString(), nameColor:'#ffffff', ownedNameColors:[], chatBg:'', banners:['none'], equippedBanner:'none', bannerImg:'', fonts:['normal'], equippedFont:'normal', fxs:['none'], equippedFx:'none', description:'' }; await createUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Bienvenido a Code Invaders 👾','¡Cuenta creada con éxito! Empieza a jugar en la sección Juego.','success'); res.status(201).json({token,user:await publicUserFull(user)}); }catch(e){ console.error('[register]',e.message); res.status(500).json({error:'Error al registrar'}); } });
 app.post('/api/login', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(await isBanned('',String(username||''))) return res.status(403).json({error:'⛔ Esta cuenta fue cerrada para siempre por acumulación de denuncias'}); const user=await getUserByUsername(username); if(!user || user.passwordHash!==hashPassword(password,user.salt)) return res.status(401).json({error:'Usuario o contraseña incorrectos'}); user.lastSeen=new Date().toISOString(); await updateUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Sesión iniciada ✅',`Hola ${user.username}, ¡buen regreso!`,'info'); res.json({token,user:await publicUserFull(user)}); }catch(e){ console.error('[login]',e.message); res.status(500).json({error:'Error al iniciar sesión'}); } });
 app.post('/api/logout', async (req,res)=>{ try{ const token=(req.headers.authorization||'').replace('Bearer ',''); if(token) await deleteSession(token); res.json({ok:true}); }catch(e){ res.json({ok:true}); } });
-app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const lv=levelFromExp(user.exp); res.json({user:await publicUserFull(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,lasers:user.lasers||['default'],equippedLaser:user.equippedLaser||'default',impacts:user.impacts||['default'],equippedImpact:user.equippedImpact||'default',labelSkins:user.labelSkins||['default'],equippedLabelSkin:user.equippedLabelSkin||'default',expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
+app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);
+  // Reclamo retroactivo: si el jugador YA cumplía el requisito antes de que
+  // existiera el chequeo (o antes de arreglar el orden de guardado), se le
+  // otorga el logro al iniciar sesión en vez de pedirle que lo repita.
+  let _unlocked=[];
+  try{ const _r=await checkAchievements(user); if(Array.isArray(_r)) _unlocked=_r; }catch(e){ console.error('[me] checkAchievements',e.message); }
+  const lv=levelFromExp(user.exp); res.json({user:await publicUserFull(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,lasers:user.lasers||['default'],equippedLaser:user.equippedLaser||'default',impacts:user.impacts||['default'],equippedImpact:user.equippedImpact||'default',labelSkins:user.labelSkins||['default'],equippedLabelSkin:user.equippedLabelSkin||'default',expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
 app.post('/api/heartbeat', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); user.lastSeen=new Date().toISOString(); await updateUser(user); res.json({ok:true, online:true}); }catch(e){ res.status(500).json({error:'heartbeat error'}); } });
 app.get('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); res.json({progress:user.progress}); }catch(e){ res.status(500).json({error:'progress error'}); } });
 app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);   const {level,attempts,solved,coinsEarned}=req.body||{}; const lvl=Number(level); if(!Number.isFinite(lvl)||lvl<1) return res.status(400).json({error:'Falta el nivel'}); if(!Array.isArray(user.progress)) user.progress=[];
@@ -574,7 +584,9 @@ app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToke
 
 app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
 app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
-app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; await checkAchievements(user); }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } if(savedToDb){ try{ await pushNotification(user.id,'⚡ Nuevo récord Speedrun',`⏱ ${formatSpeedrunMs(t)} — ¡Nuevo mejor tiempo!`,'success'); }catch(e){ console.error('[speedrun] pushNotification fail',e.message); } } console.log(`[speedrun] ${user.username} ${t}ms isNew=${isNewBest} PG=${USE_PG} saved=${savedToDb}`); } else { console.log(`[speedrun] ${user.username} ${t}ms no mejora (best ${user.speedrunBest})`); } return res.json({speedrunBest:user.speedrunBest,isNewBest,savedToDb}); }catch(e){ console.error('[speedrun] error',e && e.stack||e); return res.status(500).json({error:'Error interno al guardar speedrun: '+(e.message||e)}); } });
+app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } // `_unlocked` se declara arriba para poder devolverlo en el JSON.
+  let _unlocked=[];
+  if(savedToDb){ try{ _unlocked=(await checkAchievements(user))||[]; }catch(e){ console.error('[speedrun] checkAchievements fail',e.message); } try{ await pushNotification(user.id,'⚡ Nuevo récord Speedrun',`⏱ ${formatSpeedrunMs(t)} — ¡Nuevo mejor tiempo!`,'success'); }catch(e){ console.error('[speedrun] pushNotification fail',e.message); } } console.log(`[speedrun] ${user.username} ${t}ms isNew=${isNewBest} PG=${USE_PG} saved=${savedToDb}`); } else { console.log(`[speedrun] ${user.username} ${t}ms no mejora (best ${user.speedrunBest})`); } return res.json({speedrunBest:user.speedrunBest,isNewBest,savedToDb,unlocked:_unlocked,achievements:user.achievements||[]}); }catch(e){ console.error('[speedrun] error',e && e.stack||e); return res.status(500).json({error:'Error interno al guardar speedrun: '+(e.message||e)}); } });
 app.get('/api/user/:id', async (req,res)=>{ const user=await getUserById(req.params.id); if(!user) return res.status(404).json({error:'Usuario no encontrado'}); const ls=levelStats(user); const _c=user.clanId?await getClanById(user.clanId):null; const _clan=_c?{id:_c.id,tag:_c.tag,name:_c.name,emblem:_c.emblem,color:_c.color,points:_c.points||0,level:clanLevel(_c.points||0),rank:clanRankFromPoints(_c.points||0)}:null; res.json({id:user.id,username:user.username,profilePic:user.profilePic||'',equippedFrame:user.equippedFrame||'none',frames:user.frames||[],exp:user.exp||0,hoursPlayed:Math.floor((user.hoursPlayed||0)/3600),coins:user.coins||0,solved:ls.solved,reached:ls.reached,attempts:(user.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),createdAt:user.createdAt,speedrunBest:user.speedrunBest||null,nameColor:user.nameColor||'#ffffff',equippedBanner:user.equippedBanner||'none',bannerImg:user.bannerImg||'',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',online:isOnline(user.lastSeen),description:user.description||'', titles:user.titles||['none'], equippedTitle:user.equippedTitle||'none', titleName:((TITLES.find(t=>t.id===(user.equippedTitle||'none'))||{}).name)||'', titleCss:((TITLES.find(t=>t.id===(user.equippedTitle||'none'))||{}).css)||'', rankPoints:user.rankPoints||0, rank:rankFromRP(user.rankPoints||0), clanId:user.clanId||'', clanRole:user.clanRole||'', clanWins:user.clanWins||0, clan:_clan });
 });
 app.get('/api/notifications', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const list=await getNotifications(user.id); res.json({notifications:list,unread:list.filter(n=>!n.read).length}); });
@@ -1496,7 +1508,27 @@ app.post('/api/multi/answer', async (req,res)=>{
 });
 
 app.get('/api/achievements', async (req,res)=>{
- try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); res.json({achievements:ACHIEVEMENTS,owned:user.achievements||[]}); }catch(e){ res.status(500).json({error:'achievements error'}); }
+ try{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  ensureShopFields(user);
+  // Progreso real por logro, para que se vea cuánto falta en vez de
+  // un "bloqueado" sin explicación.
+  const stats={speedrunBest:user.speedrunBest,exp:user.exp,tournamentStreak:user.tournamentStreak||0,tournamentWins:user.tournamentWins||0};
+  const list=ACHIEVEMENTS.map(a=>{
+    const o=Object.assign({},a);
+    if(a.id==='speed_demon'){
+      const target=SPEEDRUN_ACHIEVEMENT_MS, best=Number(user.speedrunBest)||0;
+      o.current=best; o.target=target;
+      o.missing=best>0?Math.max(0,best-target):target;
+      o.progressPct=best>0?Math.max(0,Math.min(100,Math.round((1-(best-target)/Math.max(1,best))*100))):0;
+      o.hint=best>0?('Te faltan '+(best-target)+' ms'):('Necesitás un speedrun de '+(target/1000)+'s o menos');
+    }
+    if(a.id==='triple_champion'){ o.current=user.tournamentStreak||0; o.target=3; o.missing=Math.max(0,3-(user.tournamentStreak||0)); }
+    if(a.id==='centurion'){ o.current=user.exp||0; o.target=100000; o.missing=Math.max(0,100000-(user.exp||0)); }
+    return o;
+  });
+  res.json({achievements:list,owned:user.achievements||[],stats});
+ }catch(e){ console.error('[achievements]',e.message); res.status(500).json({error:'achievements error'}); }
 });
 app.get('/api/achievements/redeem', async (req,res)=>{
  try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const id=req.query.id; const ach=ACHIEVEMENTS.find(a=>a.id===id); if(!ach) return res.status(404).json({error:'Logro no existe'}); if(!user.achievements.includes(id)) return res.status(400).json({error:'No tienes este logro'}); if(id==='triple_champion'){ if(!user.frames.includes('universo')) user.frames.push('universo'); await pushNotification(user.id,'🌌 Marco Universo activado','¡Ya puedes equipar tu Marco Universo desde la tienda!','success'); } if(id==='speed_demon'){ if(!user.banners.includes('aurora')) user.banners.push('aurora'); await pushNotification(user.id,'🌠 Banner Aurora activado','¡Ya puedes equipar tu Banner Aurora desde la tienda!','success'); } if(id==='centurion'){ if(!user.fonts.includes('phantom')) user.fonts.push('phantom'); user.coins=(user.coins||0)+100000; await pushNotification(user.id,'👻 Letra Fantasma + 100.000 pts','¡Recompensa canjeada!','success'); } await updateUser(user); res.json({coins:user.coins,frames:user.frames,banners:user.banners,fonts:user.fonts}); }catch(e){ res.status(500).json({error:'redeem error'}); }
