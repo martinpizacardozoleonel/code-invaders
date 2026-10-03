@@ -90,7 +90,7 @@ const API = (() => {
     async report(userId,reason){ return request('/api/report',{method:'POST',body:JSON.stringify({reportedId:userId,reason})}); },
     async multiState(){ return request('/api/multi/state'); },
     async multiRooms(q){ return request('/api/multi/rooms'+(q?'?q='+encodeURIComponent(q):'')); },
-    async multiCreateRoom(name,isPublic,mode,maxPlayers){ return request('/api/multi/rooms',{method:'POST',body:JSON.stringify({name,isPublic,mode,maxPlayers})}); },
+    async multiCreateRoom(name,isPublic,mode,maxPlayers,isRanked,teamSize){ return request('/api/multi/rooms',{method:'POST',body:JSON.stringify({name,isPublic,mode,maxPlayers,isRanked,teamSize})}); },
     async multiJoinRoom(roomId,code){ return request('/api/multi/rooms/join',{method:'POST',body:JSON.stringify({roomId,code})}); },
     async multiUpdateRoom(patch){ return request('/api/multi/room',{method:'PUT',body:JSON.stringify(patch)}); },
     async multiJoin(){ return request('/api/multi/rooms/join',{method:'POST',body:JSON.stringify({})}); },
@@ -131,7 +131,43 @@ const API = (() => {
       const M={latido:'display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;',ola:'display:inline-block;animation:fxWave 1.8s ease-in-out infinite;',neon:'animation:fxNeon 1.6s ease-in-out infinite;',brillo:'font-weight:900;background:linear-gradient(100deg,#8a93a6 30%,#ffffff 50%,#8a93a6 70%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxShine 2.4s linear infinite;',fuego:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;',glitch:'animation:fxGlitch 1.4s steps(2,end) infinite;',arcoiris:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'};
       return M[id]||'';
     },
-    async equipNameColor(colorId){ return request('/api/name-colors/equip',{method:'POST',body:JSON.stringify({colorId})}); },
+async equipNameColor(colorId){ return request('/api/name-colors/equip',{method:'POST',body:JSON.stringify({colorId})}); },
+
+    /* ---- TÍTULOS ---- */
+    async getTitles(){ return request('/api/titles'); },
+    async buyTitle(titleId){ return request('/api/titles/buy',{method:'POST',body:JSON.stringify({titleId})}); },
+    async equipTitle(titleId){ return request('/api/titles/equip',{method:'POST',body:JSON.stringify({titleId})}); },
+    _titlesCache:null,
+    async _loadTitles(){ if(!this._titlesCache){ const d=await this.getTitles(); this._titlesCache=(d&&d.titles)||[]; } return this._titlesCache; },
+    async titleCss(id){
+      if(!id||id==='none') return '';
+      try{ const t=(await this._loadTitles()).find(x=>x.id===id); return (t&&t.css)||''; }catch(e){ return ''; }
+    },
+    async titleName(id){
+      if(!id||id==='none') return '';
+      try{ const t=(await this._loadTitles()).find(x=>x.id===id); return (t&&t.name)||''; }catch(e){ return ''; }
+    },
+
+    /* ---- RANGOS ---- */
+    async getRank(){ return request('/api/rank'); },
+    async getRanks(){ return request('/api/ranks'); },
+
+    /* ---- CLANES ---- */
+    async getClans(q){ return request('/api/clans'+(q?('?q='+encodeURIComponent(q)):'')); },
+    async getMyClan(){ return request('/api/clans/mine'); },
+    async createClan(data){ return request('/api/clans/create',{method:'POST',body:JSON.stringify(data)}); },
+    async joinClan(data){ return request('/api/clans/join',{method:'POST',body:JSON.stringify(data)}); },
+    async leaveClan(){ return request('/api/clans/leave',{method:'POST'}); },
+    async setClanRole(userId,role){ return request('/api/clans/role',{method:'POST',body:JSON.stringify({userId,role})}); },
+    async kickClanMember(userId){ return request('/api/clans/kick',{method:'POST',body:JSON.stringify({userId})}); },
+    async sendClanChat(text){ return request('/api/clans/chat',{method:'POST',body:JSON.stringify({text})}); },
+    async getClanTournament(){ return request('/api/clans/tournament'); },
+    async startClanTournament(){ return request('/api/clans/tournament/start',{method:'POST'}); },
+    async getClanRanks(){ return request('/api/clans/ranks'); },
+    async getClanRanking(sort){ return request('/api/clans/ranking'+(sort?('?sort='+encodeURIComponent(sort)):'')); },
+    async getClanMissions(){ return request('/api/clans/missions'); },
+    async claimClanMission(missionId){ return request('/api/clans/missions/claim',{method:'POST',body:JSON.stringify({missionId})}); },
+
     qrUrl:(text,size,color)=>{ const hex=(color||'#43a047').replace('#',''); return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${hex}&bgcolor=ffffff&data=${encodeURIComponent(text)}`; },
     async geocode(q){ const url=`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`; const res=await fetch(url,{headers:{'User-Agent':'CodeInvaders/1.0'}}); return res.json(); }
   };

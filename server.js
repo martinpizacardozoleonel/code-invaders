@@ -80,8 +80,8 @@ if (!USE_PG) {
   console.log('   Pista:', PG_CONN.hint||'');
   console.log('   ⚠️  Los datos guardados en el archivo se pierden en cada despliegue. Conectá Postgres.');
 }
-function defaultDb(){ return { users: [], sessions: [], notifications: [], tournaments: [], chat: [], friendships: [], privateMessages: [], gifts: [], reports: [], bans: [] }; }
-function loadDb(){ if(!fs.existsSync(DB_FILE)) return defaultDb(); try{ const d=JSON.parse(fs.readFileSync(DB_FILE,'utf8')); if(!d.friendships) d.friendships=[]; if(!d.privateMessages) d.privateMessages=[]; if(!d.chat) d.chat=[]; if(!d.gifts) d.gifts=[]; if(!d.reports) d.reports=[]; if(!d.bans) d.bans=[]; return d; }catch(e){ return defaultDb(); } }
+function defaultDb(){ return { users: [], sessions: [], notifications: [], tournaments: [], chat: [], friendships: [], privateMessages: [], gifts: [], reports: [], bans: [], clans: [], clanMembers: [], clanChat: [], clanTournaments: [], clanMissions: [] }; }
+function loadDb(){ if(!fs.existsSync(DB_FILE)) return defaultDb(); try{ const d=JSON.parse(fs.readFileSync(DB_FILE,'utf8')); if(!d.friendships) d.friendships=[]; if(!d.privateMessages) d.privateMessages=[]; if(!d.chat) d.chat=[]; if(!d.gifts) d.gifts=[]; if(!d.reports) d.reports=[]; if(!d.bans) d.bans=[]; if(!d.clans) d.clans=[]; if(!d.clanMembers) d.clanMembers=[]; if(!d.clanChat) d.clanChat=[]; if(!d.clanTournaments) d.clanTournaments=[]; if(!d.clanMissions) d.clanMissions=[]; return d; }catch(e){ return defaultDb(); } }
 function saveDb(db){ if(!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); fs.writeFileSync(DB_FILE, JSON.stringify(db,null,2)); }
 let fileDb = loadDb();
 if(!fileDb.tournaments) fileDb.tournaments=[];
@@ -139,6 +139,20 @@ async function initPg(){
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_impact TEXT NOT NULL DEFAULT 'default'`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS label_skins TEXT NOT NULL DEFAULT '["default"]'`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_label_skin TEXT NOT NULL DEFAULT 'default'`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS titles TEXT NOT NULL DEFAULT '["none"]'`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_title TEXT NOT NULL DEFAULT 'none'`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_points INT NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_id TEXT NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_role TEXT NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_points INT NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_wins INT NOT NULL DEFAULT 0`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS clans (id TEXT PRIMARY KEY, tag TEXT UNIQUE NOT NULL, name TEXT NOT NULL, emblem TEXT NOT NULL DEFAULT '🛡️', color TEXT NOT NULL DEFAULT '#00e5ff', description TEXT NOT NULL DEFAULT '', points INT NOT NULL DEFAULT 0, wins INT NOT NULL DEFAULT 0, losses INT NOT NULL DEFAULT 0, created_at TEXT NOT NULL, owner_id TEXT NOT NULL)`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS clan_members (clan_id TEXT NOT NULL, user_id TEXT UNIQUE NOT NULL, role TEXT NOT NULL DEFAULT 'member', joined_at TEXT NOT NULL, points INT NOT NULL DEFAULT 0)`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS clan_chat (id TEXT PRIMARY KEY, clan_id TEXT NOT NULL, user_id TEXT NOT NULL, username TEXT NOT NULL, text TEXT NOT NULL, created_at TEXT NOT NULL)`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS clan_tournaments (id TEXT PRIMARY KEY, status TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, results TEXT NOT NULL DEFAULT '{}')`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS clan_missions (id TEXT PRIMARY KEY, clan_id TEXT NOT NULL, mission_key TEXT NOT NULL, day TEXT NOT NULL, target INT NOT NULL, progress INT NOT NULL DEFAULT 0, points INT NOT NULL DEFAULT 0, coins INT NOT NULL DEFAULT 0, completed BOOLEAN NOT NULL DEFAULT false, claimed_by TEXT, claimed_at TEXT, created_at TEXT NOT NULL, UNIQUE(clan_id, mission_key, day))`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_clan_members_clan ON clan_members(clan_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_clan_chat_clan ON clan_chat(clan_id, created_at)`);
     const t = await pool.query('SELECT version()');
     console.log('✅ Tablas PG listas →', (t.rows[0]&&t.rows[0].version||'').split(',')[0]);
     PG_ERROR = null;
@@ -188,7 +202,6 @@ function ensureShopFields(u){
   if(!u.nameColor) u.nameColor='#ffffff';
   if(!u.ownedNameColors) u.ownedNameColors=[];
   if(u.chatBg===undefined) u.chatBg='';
-  stripChampion(u);
   if(!u.banners) u.banners=['none'];
   if(!u.equippedBanner) u.equippedBanner='none';
   if(!u.banners.includes('none')) u.banners.unshift('none');
@@ -221,18 +234,27 @@ function ensureShopFields(u){
   if(!u.labelSkins.includes('default')) u.labelSkins.unshift('default');
   if(!u.equippedLabelSkin) u.equippedLabelSkin='default';
   if(!u.labelSkins.includes(u.equippedLabelSkin)) u.equippedLabelSkin='default';
+  if(!Array.isArray(u.titles)) u.titles=['none'];
+  if(!u.titles.includes('none')) u.titles.unshift('none');
+  if(!u.equippedTitle) u.equippedTitle='none';
+  if(!u.titles.includes(u.equippedTitle)) u.equippedTitle='none';
+  if(u.rankPoints===undefined||u.rankPoints===null) u.rankPoints=0;
+  if(u.clanId===undefined) u.clanId='';
+  if(!u.clanRole) u.clanRole='';
+  if(u.clanPoints===undefined) u.clanPoints=0;
+  if(u.clanWins===undefined) u.clanWins=0;
 }
 fileDb.users.forEach(ensureShopFields);
 if(!USE_PG) saveDb(fileDb);
 function pgRowToUser(r){
-  return { id:r.id, username:r.username, salt:r.salt, passwordHash:r.password_hash, progress: JSON.parse(r.progress||'[]'), coins:r.coins, skins: JSON.parse(r.skins||'["default"]'), equipped:r.equipped, profilePic:r.profile_pic||'', theme:r.theme||'dark', hoursPlayed:r.hours_played||0, exp:r.exp||0, frames: JSON.parse(r.frames||'["none"]'), equippedFrame:r.equipped_frame||'none', speedrunBest:r.speedrun_best, speedrunHistory: JSON.parse(r.speedrun_history||'[]'), createdAt:r.created_at, lastSeen:r.last_seen||null, nameColor:r.name_color||'#ffffff', ownedNameColors: JSON.parse(r.owned_name_colors||'[]'), chatBg:r.chat_bg||'', banners: JSON.parse(r.banners||'["none"]'), equippedBanner:r.equipped_banner||'none', bannerImg:r.banner_img||'', fonts: JSON.parse(r.fonts||'["normal"]'), equippedFont:r.equipped_font||'normal', fxs: JSON.parse(r.fxs||'["none"]'), equippedFx:r.equipped_fx||'none', description:r.description||'', achievements: JSON.parse(r.achievements||'[]'), tournamentStreak: r.tournament_streak||0, tournamentWins: r.tournament_wins||0, chatBubbles: JSON.parse(r.chat_bubbles||'["none"]'), equippedBubble: r.equipped_bubble||'none', luckySpins: r.lucky_spins||0, introHidden: !!r.intro_hidden, lasers: JSON.parse(r.lasers||'["default"]'), equippedLaser: r.equipped_laser||'default', impacts: JSON.parse(r.impacts||'["default"]'), equippedImpact: r.equipped_impact||'default', labelSkins: JSON.parse(r.label_skins||'["default"]'), equippedLabelSkin: r.equipped_label_skin||'default' };
+  return { id:r.id, username:r.username, salt:r.salt, passwordHash:r.password_hash, progress: JSON.parse(r.progress||'[]'), coins:r.coins, skins: JSON.parse(r.skins||'["default"]'), equipped:r.equipped, profilePic:r.profile_pic||'', theme:r.theme||'dark', hoursPlayed:r.hours_played||0, exp:r.exp||0, frames: JSON.parse(r.frames||'["none"]'), equippedFrame:r.equipped_frame||'none', speedrunBest:r.speedrun_best, speedrunHistory: JSON.parse(r.speedrun_history||'[]'), createdAt:r.created_at, lastSeen:r.last_seen||null, nameColor:r.name_color||'#ffffff', ownedNameColors: JSON.parse(r.owned_name_colors||'[]'), chatBg:r.chat_bg||'', banners: JSON.parse(r.banners||'["none"]'), equippedBanner:r.equipped_banner||'none', bannerImg:r.banner_img||'', fonts: JSON.parse(r.fonts||'["normal"]'), equippedFont:r.equipped_font||'normal', fxs: JSON.parse(r.fxs||'["none"]'), equippedFx:r.equipped_fx||'none', description:r.description||'', achievements: JSON.parse(r.achievements||'[]'), tournamentStreak: r.tournament_streak||0, tournamentWins: r.tournament_wins||0, chatBubbles: JSON.parse(r.chat_bubbles||'["none"]'), equippedBubble: r.equipped_bubble||'none', luckySpins: r.lucky_spins||0, introHidden: !!r.intro_hidden, lasers: JSON.parse(r.lasers||'["default"]'), equippedLaser: r.equipped_laser||'default', impacts: JSON.parse(r.impacts||'["default"]'), equippedImpact: r.equipped_impact||'default', labelSkins: JSON.parse(r.label_skins||'["default"]'), equippedLabelSkin: r.equipped_label_skin||'default', titles: JSON.parse(r.titles||'["none"]'), equippedTitle: r.equipped_title||'none', rankPoints: r.rank_points||0, clanId: r.clan_id||'', clanRole: r.clan_role||'', clanPoints: r.clan_points||0, clanWins: r.clan_wins||0 };
 }
 async function pgUpsertUser(u){
   ensureShopFields(u);
-  await pool.query(`INSERT INTO users(id,username,salt,password_hash,progress,coins,skins,equipped,profile_pic,theme,hours_played,exp,frames,equipped_frame,speedrun_best,speedrun_history,created_at,last_seen,name_color,owned_name_colors,chat_bg,banners,equipped_banner,banner_img,fonts,equipped_font,fxs,equipped_fx,description,achievements,tournament_streak,tournament_wins,chat_bubbles,equipped_bubble,lucky_spins,intro_hidden,lasers,equipped_laser,impacts,equipped_impact,label_skins,equipped_label_skin)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
-  ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username, salt=EXCLUDED.salt, password_hash=EXCLUDED.password_hash, progress=EXCLUDED.progress, coins=EXCLUDED.coins, skins=EXCLUDED.skins, equipped=EXCLUDED.equipped, profile_pic=EXCLUDED.profile_pic, theme=EXCLUDED.theme, hours_played=EXCLUDED.hours_played, exp=EXCLUDED.exp, frames=EXCLUDED.frames, equipped_frame=EXCLUDED.equipped_frame, speedrun_best=EXCLUDED.speedrun_best, speedrun_history=EXCLUDED.speedrun_history, last_seen=EXCLUDED.last_seen, name_color=EXCLUDED.name_color, owned_name_colors=EXCLUDED.owned_name_colors, chat_bg=EXCLUDED.chat_bg, banners=EXCLUDED.banners, equipped_banner=EXCLUDED.equipped_banner, banner_img=EXCLUDED.banner_img, fonts=EXCLUDED.fonts, equipped_font=EXCLUDED.equipped_font, fxs=EXCLUDED.fxs, equipped_fx=EXCLUDED.equipped_fx, description=EXCLUDED.description, achievements=EXCLUDED.achievements, tournament_streak=EXCLUDED.tournament_streak, tournament_wins=EXCLUDED.tournament_wins, chat_bubbles=EXCLUDED.chat_bubbles, equipped_bubble=EXCLUDED.equipped_bubble, lucky_spins=EXCLUDED.lucky_spins, intro_hidden=EXCLUDED.intro_hidden, lasers=EXCLUDED.lasers, equipped_laser=EXCLUDED.equipped_laser, impacts=EXCLUDED.impacts, equipped_impact=EXCLUDED.equipped_impact, label_skins=EXCLUDED.label_skins, equipped_label_skin=EXCLUDED.equipped_label_skin`,
-  [u.id,u.username,u.salt,u.passwordHash,JSON.stringify(u.progress||[]),u.coins||0,JSON.stringify(u.skins||['default']),u.equipped||'default',u.profilePic||'',u.theme||'dark',u.hoursPlayed||0,u.exp||0,JSON.stringify(u.frames||['none']),u.equippedFrame||'none',u.speedrunBest,JSON.stringify(u.speedrunHistory||[]),u.createdAt,u.lastSeen||null,u.nameColor||'#ffffff',JSON.stringify(u.ownedNameColors||[]),u.chatBg||'',JSON.stringify(u.banners||['none']),u.equippedBanner||'none',u.bannerImg||'',JSON.stringify(u.fonts||['normal']),u.equippedFont||'normal',JSON.stringify(u.fxs||['none']),u.equippedFx||'none',u.description||'',JSON.stringify(u.achievements||[]),u.tournamentStreak||0,u.tournamentWins||0,JSON.stringify(u.chatBubbles||['none']),u.equippedBubble||'none',u.luckySpins||0,(u.introHidden?1:0),JSON.stringify(u.lasers||['default']),u.equippedLaser||'default',JSON.stringify(u.impacts||['default']),u.equippedImpact||'default',JSON.stringify(u.labelSkins||['default']),u.equippedLabelSkin||'default']);
+  await pool.query(`INSERT INTO users(id,username,salt,password_hash,progress,coins,skins,equipped,profile_pic,theme,hours_played,exp,frames,equipped_frame,speedrun_best,speedrun_history,created_at,last_seen,name_color,owned_name_colors,chat_bg,banners,equipped_banner,banner_img,fonts,equipped_font,fxs,equipped_fx,description,achievements,tournament_streak,tournament_wins,chat_bubbles,equipped_bubble,lucky_spins,intro_hidden,lasers,equipped_laser,impacts,equipped_impact,label_skins,equipped_label_skin,titles,equipped_title,rank_points,clan_id,clan_role,clan_points,clan_wins)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49)
+  ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username, salt=EXCLUDED.salt, password_hash=EXCLUDED.password_hash, progress=EXCLUDED.progress, coins=EXCLUDED.coins, skins=EXCLUDED.skins, equipped=EXCLUDED.equipped, profile_pic=EXCLUDED.profile_pic, theme=EXCLUDED.theme, hours_played=EXCLUDED.hours_played, exp=EXCLUDED.exp, frames=EXCLUDED.frames, equipped_frame=EXCLUDED.equipped_frame, speedrun_best=EXCLUDED.speedrun_best, speedrun_history=EXCLUDED.speedrun_history, last_seen=EXCLUDED.last_seen, name_color=EXCLUDED.name_color, owned_name_colors=EXCLUDED.owned_name_colors, chat_bg=EXCLUDED.chat_bg, banners=EXCLUDED.banners, equipped_banner=EXCLUDED.equipped_banner, banner_img=EXCLUDED.banner_img, fonts=EXCLUDED.fonts, equipped_font=EXCLUDED.equipped_font, fxs=EXCLUDED.fxs, equipped_fx=EXCLUDED.equipped_fx, description=EXCLUDED.description, achievements=EXCLUDED.achievements, tournament_streak=EXCLUDED.tournament_streak, tournament_wins=EXCLUDED.tournament_wins, chat_bubbles=EXCLUDED.chat_bubbles, equipped_bubble=EXCLUDED.equipped_bubble, lucky_spins=EXCLUDED.lucky_spins, intro_hidden=EXCLUDED.intro_hidden, lasers=EXCLUDED.lasers, equipped_laser=EXCLUDED.equipped_laser, impacts=EXCLUDED.impacts, equipped_impact=EXCLUDED.equipped_impact, label_skins=EXCLUDED.label_skins, equipped_label_skin=EXCLUDED.equipped_label_skin, titles=EXCLUDED.titles, equipped_title=EXCLUDED.equipped_title, rank_points=EXCLUDED.rank_points, clan_id=EXCLUDED.clan_id, clan_role=EXCLUDED.clan_role, clan_points=EXCLUDED.clan_points, clan_wins=EXCLUDED.clan_wins`,
+  [u.id,u.username,u.salt,u.passwordHash,JSON.stringify(u.progress||[]),u.coins||0,JSON.stringify(u.skins||['default']),u.equipped||'default',u.profilePic||'',u.theme||'dark',u.hoursPlayed||0,u.exp||0,JSON.stringify(u.frames||['none']),u.equippedFrame||'none',u.speedrunBest,JSON.stringify(u.speedrunHistory||[]),u.createdAt,u.lastSeen||null,u.nameColor||'#ffffff',JSON.stringify(u.ownedNameColors||[]),u.chatBg||'',JSON.stringify(u.banners||['none']),u.equippedBanner||'none',u.bannerImg||'',JSON.stringify(u.fonts||['normal']),u.equippedFont||'normal',JSON.stringify(u.fxs||['none']),u.equippedFx||'none',u.description||'',JSON.stringify(u.achievements||[]),u.tournamentStreak||0,u.tournamentWins||0,JSON.stringify(u.chatBubbles||['none']),u.equippedBubble||'none',u.luckySpins||0,(u.introHidden?1:0),JSON.stringify(u.lasers||['default']),u.equippedLaser||'default',JSON.stringify(u.impacts||['default']),u.equippedImpact||'default',JSON.stringify(u.labelSkins||['default']),u.equippedLabelSkin||'default',JSON.stringify(u.titles||['none']),u.equippedTitle||'none',u.rankPoints||0,u.clanId||'',u.clanRole||'',u.clanPoints||0,u.clanWins||0]);
 }
 async function getAllUsers(){ if(USE_PG){ const r=await pool.query('SELECT * FROM users'); return r.rows.map(pgRowToUser); } return fileDb.users; }
 async function getUserById(id){ if(USE_PG){ const r=await pool.query('SELECT * FROM users WHERE id=$1',[id]); return r.rows[0]?pgRowToUser(r.rows[0]):null; } return fileDb.users.find(u=>u.id===id)||null; }
@@ -317,7 +339,129 @@ const NAME_COLORS=[ {id:'white',name:'Blanco',color:'#ffffff',price:3000},{id:'c
 const BANNERS=[ {id:'none',name:'Sin banner',price:0,grad:'transparent',border:'#333'},{id:'bronce',name:'Bronce',price:300,grad:'linear-gradient(135deg,#6b3a1f,#cd7f32)',border:'#cd7f32'},{id:'plata',name:'Plata',price:600,grad:'linear-gradient(135deg,#6e7a80,#c0c0c0)',border:'#c0c0c0'},{id:'negro',name:'Negro',price:400,grad:'linear-gradient(135deg,#000000,#2a2a2e)',border:'#666'},{id:'blanco',name:'Blanco',price:400,grad:'linear-gradient(135deg,#cfd4da,#ffffff)',border:'#ffffff'},{id:'rojo',name:'Rojo',price:800,grad:'linear-gradient(135deg,#7a0e1e,#ff1744)',border:'#ff5252'},{id:'azul',name:'Azul',price:800,grad:'linear-gradient(135deg,#0d2a6b,#2979ff)',border:'#448aff'},{id:'verde',name:'Verde',price:800,grad:'linear-gradient(135deg,#0d4d1f,#00e676)',border:'#00e676'},{id:'rosa',name:'Rosa',price:1000,grad:'linear-gradient(135deg,#8a1c5c,#ff4081)',border:'#ff80ab'},{id:'celeste',name:'Celeste',price:1000,grad:'linear-gradient(135deg,#0d4d6b,#00e5ff)',border:'#00e5ff'},{id:'platino',name:'Platino',price:1200,grad:'linear-gradient(135deg,#3a4a5a,#40c4ff)',border:'#40c4ff'},{id:'dorado',name:'Dorado',price:2000,grad:'linear-gradient(135deg,#7a5a00,#ffd600)',border:'#ffd600'},{id:'oro_puro',name:'Oro Puro',price:3500,grad:'linear-gradient(135deg,#ff8c00,#ffe082,#ff8c00)',border:'#ffe082'},{id:'leyenda',name:'Leyenda Animado',price:5000,grad:'linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff)',border:'#fff',animated:true},{id:'aurora',name:'🌠 Aurora Veloz (LOGRO)',price:0,grad:'linear-gradient(90deg,#00e5ff,#7c4dff,#ff4081,#ffd600,#00e676)',border:'#00e5ff',animated:true,exclusive:true} ];
 const FONTS=[ {id:'normal',name:'Normal',price:0,css:''}, {id:'titan',name:'Titan',price:3000,css:'font-weight:900;font-family:Impact,sans-serif;letter-spacing:1px;'}, {id:'mono',name:'Hacker Mono',price:3000,css:'font-family:monospace;font-weight:700;'}, {id:'cursiva',name:'Cursiva',price:3500,css:'font-style:italic;font-weight:700;font-family:cursive;letter-spacing:1px;'}, {id:'redonda',name:'Redondeada',price:4000,css:'font-family:Trebuchet MS,Verdana,sans-serif;font-weight:800;'}, {id:'elegante',name:'Elegante',price:4500,css:'font-family:Georgia,serif;font-style:italic;letter-spacing:1px;'}, {id:'gotica',name:'Gotica',price:5000,css:'font-family:Georgia,serif;font-weight:700;text-transform:uppercase;letter-spacing:3px;'}, {id:'minecraft',name:'Minecraft',price:6000,css:'font-family:monospace;font-weight:900;text-transform:uppercase;letter-spacing:2px;text-shadow:2px 2px 0 rgba(0,0,0,.65);'}, {id:'cuadrada',name:'Cuadrada',price:7000,css:'font-family:Verdana,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:1px;text-shadow:1px 1px 0 rgba(0,0,0,.6);'}, {id:'pixel',name:'Pixel',price:8000,css:'font-family:monospace;font-weight:900;text-transform:uppercase;letter-spacing:4px;text-shadow:0 0 8px currentColor;'}, {id:'sombra',name:'Sombra Neon',price:10000,css:'font-weight:900;letter-spacing:1px;text-shadow:0 0 10px currentColor,0 0 22px currentColor;'}, {id:'latido',name:'Latido',price:12000,css:'font-weight:900;display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;'}, {id:'ola',name:'Ola',price:14000,css:'font-weight:800;display:inline-block;animation:fxWave 1.8s ease-in-out infinite;'}, {id:'neonvivo',name:'Neon Vivo',price:15000,css:'font-weight:900;animation:fxNeon 1.6s ease-in-out infinite;'}, {id:'fuego',name:'Fuego',price:18000,css:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;'}, {id:'glitch',name:'Glitch',price:20000,css:'font-family:monospace;font-weight:900;text-transform:uppercase;animation:fxGlitch 1.4s steps(2,end) infinite;'}, {id:'arcoiris',name:'Arcoiris Vivo',price:25000,css:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'} ];
 const FXS=[ {id:'none',name:'Sin efecto',price:0,css:''}, {id:'latido',name:'Latido',price:12000,css:'display:inline-block;animation:fxBeat 1.2s ease-in-out infinite;'}, {id:'ola',name:'Ola',price:14000,css:'display:inline-block;animation:fxWave 1.8s ease-in-out infinite;'}, {id:'neon',name:'Neon',price:15000,css:'animation:fxNeon 1.6s ease-in-out infinite;'}, {id:'brillo',name:'Brillo',price:16000,css:'font-weight:900;background:linear-gradient(100deg,#8a93a6 30%,#ffffff 50%,#8a93a6 70%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxShine 2.4s linear infinite;'}, {id:'fuego',name:'Fuego',price:18000,css:'font-weight:900;text-transform:uppercase;background:linear-gradient(180deg,#ffe082,#ff8c00,#ff1744);-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxFire 1.1s ease-in-out infinite;'}, {id:'glitch',name:'Glitch',price:20000,css:'animation:fxGlitch 1.4s steps(2,end) infinite;'}, {id:'arcoiris',name:'Arcoiris',price:25000,css:'font-weight:900;background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff,#ff1744);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fxRainbow 3s linear infinite;'} ];
-FONTS.push({id:'phantom',name:'👻 Fantasma Negro',price:0,css:'color:#000!important;text-shadow:0 0 8px rgba(255,255,255,.6);animation:phantomFade 3s ease-in-out infinite;',exclusive:true});
+FONTS.push({id:'phantom',name:'👻 Fantasma Negro',price:0,css:'color:#000!important;text-shadow:0 0 12px rgba(255,255,255,.8);animation:phantomFade 3s ease-in-out infinite;',exclusive:true});
+
+// ============ TÍTULOS (se muestran arriba del nombre en el perfil) ============
+const TITLES=[
+ {id:'none',name:'Sin título',price:0,css:'',tier:'none'},
+ // --- NORMALES ---
+ {id:'novato',name:'Novato',price:2000,css:'',tier:'common'},
+ {id:'estudiante',name:'Estudiante',price:3500,css:'',tier:'common'},
+ {id:'programador',name:'Programador',price:6000,css:'',tier:'common'},
+ {id:'senior',name:'Senior Dev',price:10000,css:'',tier:'common'},
+ {id:'arquitecto',name:'Arquitecto',price:16000,css:'',tier:'common'},
+ {id:'maestro_codigo',name:'Maestro del Código',price:24000,css:'',tier:'rare'},
+ {id:'debugger',name:'Debugger',price:30000,css:'animation:titleFlicker 2.4s steps(2) infinite;',tier:'rare'},
+ {id:'hackermaniaco',name:'Hacker Maniaco',price:38000,css:'animation:titleGlitch 1.6s steps(2) infinite;',tier:'rare'},
+ // --- ANIMADOS ---
+ {id:'titulo_neon',name:'Titán Neon',price:25000,css:'color:#00e5ff;text-shadow:0 0 8px #00e5ff,0 0 18px #00e5ff;animation:titlePulse 1.6s ease-in-out infinite;',tier:'epic',animated:true},
+ {id:'titulo_fuego',name:'Llama Eterna',price:32000,css:'color:#ff6d00;text-shadow:0 0 8px #ff3d00,0 0 20px #ff8c00;animation:titleFlickerUp 1.2s ease-in-out infinite;',tier:'epic',animated:true},
+ {id:'titulo_glaciar',name:'Glaciar',price:38000,css:'color:#81d4fa;text-shadow:0 0 8px #40c4ff,0 0 20px #00b0ff;animation:titleShiver 2.8s ease-in-out infinite;',tier:'epic',animated:true},
+ {id:'titulo_galaxia',name:'Viajero Galáctico',price:50000,css:'background:linear-gradient(90deg,#7c4dff,#e040fb,#00e5ff,#7c4dff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleRainbow 4s linear infinite;',tier:'legendary',animated:true},
+ {id:'titulo_sangre',name:'Sangre Fría',price:55000,css:'color:#ff1744;text-shadow:0 0 10px #ff1744,0 0 24px #b0000a;animation:titleBeat .9s ease-in-out infinite;',tier:'legendary',animated:true},
+ {id:'titulo_oro',name:'Oro Puro',price:65000,css:'color:#ffd600;text-shadow:0 0 8px #ffd600,0 0 20px #ffab00;animation:titleShine 2.4s linear infinite;',tier:'legendary',animated:true},
+ // --- TRYHARD ---
+ {id:'tryhard',name:'TRYHARD',price:90000,css:'color:#ff6d00;text-shadow:0 0 8px #ff3d00,0 0 18px #ff6d00;animation:titleShake .35s ease-in-out infinite;',tier:'tryhard',animated:true},
+ {id:'tryhard_legendario',name:'💎 TRYHARD LEGENDARIO',price:140000,css:'background:linear-gradient(90deg,#ffd600,#ff1744,#7c4dff,#00e676,#ffd600);background-size:400% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleRainbowFast 2.5s linear infinite;filter:drop-shadow(0 0 6px #ffd600);',tier:'tryhard',animated:true},
+ // --- EXCLUSIVOS (solo logros / clan) ---
+ {id:'titulo_campeon',name:'👑 CAMPEÓN DE TORNEO',price:0,css:'color:#ffd600;text-shadow:0 0 10px #ffd600,0 0 24px #ffae00;animation:titleCrown 1.6s ease-in-out infinite;',tier:'exclusive',animated:true,exclusive:true},
+ {id:'titulo_warrior',name:'⚔️ GUERRERO DEL CLAN',price:0,css:'background:linear-gradient(90deg,#ff6d00,#ffd600,#ff1744);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleRainbow 3s linear infinite;',tier:'exclusive',animated:true,exclusive:true},
+ {id:'titulo_god',name:'💀 GOD MODE',price:0,css:'color:#fff;text-shadow:0 0 6px #ff0000,0 0 14px #ff0000,0 0 28px #8b0000;animation:titleGod 1.1s ease-in-out infinite;',tier:'exclusive',animated:true,exclusive:true}
+];
+
+// ============ RANGOS RANKED (7 rangos × 3 divisiones) ============
+const RANK_TIERS=[
+ {tier:'bronce',    name:'Bronce',    divisions:3, color:'#cd7f32', icon:'🥉'},
+ {tier:'plata',     name:'Plata',     divisions:3, color:'#c0c0c0', icon:'🥈'},
+ {tier:'oro',       name:'Oro',       divisions:3, color:'#ffd600', icon:'🥇'},
+ {tier:'platino',   name:'Platino',   divisions:3, color:'#40c4ff', icon:'💠'},
+ {tier:'diamante',  name:'Diamante',  divisions:3, color:'#b388ff', icon:'💎'},
+ {tier:'maestro',   name:'Maestro',   divisions:3, color:'#ff6d00', icon:'👑'},
+ {tier:'granmaestro',name:'Gran Maestro',divisions:3,color:'#ff1744', icon:'🌟'}
+];
+const RANK_DIVS=['III','II','I'];
+const RANK_RP_STEP=400;   // RP por división dentro de un rango
+const RANKS=[];           // lista plana de los 21 escalones
+RANK_TIERS.forEach((t,ti)=>{
+  RANK_DIVS.forEach((d,di)=>{
+    RANKS.push({
+      id:t.tier+'_'+d.toLowerCase(),
+      tier:t.tier, tierName:t.name, div:d, divIndex:di,
+      name:t.name+' '+d, color:t.color, icon:t.icon,
+      minRP: ti*RANK_RP_STEP*3 + di*RANK_RP_STEP
+    });
+  });
+});
+function rankFromRP(rp){
+  const n=Math.max(0,Number(rp)||0);
+  let cur=RANKS[0];
+  for(const r of RANKS){ if(n>=r.minRP) cur=r; else break; }
+  const next=RANKS.find(r=>r.minRP>cur.minRP)||null;
+  const into=n-cur.minRP;
+  const span=next?next.minRP-cur.minRP:RANK_RP_STEP*3;
+  return { ...cur, rp:n, next:next?{id:next.id,name:next.name,minRP:next.minRP,color:next.color,icon:next.icon}:null,
+           into, span, pct: next?Math.min(100,Math.round((into/span)*100)) : 100 };
+}
+
+// ============ ROLES DE CLAN ============
+const CLAN_ROLES={ leader:'👑 Líder', officer:'⭐ Oficial', member:'🛡️ Miembro' };
+const CLAN_EMBLEMS=['🛡️','⚔️','🔥','🐉','👹','🦅','🐺','🦁','🐍','⚡','🌑','☄️','💀','👾','🤖','👑'];
+
+// ============================================================
+// RANGOS DE CLAN (propios, distintos de los de Ranked individual)
+// ============================================================
+const CLAN_RANK_TIERS=[
+ {tier:'recluta',   name:'Recluta',        divisions:3, step:300, color:'#8a6b3a', icon:'🐣'},
+ {tier:'explorador',name:'Explorador',     divisions:3, step:300, color:'#6b8a4a', icon:'🏕️'},
+ {tier:'guerrero',  name:'Guerrero',       divisions:3, step:300, color:'#4a6b8a', icon:'⚔️'},
+ {tier:'veterano',  name:'Veterano',       divisions:3, step:300, color:'#8a4a2a', icon:'🔥'},
+ {tier:'campeon',   name:'Campeón',        divisions:3, step:300, color:'#8a2a4a', icon:'🐉'},
+ {tier:'leyenda',   name:'Leyenda',        divisions:3, step:300, color:'#b8860b', icon:'👑'},
+ {tier:'dios',      name:'Dios de Guerra', divisions:3, step:300, color:'#ff1744', icon:'🌟'}
+];
+const CLAN_RANK_DIVS=['III','II','I'];
+const CLAN_RANKS=[]; // 21 escalones de clan
+CLAN_RANK_TIERS.forEach((t,ti)=>{
+  const tierBase=ti*t.divisions*t.step;
+  CLAN_RANK_DIVS.forEach((d,di)=>{
+    CLAN_RANKS.push({ id:'clan_'+t.tier+'_'+d.toLowerCase(), tier:t.tier, tierName:t.name,
+      div:d, divIndex:di, name:t.name+' '+d, color:t.color, icon:t.icon, minRP:tierBase+di*t.step });
+  });
+});
+function clanRankFromPoints(points){
+  const n=Math.max(0,Number(points)||0);
+  let cur=CLAN_RANKS[0];
+  for(const r of CLAN_RANKS){ if(n>=r.minRP) cur=r; else break; }
+  const next=CLAN_RANKS.find(r=>r.minRP>cur.minRP)||null;
+  const into=Math.max(0,n-cur.minRP);
+  const span=next?next.minRP-cur.minRP:CLAN_RANK_TIERS[0].step;
+  return { ...cur, points:n, next:next?{id:next.id,name:next.name,minRP:next.minRP,color:next.color,icon:next.icon}:null,
+           into, span, pct: next?Math.max(0,Math.min(100,Math.round((into/span)*100))) : 100, maxed:!next };
+}
+
+// ============================================================
+// MISIONES DE CLAN (3 por día, misma lista para todos los miembros)
+// ============================================================
+const CLAN_MISSIONS=[
+ {key:'ranked_3',  label:'⚔️ Jugá 3 partidas Ranked',        target:3,  points:120, coins:2000, event:'ranked'},
+ {key:'win_2',     label:'🏆 Ganá 2 partidas Ranked',       target:2,  points:260, coins:4500, event:'win'},
+ {key:'kills_40',  label:'💥 Destruí 40 naves en Ranked',  target:40, points:150, coins:2500, event:'kills'},
+ {key:'join_2',    label:'👥 Sumá 2 miembros nuevos',       target:2,  points:100, coins:0,    event:'join'},
+ {key:'wave_6',    label:'☄️ Sobreviví hasta la oleada 6',  target:6,  points:140, coins:2200, event:'wave'},
+ {key:'win_4',     label:'👑 Ganá 4 partidas Ranked',       target:4,  points:480, coins:8000, event:'win'},
+ {key:'kills_100', label:'💀 Destruí 100 naves en Ranked', target:100,points:320, coins:6000, event:'kills'},
+ {key:'ranked_8',  label:'🛡️ Jugá 8 partidas Ranked',        target:8,  points:300, coins:5000, event:'ranked'},
+ {key:'wave_10',   label:'🌟 Sobreviví hasta la oleada 10', target:10, points:260, coins:4000, event:'wave'},
+ {key:'join_4',    label:'🧲 Sumá 4 miembros nuevos',       target:4,  points:180, coins:2500, event:'join'}
+];
+const CLAN_MISSIONS_PER_DAY=3;
+function dayIndex(d){ return Math.floor(new Date(d||Date.now()).getTime()/86400000); }
+// Rotación determinista: el mismo día, todos los clanes ven la misma tanda.
+function dailyClanMissionSet(dayNum){
+  const out=[]; const n=CLAN_MISSIONS.length;
+  for(let i=0;i<CLAN_MISSIONS_PER_DAY;i++) out.push(CLAN_MISSIONS[((dayNum||0)+i*3)%n]);
+  return out;
+}
 const CHAT_BUBBLES=[
  {id:'none',name:'Sin burbuja',price:0,css:'',preview:'#1a2332',rarity:'common',exclusive:false,gif:false},
  {id:'neon_blue',name:'💙 Burbuja Neon Azul',price:0,css:'',rarity:'rare',exclusive:true,gif:false},
@@ -400,13 +544,19 @@ function levelStats(u){
   }
   return { solved, reached };
 }
-function publicUser(u){ const lv=levelStats(u); return { id:u.id, username:u.username, createdAt:u.createdAt, coins:u.coins||0, skins:u.skins||['default'], equipped:u.equipped||'default', profilePic:u.profilePic||'', theme:u.theme||'dark', hoursPlayed: Math.floor((u.hoursPlayed||0)/3600), exp:u.exp||0, frames:u.frames||[], equippedFrame:u.equippedFrame||'none', speedrunBest:u.speedrunBest||null, nameColor:u.nameColor||'#ffffff', ownedNameColors:u.ownedNameColors||[], chatBg:u.chatBg||'', banners:u.banners||['none'], equippedBanner:u.equippedBanner||'none', bannerImg:u.bannerImg||'', fonts:u.fonts||['normal'], equippedFont:u.equippedFont||'normal', fxs:u.fxs||['none'], equippedFx:u.equippedFx||'none', lastSeen:u.lastSeen||null, description:u.description||'', achievements:u.achievements||[], tournamentStreak:u.tournamentStreak||0, tournamentWins:u.tournamentWins||0, chatBubbles:u.chatBubbles||['none'], equippedBubble:u.equippedBubble||'none', luckySpins:u.luckySpins||0, introHidden:!!u.introHidden, maxLevelReached:lv.reached, levelsCompleted:lv.solved, levelsTotal:LEVELS.length, lasers:u.lasers||['default'], equippedLaser:u.equippedLaser||'default', impacts:u.impacts||['default'], equippedImpact:u.equippedImpact||'default', labelSkins:u.labelSkins||['default'], equippedLabelSkin:u.equippedLabelSkin||'default' }; }
+function publicUser(u){ const lv=levelStats(u); return { id:u.id, username:u.username, createdAt:u.createdAt, coins:u.coins||0, skins:u.skins||['default'], equipped:u.equipped||'default', profilePic:u.profilePic||'', theme:u.theme||'dark', hoursPlayed: Math.floor((u.hoursPlayed||0)/3600), exp:u.exp||0, frames:u.frames||[], equippedFrame:u.equippedFrame||'none', speedrunBest:u.speedrunBest||null, nameColor:u.nameColor||'#ffffff', ownedNameColors:u.ownedNameColors||[], chatBg:u.chatBg||'', banners:u.banners||['none'], equippedBanner:u.equippedBanner||'none', bannerImg:u.bannerImg||'', fonts:u.fonts||['normal'], equippedFont:u.equippedFont||'normal', fxs:u.fxs||['none'], equippedFx:u.equippedFx||'none', lastSeen:u.lastSeen||null, description:u.description||'', achievements:u.achievements||[], tournamentStreak:u.tournamentStreak||0, tournamentWins:u.tournamentWins||0, chatBubbles:u.chatBubbles||['none'], equippedBubble:u.equippedBubble||'none', luckySpins:u.luckySpins||0, introHidden:!!u.introHidden, maxLevelReached:lv.reached, levelsCompleted:lv.solved, levelsTotal:LEVELS.length, lasers:u.lasers||['default'], equippedLaser:u.equippedLaser||'default', impacts:u.impacts||['default'], equippedImpact:u.equippedImpact||'default', labelSkins:u.labelSkins||['default'], equippedLabelSkin:u.equippedLabelSkin||'default', titles:u.titles||['none'], equippedTitle:u.equippedTitle||'none', rankPoints:u.rankPoints||0, rank:rankFromRP(u.rankPoints||0), clanId:u.clanId||'', clanRole:u.clanRole||'', clanPoints:u.clanPoints||0, clanWins:u.clanWins||0 }; }
+// Igual que publicUser pero resuelve el TAG/nivel del clan (necesita await).
+async function publicUserFull(u){
+  const base=publicUser(u);
+  if(u.clanId){ const c=await getClanById(u.clanId); if(c){ base.clanTag=c.tag; base.clan={id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,level:clanLevel(c.points||0),rank:clanRankFromPoints(c.points||0)}; } }
+  return base;
+}
 function isOnline(lastSeen){ if(!lastSeen) return false; return (Date.now()-new Date(lastSeen).getTime()) < 5*60*1000; }
 app.get('/favicon.ico',(req,res)=>res.status(204).end());
-app.post('/api/register', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(!username||!password) return res.status(400).json({error:'Usuario y contraseña son obligatorios'}); if(String(username).length<3) return res.status(400).json({error:'El usuario debe tener al menos 3 caracteres'}); if(String(password).length<4) return res.status(400).json({error:'La contraseña debe tener al menos 4 caracteres'}); if(await isBanned('',String(username))) return res.status(403).json({error:'⛔ Este nombre está vetado para siempre'}); if(await getUserByUsername(username)) return res.status(409).json({error:'Ese usuario ya existe'}); const salt=crypto.randomBytes(16).toString('hex'); const user={ id:crypto.randomUUID(), username, salt, passwordHash:hashPassword(password,salt), progress:[], coins:0, skins:['default'], equipped:'default', profilePic:'', theme:'dark', hoursPlayed:0, exp:0, frames:['none'], equippedFrame:'none', speedrunBest:null, speedrunHistory:[], createdAt:new Date().toISOString(), lastSeen:new Date().toISOString(), nameColor:'#ffffff', ownedNameColors:[], chatBg:'', banners:['none'], equippedBanner:'none', bannerImg:'', fonts:['normal'], equippedFont:'normal', fxs:['none'], equippedFx:'none', description:'' }; await createUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Bienvenido a Code Invaders 👾','¡Cuenta creada con éxito! Empieza a jugar en la sección Juego.','success'); res.status(201).json({token,user:publicUser(user)}); }catch(e){ console.error('[register]',e.message); res.status(500).json({error:'Error al registrar'}); } });
-app.post('/api/login', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(await isBanned('',String(username||''))) return res.status(403).json({error:'⛔ Esta cuenta fue cerrada para siempre por acumulación de denuncias'}); const user=await getUserByUsername(username); if(!user || user.passwordHash!==hashPassword(password,user.salt)) return res.status(401).json({error:'Usuario o contraseña incorrectos'}); user.lastSeen=new Date().toISOString(); await updateUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Sesión iniciada ✅',`Hola ${user.username}, ¡buen regreso!`,'info'); res.json({token,user:publicUser(user)}); }catch(e){ console.error('[login]',e.message); res.status(500).json({error:'Error al iniciar sesión'}); } });
+app.post('/api/register', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(!username||!password) return res.status(400).json({error:'Usuario y contraseña son obligatorios'}); if(String(username).length<3) return res.status(400).json({error:'El usuario debe tener al menos 3 caracteres'}); if(String(password).length<4) return res.status(400).json({error:'La contraseña debe tener al menos 4 caracteres'}); if(await isBanned('',String(username))) return res.status(403).json({error:'⛔ Este nombre está vetado para siempre'}); if(await getUserByUsername(username)) return res.status(409).json({error:'Ese usuario ya existe'}); const salt=crypto.randomBytes(16).toString('hex'); const user={ id:crypto.randomUUID(), username, salt, passwordHash:hashPassword(password,salt), progress:[], coins:0, skins:['default'], equipped:'default', profilePic:'', theme:'dark', hoursPlayed:0, exp:0, frames:['none'], equippedFrame:'none', speedrunBest:null, speedrunHistory:[], createdAt:new Date().toISOString(), lastSeen:new Date().toISOString(), nameColor:'#ffffff', ownedNameColors:[], chatBg:'', banners:['none'], equippedBanner:'none', bannerImg:'', fonts:['normal'], equippedFont:'normal', fxs:['none'], equippedFx:'none', description:'' }; await createUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Bienvenido a Code Invaders 👾','¡Cuenta creada con éxito! Empieza a jugar en la sección Juego.','success'); res.status(201).json({token,user:await publicUserFull(user)}); }catch(e){ console.error('[register]',e.message); res.status(500).json({error:'Error al registrar'}); } });
+app.post('/api/login', async (req,res)=>{ try{ const {username,password}=req.body||{}; if(await isBanned('',String(username||''))) return res.status(403).json({error:'⛔ Esta cuenta fue cerrada para siempre por acumulación de denuncias'}); const user=await getUserByUsername(username); if(!user || user.passwordHash!==hashPassword(password,user.salt)) return res.status(401).json({error:'Usuario o contraseña incorrectos'}); user.lastSeen=new Date().toISOString(); await updateUser(user); const token=createToken(); await createSession(token,user.id); await pushNotification(user.id,'Sesión iniciada ✅',`Hola ${user.username}, ¡buen regreso!`,'info'); res.json({token,user:await publicUserFull(user)}); }catch(e){ console.error('[login]',e.message); res.status(500).json({error:'Error al iniciar sesión'}); } });
 app.post('/api/logout', async (req,res)=>{ try{ const token=(req.headers.authorization||'').replace('Bearer ',''); if(token) await deleteSession(token); res.json({ok:true}); }catch(e){ res.json({ok:true}); } });
-app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const lv=levelFromExp(user.exp); res.json({user:publicUser(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,lasers:user.lasers||['default'],equippedLaser:user.equippedLaser||'default',impacts:user.impacts||['default'],equippedImpact:user.equippedImpact||'default',labelSkins:user.labelSkins||['default'],equippedLabelSkin:user.equippedLabelSkin||'default',expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
+app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const lv=levelFromExp(user.exp); res.json({user:await publicUserFull(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,lasers:user.lasers||['default'],equippedLaser:user.equippedLaser||'default',impacts:user.impacts||['default'],equippedImpact:user.equippedImpact||'default',labelSkins:user.labelSkins||['default'],equippedLabelSkin:user.equippedLabelSkin||'default',expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
 app.post('/api/heartbeat', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); user.lastSeen=new Date().toISOString(); await updateUser(user); res.json({ok:true, online:true}); }catch(e){ res.status(500).json({error:'heartbeat error'}); } });
 app.get('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); res.json({progress:user.progress}); }catch(e){ res.status(500).json({error:'progress error'}); } });
 app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);   const {level,attempts,solved,coinsEarned}=req.body||{}; const lvl=Number(level); if(!Number.isFinite(lvl)||lvl<1) return res.status(400).json({error:'Falta el nivel'}); if(!Array.isArray(user.progress)) user.progress=[];
@@ -424,7 +574,8 @@ app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToke
 app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
 app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
 app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; await checkAchievements(user); }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } if(savedToDb){ try{ await pushNotification(user.id,'⚡ Nuevo récord Speedrun',`⏱ ${formatSpeedrunMs(t)} — ¡Nuevo mejor tiempo!`,'success'); }catch(e){ console.error('[speedrun] pushNotification fail',e.message); } } console.log(`[speedrun] ${user.username} ${t}ms isNew=${isNewBest} PG=${USE_PG} saved=${savedToDb}`); } else { console.log(`[speedrun] ${user.username} ${t}ms no mejora (best ${user.speedrunBest})`); } return res.json({speedrunBest:user.speedrunBest,isNewBest,savedToDb}); }catch(e){ console.error('[speedrun] error',e && e.stack||e); return res.status(500).json({error:'Error interno al guardar speedrun: '+(e.message||e)}); } });
-app.get('/api/user/:id', async (req,res)=>{ const user=await getUserById(req.params.id); if(!user) return res.status(404).json({error:'Usuario no encontrado'}); const ls=levelStats(user); res.json({id:user.id,username:user.username,profilePic:user.profilePic||'',equippedFrame:user.equippedFrame||'none',frames:user.frames||[],exp:user.exp||0,hoursPlayed:Math.floor((user.hoursPlayed||0)/3600),coins:user.coins||0,solved:ls.solved,reached:ls.reached,attempts:(user.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),createdAt:user.createdAt,speedrunBest:user.speedrunBest||null,nameColor:user.nameColor||'#ffffff',equippedBanner:user.equippedBanner||'none',bannerImg:user.bannerImg||'',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',online:isOnline(user.lastSeen),description:user.description||''}); });
+app.get('/api/user/:id', async (req,res)=>{ const user=await getUserById(req.params.id); if(!user) return res.status(404).json({error:'Usuario no encontrado'}); const ls=levelStats(user); const _c=user.clanId?await getClanById(user.clanId):null; const _clan=_c?{id:_c.id,tag:_c.tag,name:_c.name,emblem:_c.emblem,color:_c.color,points:_c.points||0,level:clanLevel(_c.points||0),rank:clanRankFromPoints(_c.points||0)}:null; res.json({id:user.id,username:user.username,profilePic:user.profilePic||'',equippedFrame:user.equippedFrame||'none',frames:user.frames||[],exp:user.exp||0,hoursPlayed:Math.floor((user.hoursPlayed||0)/3600),coins:user.coins||0,solved:ls.solved,reached:ls.reached,attempts:(user.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),createdAt:user.createdAt,speedrunBest:user.speedrunBest||null,nameColor:user.nameColor||'#ffffff',equippedBanner:user.equippedBanner||'none',bannerImg:user.bannerImg||'',equippedFont:user.equippedFont||'normal',equippedFx:user.equippedFx||'none',online:isOnline(user.lastSeen),description:user.description||'', titles:user.titles||['none'], equippedTitle:user.equippedTitle||'none', titleName:((TITLES.find(t=>t.id===(user.equippedTitle||'none'))||{}).name)||'', titleCss:((TITLES.find(t=>t.id===(user.equippedTitle||'none'))||{}).css)||'', rankPoints:user.rankPoints||0, rank:rankFromRP(user.rankPoints||0), clanId:user.clanId||'', clanRole:user.clanRole||'', clanWins:user.clanWins||0, clan:_clan });
+});
 app.get('/api/notifications', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const list=await getNotifications(user.id); res.json({notifications:list,unread:list.filter(n=>!n.read).length}); });
 app.post('/api/notifications/read', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const {id}=req.body||{}; await markNotifications(user.id,id); res.json({ok:true}); });
 app.get('/api/shop',(req,res)=>{ res.json({skins:SKINS,lasers:LASERS,impacts:IMPACTS,labelSkins:LABEL_SKINS}); });
@@ -442,7 +593,9 @@ app.post('/api/impacts/equip', async (req,res)=>{ const user=await findUserByTok
 app.get('/api/label-skins', async (req,res)=>{ const user=await findUserByToken(req); if(user) ensureShopFields(user); res.set('Cache-Control','no-store'); res.json({labelSkins:LABEL_SKINS,owned:user?(user.labelSkins||['default']):['default'],equipped:user?(user.equippedLabelSkin||'default'):'default'}); });
 app.post('/api/label-skins/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {skinId}=req.body||{}; const sk=LABEL_SKINS.find(x=>x.id===skinId); if(!sk) return res.status(404).json({error:'Esa etiqueta no existe'}); if((user.labelSkins||[]).includes(skinId)) return res.status(400).json({error:'Ya tenés esta etiqueta'}); if((user.coins||0)<sk.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=sk.price; user.labelSkins.push(skinId); await updateUser(user); await pushNotification(user.id,'🏷️ Etiqueta comprada!',`Desbloqueaste ${sk.name}`,'success'); res.json({coins:user.coins,labelSkins:user.labelSkins}); });
 app.post('/api/label-skins/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {skinId}=req.body||{}; if(!(user.labelSkins||[]).includes(skinId)) return res.status(400).json({error:'No tenés esa etiqueta'}); user.equippedLabelSkin=skinId; await updateUser(user); res.json({equippedLabelSkin:user.equippedLabelSkin}); });
-app.delete('/api/account', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const userId=user.id; await deleteUser(userId); await deleteSessionsByUser(userId); if(USE_PG) await pool.query('DELETE FROM notifications WHERE user_id=$1',[userId]); else { fileDb.notifications=fileDb.notifications.filter(n=>n.userId!==userId); saveDb(fileDb); } await deleteChatByUser(userId); const tours=await getTournaments(); for(const t of tours){ if(t.results && t.results[userId]){ delete t.results[userId]; await updateTournament(t); } } res.json({ok:true}); });
+app.delete('/api/account', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); const userId=user.id; await deleteUser(userId); await deleteSessionsByUser(userId); if(USE_PG) await pool.query('DELETE FROM notifications WHERE user_id=$1',[userId]); else { fileDb.notifications=fileDb.notifications.filter(n=>n.userId!==userId); saveDb(fileDb); } await deleteChatByUser(userId); const tours=await getTournaments(); for(const t of tours){ if(t.results && t.results[userId]){ delete t.results[userId]; await updateTournament(t); } }
+  try{ await leaveClanOnDelete(userId); }catch(e){ console.error('[account] clan cleanup',e.message); }
+  res.json({ok:true}); });
 
   // ============ DENUNCIAS — 3 denuncias distintas = cierre permanente ============
   async function isBanned(userId, username){
@@ -467,6 +620,7 @@ app.delete('/api/account', async (req,res)=>{ const user=await findUserByToken(r
     await deleteChatByUser(userId);
     const tours=await getTournaments();
     for(const t of tours){ if(t.results && t.results[userId]){ delete t.results[userId]; await updateTournament(t); } }
+    try{ await leaveClanOnDelete(userId); }catch(e){ console.error('[ban] clan cleanup',e.message); }
     return username;
   }
   async function countReports(reportedId){
@@ -500,7 +654,7 @@ app.delete('/api/account', async (req,res)=>{ const user=await findUserByToken(r
       res.json({ok:true,reports:total,banned:false});
     }catch(e){ console.error('[report]',e.message); res.status(500).json({error:'Error al denunciar'}); }
   });
-app.put('/api/settings', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {username,theme,profilePic,chatBg,bannerImg,description,introHidden}=req.body||{}; if(username!==undefined){ const name=String(username).trim(); if(name.length<3) return res.status(400).json({error:'El nombre debe tener al menos 3 caracteres'}); const all=await getAllUsers(); if(all.some(u=>u.id!==user.id && u.username===name)) return res.status(409).json({error:'Ese nombre ya está en uso'}); user.username=name; } if(theme==='dark'||theme==='light') user.theme=theme;   if(profilePic!==undefined) user.profilePic=String(profilePic).slice(0,3_500_000); if(bannerImg!==undefined) user.bannerImg=String(bannerImg).slice(0,8000000); if(chatBg!==undefined) user.chatBg=String(chatBg).slice(0,800_000); if(description!==undefined) user.description=String(description).slice(0,200); if(introHidden!==undefined) user.introHidden=!!introHidden; await updateUser(user); const lv=levelFromExp(user.exp); res.json({user:publicUser(user),expLevel:lv}); });
+app.put('/api/settings', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {username,theme,profilePic,chatBg,bannerImg,description,introHidden}=req.body||{}; if(username!==undefined){ const name=String(username).trim(); if(name.length<3) return res.status(400).json({error:'El nombre debe tener al menos 3 caracteres'}); const all=await getAllUsers(); if(all.some(u=>u.id!==user.id && u.username===name)) return res.status(409).json({error:'Ese nombre ya está en uso'}); user.username=name; } if(theme==='dark'||theme==='light') user.theme=theme;   if(profilePic!==undefined) user.profilePic=String(profilePic).slice(0,3_500_000); if(bannerImg!==undefined) user.bannerImg=String(bannerImg).slice(0,8000000); if(chatBg!==undefined) user.chatBg=String(chatBg).slice(0,800_000); if(description!==undefined) user.description=String(description).slice(0,200); if(introHidden!==undefined) user.introHidden=!!introHidden; await updateUser(user); const lv=levelFromExp(user.exp); res.json({user:await publicUserFull(user),expLevel:lv}); });
 app.post('/api/stats', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {seconds=0,exp=0,coins=0}=req.body||{}; user.hoursPlayed=(user.hoursPlayed||0)+(Number(seconds)||0); user.exp=(user.exp||0)+(Number(exp)||0); user.coins=(user.coins||0)+(Number(coins)||0);  user.lastSeen=new Date().toISOString();
  await checkAchievements(user);
  await updateUser(user); const lv=levelFromExp(user.exp); res.json({user:publicUser(user),expLevel:lv,expGained:Number(exp)||0}); });
@@ -524,6 +678,292 @@ app.post('/api/fxs/equip', async (req,res)=>{ const user=await findUserByToken(r
 app.get('/api/bubbles', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); res.json({bubbles:CHAT_BUBBLES,owned:user.chatBubbles||['none'],equipped:user.equippedBubble||'none'}); }catch(e){ res.status(500).json({error:'bubbles error'}); } });
 app.post('/api/bubbles/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {bubbleId}=req.body||{}; if(bubbleId==='none'){ user.equippedBubble='none'; await updateUser(user); return res.json({equippedBubble:user.equippedBubble}); } const b=CHAT_BUBBLES.find(x=>x.id===bubbleId); if(!b) return res.status(404).json({error:'Burbuja no existe'}); if(!(user.chatBubbles||[]).includes(bubbleId)) return res.status(400).json({error:'Aún no ganaste esta burbuja (gírala en Lucky Coders)'}); user.equippedBubble=bubbleId; await updateUser(user); await pushNotification(user.id,'💬 Burbuja equipada','Ahora tus mensajes usan '+b.name,'success'); res.json({equippedBubble:user.equippedBubble}); });
 
+/* ============================================================
+   TÍTULOS
+   ============================================================ */
+app.get('/api/titles', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); res.json({titles:TITLES,owned:user.titles||['none'],equipped:user.equippedTitle||'none'}); }catch(e){ res.status(500).json({error:'titles error'}); } });
+app.post('/api/titles/buy', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {titleId}=req.body||{}; const t=TITLES.find(x=>x.id===titleId); if(!t) return res.status(404).json({error:'Título no existe'}); if(t.exclusive) return res.status(400).json({error:'Este título es exclusivo y no se puede comprar'}); if(user.titles.includes(titleId)) return res.status(400).json({error:'Ya tienes este título'}); if((user.coins||0)<t.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=t.price; user.titles.push(titleId); await updateUser(user); await pushNotification(user.id,'🏷️ Título comprado!',`Desbloqueaste «${t.name}»`,'success'); res.json({coins:user.coins,titles:user.titles}); }catch(e){ console.error('[titles/buy]',e.message); res.status(500).json({error:'Error al comprar el título'}); } });
+app.post('/api/titles/equip', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {titleId}=req.body||{}; if(titleId==='none'){ user.equippedTitle='none'; await updateUser(user); return res.json({equippedTitle:user.equippedTitle}); } const t=TITLES.find(x=>x.id===titleId); if(!t) return res.status(404).json({error:'Título no existe'}); if(!user.titles.includes(titleId)) return res.status(400).json({error:'No tienes este título'}); user.equippedTitle=titleId; await updateUser(user); res.json({equippedTitle:user.equippedTitle}); }catch(e){ res.status(500).json({error:'Error al equipar el título'}); } });
+
+/* ============================================================
+   RANGOS RANKED
+   ============================================================ */
+app.get('/api/rank', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const r=rankFromRP(user.rankPoints); const all=await getAllUsers(); const board=all.map(u=>({id:u.id,username:u.username,rp:u.rankPoints||0,rank:rankFromRP(u.rankPoints||0),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],nameColor:u.nameColor||'#ffffff',equippedTitle:u.equippedTitle||'none'})).sort((a,b)=>b.rp-a.rp); const idx=board.findIndex(x=>x.id===user.id); res.set('Cache-Control','no-store'); res.json({rank:r,rp:user.rankPoints||0,position:idx>=0?idx+1:null,total:board.length,ladder:RANKS,board:board.slice(0,50)}); }catch(e){ console.error('[rank]',e.message); res.status(500).json({error:'rank error'}); } });
+app.get('/api/ranks',(req,res)=>{ res.json({ladder:RANKS,step:RANK_RP_STEP}); });
+function grantRankPoints(userId,amount,reason){
+  return (async()=>{ try{
+    const u=await getUserById(userId); if(!u) return null;
+    ensureShopFields(u);
+    const before=rankFromRP(u.rankPoints||0);
+    u.rankPoints=Math.max(0,(u.rankPoints||0)+amount);
+    const after=rankFromRP(u.rankPoints||0);
+    await updateUser(u);
+    if(after.tier!==before.tier){
+      const up=after.minRP>before.minRP;
+      try{ await pushNotification(u.id,(up?'⬆️':'⬇️')+' '+(up?'¡Subiste':'Bajaste')+' de rango',(up?'🏅 Ahora sos':'📉 Ahora sos')+' '+after.name,'info'); }catch(e){}
+    }
+    return {rp:u.rankPoints,rank:after,delta:amount};
+  }catch(e){ console.error('[grantRankPoints]',e.message); return null; } })();
+}
+
+/* ============================================================
+   CLANES
+   ============================================================ */
+async function getAllClans(){ if(USE_PG){ const r=await pool.query('SELECT * FROM clans'); return r.rows.map(c=>({id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,description:c.description||'',points:c.points||0,wins:c.wins||0,losses:c.losses||0,createdAt:c.created_at,ownerId:c.owner_id})); } return fileDb.clans||[]; }
+async function getClanById(id){ if(!id) return null; const all=await getAllClans(); return all.find(c=>c.id===id)||null; }
+async function getClanByTag(tag){ const all=await getAllClans(); return all.find(c=>String(c.tag||'').toLowerCase()===String(tag||'').toLowerCase())||null; }
+async function saveClan(c){ if(USE_PG){ await pool.query(`INSERT INTO clans(id,tag,name,emblem,color,description,points,wins,losses,created_at,owner_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(id) DO UPDATE SET tag=EXCLUDED.tag,name=EXCLUDED.name,emblem=EXCLUDED.emblem,color=EXCLUDED.color,description=EXCLUDED.description,points=EXCLUDED.points,wins=EXCLUDED.wins,losses=EXCLUDED.losses,owner_id=EXCLUDED.owner_id`,[c.id,c.tag,c.name,c.emblem,c.color,c.description||'',c.points||0,c.wins||0,c.losses||0,c.createdAt,c.ownerId]); } else { fileDb.clans=fileDb.clans||[]; const i=fileDb.clans.findIndex(x=>x.id===c.id); if(i>=0) fileDb.clans[i]=c; else fileDb.clans.push(c); saveDb(fileDb); } }
+async function getClanMembers(clanId){ if(USE_PG){ const r=await pool.query('SELECT cm.*, u.username, u.profile_pic, u.exp, u.rank_points, u.last_seen FROM clan_members cm LEFT JOIN users u ON u.id=cm.user_id WHERE cm.clan_id=$1 ORDER BY CASE cm.role WHEN \'leader\' THEN 0 WHEN \'officer\' THEN 1 ELSE 2 END, cm.points DESC',[clanId]); return r.rows.map(m=>({userId:m.user_id,username:m.username||'?',profilePic:m.profile_pic||'',exp:m.exp||0,rp:m.rank_points||0,lastSeen:m.last_seen||null,role:m.role,joinedAt:m.joined_at,points:m.points||0,online:isOnline(m.last_seen),rank:rankFromRP(m.rank_points||0)})); } const ids=(fileDb.clanMembers||[]).filter(m=>m.clanId===clanId).map(m=>m.userId); const users=await getAllUsers(); const map=new Map(users.map(u=>[u.id,u])); return (fileDb.clanMembers||[]).filter(m=>m.clanId===clanId).map(m=>{ const u=map.get(m.userId); return {userId:m.userId,username:u?u.username:'?',profilePic:u?u.profilePic:'',exp:u?u.exp:0,rp:u?u.rankPoints||0:0,lastSeen:u?u.lastSeen:null,role:m.role,joinedAt:m.joinedAt,points:m.points||0,online:isOnline(u&&u.lastSeen),rank:rankFromRP(u?(u.rankPoints||0):0)}; }); }
+async function getUserClanMembership(userId){ if(USE_PG){ const r=await pool.query('SELECT * FROM clan_members WHERE user_id=$1',[userId]); return r.rows[0]?{clanId:r.rows[0].clan_id,role:r.rows[0].role,joinedAt:r.rows[0].joined_at,points:r.rows[0].points||0}:null; } return (fileDb.clanMembers||[]).find(m=>m.userId===userId)||null; }
+async function setClanMember(clanId,userId,role){
+  if(USE_PG) await pool.query('INSERT INTO clan_members(clan_id,user_id,role,joined_at,points) VALUES($1,$2,$3,$4,$5) ON CONFLICT(user_id) DO UPDATE SET clan_id=EXCLUDED.clan_id, role=EXCLUDED.role',[clanId,userId,role,new Date().toISOString(),0]);
+  else { fileDb.clanMembers=fileDb.clanMembers||[]; const i=fileDb.clanMembers.findIndex(m=>m.userId===userId); const row={clanId,userId,role,joinedAt:new Date().toISOString(),points:0}; if(i>=0) fileDb.clanMembers[i]=row; else fileDb.clanMembers.push(row); saveDb(fileDb); }
+}
+async function removeClanMember(userId){ if(USE_PG) await pool.query('DELETE FROM clan_members WHERE user_id=$1',[userId]); else { fileDb.clanMembers=(fileDb.clanMembers||[]).filter(m=>m.userId!==userId); saveDb(fileDb); } }
+// Saca al usuario de su clan al borrar la cuenta. Si era líder, hereda el
+// comando; si el clan queda vacío, se borra entero.
+async function leaveClanOnDelete(userId){
+  const m=await getUserClanMembership(userId); if(!m) return;
+  const c=await getClanById(m.clanId);
+  await removeClanMember(userId);
+  if(!c) return;
+  if(m.role==='leader'){
+    const rest=(await getClanMembers(c.id));
+    if(rest.length){ const heir=rest.find(x=>x.role==='officer')||rest[0]; await setClanMember(c.id,heir.userId,'leader'); const hu=await getUserById(heir.userId); if(hu){ ensureShopFields(hu); hu.clanRole='leader'; await updateUser(hu); } }
+    else { if(USE_PG){ await pool.query('DELETE FROM clan_chat WHERE clan_id=$1',[c.id]); await pool.query('DELETE FROM clans WHERE id=$1',[c.id]); } else { fileDb.clans=(fileDb.clans||[]).filter(x=>x.id!==c.id); fileDb.clanChat=(fileDb.clanChat||[]).filter(x=>x.clanId!==c.id); saveDb(fileDb); } }
+  }
+  const ts=await getClanTournaments();
+  for(const t of ts){ if(t.results && t.results[c.id]){ delete t.results[c.id]; await saveClanTournament(t); } }
+}
+async function addClanMemberPoints(clanId,userId,pts){ if(USE_PG) await pool.query('UPDATE clan_members SET points=points+$1 WHERE clan_id=$2 AND user_id=$3',[pts,clanId,userId]); else { const m=(fileDb.clanMembers||[]).find(x=>x.clanId===clanId&&x.userId===userId); if(m) m.points=(m.points||0)+pts; saveDb(fileDb); } }
+async function getClanChat(clanId,limit=50){ if(USE_PG){ const r=await pool.query('SELECT * FROM clan_chat WHERE clan_id=$1 ORDER BY created_at DESC LIMIT $2',[clanId,limit]); return r.rows.map(m=>({id:m.id,userId:m.user_id,username:m.username,text:m.text,createdAt:m.created_at})).reverse(); } return (fileDb.clanChat||[]).filter(m=>m.clanId===clanId).slice(-limit); }
+async function addClanChat(c){ if(USE_PG) await pool.query('INSERT INTO clan_chat(id,clan_id,user_id,username,text,created_at) VALUES($1,$2,$3,$4,$5,$6)',[c.id,c.clanId,c.userId,c.username,c.text,c.createdAt]); else { fileDb.clanChat=fileDb.clanChat||[]; fileDb.clanChat.push(c); if(fileDb.clanChat.length>1000) fileDb.clanChat=fileDb.clanChat.slice(-1000); saveDb(fileDb); } }
+function clanLevel(points){ const L=Math.floor(Math.sqrt(Math.max(0,points||0)/10))+1; return Math.min(50,L); }
+function clanLevelProgress(points){ const L=clanLevel(points); const base=(L-1)*(L-1)*10; const next=L*L*10; return {level:L,into:(points||0)-base,span:Math.max(1,next-base),pct:Math.min(100,Math.round(((points||0)-base)/Math.max(1,next-base)*100))}; }
+
+/* ---------- MISIONES DE CLAN ---------- */
+async function getClanMissions(clanId,day){
+  const d=day||dayIndex();
+  if(USE_PG){
+    const r=await pool.query('SELECT * FROM clan_missions WHERE clan_id=$1 AND day=$2 ORDER BY created_at',[clanId,String(d)]);
+    return r.rows.map(m=>rowToClanMission(m));
+  }
+  return (fileDb.clanMissions||[]).filter(m=>m.clanId===clanId&&String(m.day)===String(d)).map(m=>normClanMission(m));
+}
+function normClanMission(m){
+  const cat=CLAN_MISSIONS.find(x=>x.key===(m.mission_key||m.key))||{};
+  const target=m.target||cat.target||1;
+  const prog=Math.min(target,Math.max(0,m.progress||0));
+  const claimed=m.claimedBy||m.claimed_by||'';
+  return { id:m.id, clanId:m.clan_id||m.clanId, key:m.mission_key||m.key, label:cat.label||(m.mission_key||m.key),
+           target, progress:prog, points:m.points||0, coins:m.coins||0, event:cat.event||'',
+           completed:!!m.completed, ready:prog>=target, claimedBy:claimed, claimedAt:m.claimedAt||m.claimed_at||null,
+           pct:Math.min(100,Math.round(prog/target*100)) };
+}
+function rowToClanMission(m){ return normClanMission(m); }
+// Crea las 3 misiones del día si todavía no existen. Devuelve la lista.
+async function ensureDailyClanMissions(clanId){
+  const d=dayIndex(); const dayStr=String(d);
+  try{
+    let list=await getClanMissions(clanId,dayStr);
+    if(list.length) return list;
+    const set=dailyClanMissionSet(d);
+    const now=new Date().toISOString();
+    for(const m of set){
+      const id=crypto.randomUUID();
+      if(USE_PG){
+        await pool.query('INSERT INTO clan_missions(id,clan_id,mission_key,day,target,progress,points,coins,completed,created_at) VALUES($1,$2,$3,$4,$5,0,$6,$7,false,$8) ON CONFLICT(clan_id,mission_key,day) DO NOTHING',[id,clanId,m.key,dayStr,m.target,m.points,m.coins,now]);
+      } else {
+        fileDb.clanMissions=fileDb.clanMissions||[];
+        if(!fileDb.clanMissions.some(x=>x.clanId===clanId&&x.key===m.key&&String(x.day)===dayStr))
+          fileDb.clanMissions.push({ id, clanId, key:m.key, day:dayStr, target:m.target, progress:0, points:m.points, coins:m.coins, completed:false, claimedBy:'', claimedAt:null, createdAt:now });
+      }
+    }
+    if(!USE_PG) saveDb(fileDb);
+    list=await getClanMissions(clanId,dayStr);
+    return list;
+  }catch(e){ console.error('[ensureDailyClanMissions]',e.message); return []; }
+}
+// Suma progreso a las misiones del día cuyo evento coincide.
+async function bumpClanMissions(clanId,event,amount){
+  if(!clanId||!event) return;
+  try{
+    const amount2=Math.max(0,Number(amount)||0); if(!amount2) return;
+    const list=await ensureDailyClanMissions(clanId);
+    let touched=0;
+    for(const m of list){
+      if(m.event!==event) continue;
+      if(m.completed||m.claimedBy) continue;
+      const before=m.progress;
+      const after=Math.min(m.target,before+amount2);
+      if(after<=before) continue;
+      const done=after>=m.target;
+      if(USE_PG) await pool.query('UPDATE clan_missions SET progress=$1, completed=$2 WHERE id=$3',[after,done,m.id]);
+      else { const row=(fileDb.clanMissions||[]).find(x=>x.id===m.id); if(row){ row.progress=after; row.completed=done; } }
+      touched++;
+      if(done){
+        try{ const mem=await getClanMembers(clanId); for(const x of mem){ await pushNotification(x.userId,'✅ Misión de clan completada',m.label+' — ¡reclamá '+m.points+' pts de clan!','success'); } }catch(e){}
+      }
+    }
+    if(touched && !USE_PG) saveDb(fileDb);
+  }catch(e){ console.error('[bumpClanMissions]',e.message); }
+}
+async function grantClanPoints(clanId,userId,pts){
+  try{
+    const c=await getClanById(clanId); if(!c) return;
+    const before=clanLevelProgress(c.points||0).level;
+    c.points=(c.points||0)+pts;
+    await saveClan(c);
+    await addClanMemberPoints(clanId,userId,pts);
+    const u=await getUserById(userId);
+    if(u){ ensureShopFields(u); u.clanPoints=(u.clanPoints||0)+pts; await updateUser(u); }
+    // Suma los mismos puntos al torneo de clanes ACTIVO (si hay).
+    try{
+      const ct=await getActiveClanTournament();
+      if(ct){
+        if(!ct.results) ct.results={};
+        if(!ct.results[clanId]) ct.results[clanId]={points:0};
+        ct.results[clanId].points=(ct.results[clanId].points||0)+pts;
+        await saveClanTournament(ct);
+      }
+    }catch(e){ console.error('[clanTournamentPoints]',e.message); }
+    const after=clanLevelProgress(c.points||0).level;
+    if(after>before){
+      const mem=await getClanMembers(clanId);
+      for(const m of mem){ try{ await pushNotification(m.userId,'⬆️ Clan '+c.tag+' subió de nivel','¡'+c.name+' ahora es nivel '+after+'!','success'); }catch(e){} }
+    }
+  }catch(e){ console.error('[grantClanPoints]',e.message); }
+}
+
+app.get('/api/clans', async (req,res)=>{ try{ const user=await findUserByToken(req); const q=String(req.query.q||'').trim().toLowerCase(); let list=await getAllClans(); if(q) list=list.filter(c=>String(c.tag||'').toLowerCase().includes(q)||String(c.name||'').toLowerCase().includes(q)); list.sort((a,b)=>(b.points||0)-(a.points||0)); const out=[]; for(const c of list.slice(0,50)){ const mem=await getClanMembers(c.id); out.push({...c,members:mem.length,level:clanLevel(c.points||0),levelPct:clanLevelProgress(c.points||0).pct,rank:clanRankFromPoints(c.points||0),myRole:(user&&user.clanId===c.id)?user.clanRole:''}); } res.set('Cache-Control','no-store'); res.json({clans:out,emblems:CLAN_EMBLEMS,roles:CLAN_ROLES,ranks:CLAN_RANKS,total:list.length}); }catch(e){ console.error('[clans]',e.message); res.status(500).json({error:'clans error'}); } });
+app.get('/api/clans/mine', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.json({clan:null}); const c=await getClanById(user.clanId); if(!c){ user.clanId=''; user.clanRole=''; await updateUser(user); return res.json({clan:null}); } const mem=await getClanMembers(c.id); const chat=await getClanChat(c.id,50); const missions=await ensureDailyClanMissions(c.id); const rk=clanRankFromPoints(c.points||0); res.set('Cache-Control','no-store'); res.json({clan:{...c,members:mem.length,level:clanLevel(c.points||0),levelPct:clanLevelProgress(c.points||0).pct,rank:rk},myRole:user.clanRole,members:mem,chat,missions}); }catch(e){ console.error('[clans/mine]',e.message); res.status(500).json({error:'clan mine error'}); } });
+app.post('/api/clans/create', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(user.clanId) return res.status(400).json({error:'Ya pertenecés a un clan. Salí primero.'}); const {name,tag,emblem,color,description}=req.body||{}; const nm=String(name||'').trim().slice(0,24); const tg=String(tag||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); if(nm.length<3) return res.status(400).json({error:'El nombre del clan necesita 3+ caracteres'}); if(tg.length<2) return res.status(400).json({error:'La etiqueta necesita 2-4 caracteres (A-Z, 0-9)'}); if(await getClanByTag(tg)) return res.status(409).json({error:'La etiqueta '+tg+' ya está en uso'}); const c={id:crypto.randomUUID(),tag:tg,name:nm,emblem:String(emblem||CLAN_EMBLEMS[0]).slice(0,4),color:String(color||'#00e5ff').slice(0,9),description:String(description||'').slice(0,200),points:0,wins:0,losses:0,createdAt:new Date().toISOString(),ownerId:user.id}; await saveClan(c); await setClanMember(c.id,user.id,'leader'); user.clanId=c.id; user.clanRole='leader'; await updateUser(user); try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:user.id,username:user.username,text:'🛡️ '+user.username+' creó el clan '+c.name,createdAt:new Date().toISOString()}); }catch(e){} res.status(201).json({clan:c}); }catch(e){ console.error('[clans/create]',e.message); res.status(500).json({error:'Error al crear el clan'}); } });
+app.post('/api/clans/join', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(user.clanId) return res.status(400).json({error:'Ya pertenecés a un clan'}); const {clanId,tag}=req.body||{}; const c=clanId?await getClanById(clanId):await getClanByTag(tag); if(!c) return res.status(404).json({error:'Clan no encontrado'}); const mem=await getClanMembers(c.id); if(mem.length>=50) return res.status(400).json({error:'El clan está lleno (50/50)'}); await setClanMember(c.id,user.id,'member'); user.clanId=c.id; user.clanRole='member'; await updateUser(user); try{ await bumpClanMissions(c.id,'join',1); }catch(e){} try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:user.id,username:user.username,text:'👋 '+user.username+' se unió al clan',createdAt:new Date().toISOString()}); }catch(e){} res.json({clan:c}); }catch(e){ console.error('[clans/join]',e.message); res.status(500).json({error:'Error al unirse al clan'}); } });
+app.post('/api/clans/leave', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.status(400).json({error:'No pertenecés a ningún clan'}); const c=await getClanById(user.clanId); await removeClanMember(user.id); if(c && user.clanRole==='leader'){ const rest=(await getClanMembers(c.id)); if(rest.length){ const heir=rest.find(m=>m.role==='officer')||rest[0]; heir.role='leader'; await setClanMember(c.id,heir.userId,'leader'); const hu=await getUserById(heir.userId); if(hu){ ensureShopFields(hu); hu.clanRole='leader'; await updateUser(hu); } try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:heir.userId,username:heir.username,text:'👑 '+heir.username+' ahora es líder del clan',createdAt:new Date().toISOString()}); }catch(e){} } else { if(USE_PG){ await pool.query('DELETE FROM clan_chat WHERE clan_id=$1',[c.id]); await pool.query('DELETE FROM clans WHERE id=$1',[c.id]); } else { fileDb.clans=(fileDb.clans||[]).filter(x=>x.id!==c.id); fileDb.clanChat=(fileDb.clanChat||[]).filter(x=>x.clanId!==c.id); saveDb(fileDb); } } } user.clanId=''; user.clanRole=''; user.clanPoints=0; user.clanWins=0; await updateUser(user); res.json({ok:true}); }catch(e){ console.error('[clans/leave]',e.message); res.status(500).json({error:'Error al salir del clan'}); } });
+app.post('/api/clans/role', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId||user.clanRole!=='leader') return res.status(403).json({error:'Solo el líder puede cambiar roles'}); const {userId,role}=req.body||{}; if(!['member','officer'].includes(role)) return res.status(400).json({error:'Rol inválido'}); if(userId===user.id) return res.status(400).json({error:'No podés cambiarte tu propio rol'}); const mem=await getClanMembers(user.clanId); const m=mem.find(x=>x.userId===userId); if(!m) return res.status(404).json({error:'Ese usuario no está en tu clan'}); await setClanMember(user.clanId,userId,role); const tu=await getUserById(userId); if(tu){ ensureShopFields(tu); tu.clanRole=role; await updateUser(tu); } const c=await getClanById(user.clanId); try{ await addClanChat({id:crypto.randomUUID(),clanId:user.clanId,userId:user.id,username:user.username,text:(role==='officer'?'⭐ ':'🛡️ ')+m.username+' ahora es '+CLAN_ROLES[role],createdAt:new Date().toISOString()}); }catch(e){} res.json({ok:true,role}); }catch(e){ console.error('[clans/role]',e.message); res.status(500).json({error:'Error al cambiar el rol'}); } });
+app.post('/api/clans/chat', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.status(400).json({error:'No pertenecés a ningún clan'}); const {text}=req.body||{}; const t=String(text||'').trim(); if(!t) return res.status(400).json({error:'Mensaje vacío'}); if(t.length>300) return res.status(400).json({error:'Máximo 300 caracteres'}); const m={id:crypto.randomUUID(),clanId:user.clanId,userId:user.id,username:user.username,text:t.slice(0,300),createdAt:new Date().toISOString()}; await addClanChat(m); res.json({message:m}); }catch(e){ console.error('[clans/chat]',e.message); res.status(500).json({error:'Error al enviar el mensaje'}); } });
+app.post('/api/clans/kick', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId||user.clanRole!=='leader') return res.status(403).json({error:'Solo el líder puede expulsar'}); const {userId}=req.body||{}; if(userId===user.id) return res.status(400).json({error:'No podés expulsarte a vos mismo'}); const mem=await getClanMembers(user.clanId); const m=mem.find(x=>x.userId===userId); if(!m) return res.status(404).json({error:'Ese usuario no está en tu clan'}); await removeClanMember(userId); const ku=await getUserById(userId); if(ku){ ensureShopFields(ku); ku.clanId=''; ku.clanRole=''; ku.clanPoints=0; await updateUser(ku); } try{ await addClanChat({id:crypto.randomUUID(),clanId:user.clanId,userId:user.id,username:user.username,text:'🚪 '+m.username+' fue expulsado del clan',createdAt:new Date().toISOString()}); }catch(e){} res.json({ok:true}); }catch(e){ console.error('[clans/kick]',e.message); res.status(500).json({error:'Error al expulsar'}); } });
+
+/* ============================================================
+   RANGOS Y MISIONES DE CLAN
+   ============================================================ */
+app.get('/api/clans/ranks',(req,res)=>{ res.json({ranks:CLAN_RANKS}); });
+// Clasificación global: evita el N+1 trayendo los conteos en una sola query.
+app.get('/api/clans/ranking', async (req,res)=>{ try{
+  const user=await findUserByToken(req); if(user) ensureShopFields(user);
+  const sort=String(req.query.sort||'points');
+  const t=await getActiveClanTournament();
+  let list=await getAllClans();
+  // Conteo de miembros en una sola pasada.
+  let counts=new Map();
+  if(USE_PG){
+    const r=await pool.query('SELECT clan_id, COUNT(*)::int AS c FROM clan_members GROUP BY clan_id');
+    r.rows.forEach(x=>counts.set(x.clan_id,x.c));
+  } else {
+    (fileDb.clanMembers||[]).forEach(m=>counts.set(m.clanId,(counts.get(m.clanId)||0)+1));
+  }
+  const board=list.map(c=>{
+    const tourPts=(t&&t.results&&t.results[c.id])?(t.results[c.id].points||0):0;
+    return { id:c.id, tag:c.tag, name:c.name, emblem:c.emblem, color:c.color,
+             points:c.points||0, wins:c.wins||0, losses:c.losses||0,
+             tournamentPoints:tourPts, members:counts.get(c.id)||0,
+             level:clanLevel(c.points||0), rank:clanRankFromPoints(c.points||0),
+             myClan:!!(user&&user.clanId===c.id), myRole:(user&&user.clanId===c.id)?(user.clanRole||''):'' };
+  });
+  const by=(k)=>(a,b)=>{
+    if(sort==='members') return (b.members-a.members)||(b.points-a.points);
+    if(sort==='wins') return (b.wins-a.wins)||(b.points-a.points);
+    if(sort==='tour') return (b.tournamentPoints-a.tournamentPoints)||(b.points-a.points);
+    return (b.points-a.points)||(b.members-a.members);
+  };
+  board.sort(by);
+  board.forEach((c,i)=>{ c.position=i+1; });
+  const myPos=board.findIndex(c=>c.myClan);
+  res.set('Cache-Control','no-store');
+  res.json({board,total:board.length,sort,tournamentActive:!!(t&&t.status==='active'),
+            myPosition:(myPos>=0)?myPos+1:null,myClan:(myPos>=0)?board[myPos]:null,
+            labels:{points:'Puntos',tour:'Puntos de torneo',members:'Miembros',wins:'Victorias'}});
+}catch(e){ console.error('[clans/ranking]',e.message); res.status(500).json({error:'ranking error'}); } });
+app.get('/api/clans/missions', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.json({missions:[],day:dayIndex(),rank:null}); const list=await ensureDailyClanMissions(user.clanId); const c=await getClanById(user.clanId); res.set('Cache-Control','no-store'); res.json({missions:list,day:dayIndex(),rank:c?clanRankFromPoints(c.points||0):null}); }catch(e){ console.error('[clans/missions]',e.message); res.status(500).json({error:'missions error'}); } });
+app.post('/api/clans/missions/claim', async (req,res)=>{ try{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  ensureShopFields(user);
+  if(!user.clanId) return res.status(400).json({error:'No pertenecés a ningún clan'});
+  const {missionId}=req.body||{};
+  const list=await ensureDailyClanMissions(user.clanId);
+  const m=list.find(x=>x.id===missionId);
+  if(!m) return res.status(404).json({error:'Misión no encontrada'});
+  if(m.claimedBy) return res.status(400).json({error:'Esta misión ya fue reclamada'});
+  if(!m.ready) return res.status(400).json({error:'La misión todavía no está completa'});
+  if(USE_PG) await pool.query('UPDATE clan_missions SET claimed_by=$1, claimed_at=$2, completed=true WHERE id=$3',[user.id,new Date().toISOString(),m.id]);
+  else { const row=(fileDb.clanMissions||[]).find(x=>x.id===m.id); if(row){ row.claimedBy=user.id; row.claimedAt=new Date().toISOString(); row.completed=true; } saveDb(fileDb); }
+  // Recompensa: pts al clan + pts al jugador que reclamó.
+  if(m.coins>0){ user.coins=(user.coins||0)+m.coins; }
+  await updateUser(user);
+  let clanPts=0;
+  if(m.points>0){
+    const c=await getClanById(user.clanId);
+    if(c){ const before=clanRankFromPoints(c.points||0); c.points=(c.points||0)+m.points; await saveClan(c);
+      const after=clanRankFromPoints(c.points||0); clanPts=m.points;
+      await addClanMemberPoints(user.clanId,user.id,m.points);
+      user.clanPoints=(user.clanPoints||0)+m.points; await updateUser(user);
+      try{ const ct=await getActiveClanTournament(); if(ct){ if(!ct.results) ct.results={}; if(!ct.results[c.id]) ct.results[c.id]={points:0}; ct.results[c.id].points=(ct.results[c.id].points||0)+m.points; await saveClanTournament(ct); } }catch(e){}
+      if(after.name!==before.name){ const mem=await getClanMembers(user.clanId); for(const x of mem){ try{ await pushNotification(x.userId,'⬆️ ¡El clan subió de rango!','Ahora son '+after.name,'success'); }catch(e){} } }
+    }
+  }
+  try{ await pushNotification(user.id,'🎁 Misión reclamada',m.label+' → +'+m.points+' pts de clan'+(m.coins?(' · +'+m.coins+' pts'):''),'success'); }catch(e){}
+  try{ await addClanChat({id:crypto.randomUUID(),clanId:user.clanId,userId:user.id,username:user.username,text:'✅ '+user.username+' reclamó: '+m.label,createdAt:new Date().toISOString()}); }catch(e){}
+  const fresh=await ensureDailyClanMissions(user.clanId);
+  res.json({ok:true,coins:user.coins,clanPoints,missions:fresh});
+}catch(e){ console.error('[clans/missions/claim]',e.message); res.status(500).json({error:'Error al reclamar la misión'}); } });
+
+
+/* ============================================================
+   TORNEOS DE CLANES
+   ============================================================ */
+const CLAN_TOURNAMENT_DAYS=7;
+async function getClanTournaments(){ if(USE_PG){ const r=await pool.query('SELECT * FROM clan_tournaments'); return r.rows.map(t=>({id:t.id,status:t.status,startDate:t.start_date,endDate:t.end_date,results:JSON.parse(t.results||'{}')})); } return fileDb.clanTournaments||[]; }
+async function saveClanTournament(t){ if(USE_PG) await pool.query('INSERT INTO clan_tournaments(id,status,start_date,end_date,results) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO UPDATE SET status=EXCLUDED.status, results=EXCLUDED.results',[t.id,t.status,t.startDate,t.endDate,JSON.stringify(t.results||{})]); else { fileDb.clanTournaments=fileDb.clanTournaments||[]; const i=fileDb.clanTournaments.findIndex(x=>x.id===t.id); if(i>=0) fileDb.clanTournaments[i]=t; else fileDb.clanTournaments.push(t); saveDb(fileDb); } }
+async function getActiveClanTournament(){ const ts=await getClanTournaments(); return ts.find(t=>t.status==='active')||null; }
+async function getPendingClanTournament(){ const ts=await getClanTournaments(); return ts.find(t=>t.status==='pending')||null; }
+async function endClanTournament(t){
+  try{
+    const clans=await getAllClans();
+    const ranked=clans.filter(c=>t.results[c.id]).sort((a,b)=>(t.results[b.id].points||0)-(t.results[a.id].points||0)||(b.points||0)-(a.points||0));
+    ranked.forEach((c,i)=>{ t.results[c.id]={...t.results[c.id],position:i+1}; });
+    for(let i=0;i<ranked.length;i++){
+      const c=ranked[i]; const pos=i+1;
+      c.wins=(c.wins||0)+(pos<=3?1:0); c.losses=(c.losses||0)+(pos>3?1:0);
+      await saveClan(c);
+      const mem=await getClanMembers(c.id);
+      const rewards={1:20000,2:12000,3:8000};
+      for(const m of mem){
+        const u=await getUserById(m.userId); if(!u) continue;
+        ensureShopFields(u);
+        const pts=(pos<=3)?Math.round((rewards[pos]||5000)/Math.max(1,mem.length)):Math.round(2000/Math.max(1,mem.length));
+        u.coins=(u.coins||0)+pts; u.clanWins=(u.clanWins||0)+(pos===1?1:0);
+        if(pos===1 && !u.titles.includes('titulo_warrior')){ u.titles.push('titulo_warrior'); u.equippedTitle='titulo_warrior'; }
+        await updateUser(u);
+        try{ await pushNotification(u.id,'🏆 Torneo de Clanes: '+(pos===1?'¡CAMPEÓN!':pos<=3?'🥈 Podio':'Finalizado'),'Tu clan ('+c.tag+') quedó '+pos+'° · +'+pts+' pts'+(pos===1?' · Desbloqueaste ⚔️ GUERRERO DEL CLAN':''),'success'); }catch(e){}
+      }
+    }
+    t.status='finished'; await saveClanTournament(t);
+  }catch(e){ console.error('[endClanTournament]',e.message); }
+}
+app.get('/api/clans/tournament', async (req,res)=>{ try{ const user=await findUserByToken(req); if(user) ensureShopFields(user); let t=await getActiveClanTournament();
+    let endedNow=false;
+    if(t && new Date(t.endDate)<=new Date()){ const finishedId=t.id; await endClanTournament(t); endedNow=true; t=(await getClanTournaments()).find(x=>x.id===finishedId)||null; }
+    let pending=await getPendingClanTournament();
+    if(!t && !pending){ const d=new Date(); const end=new Date(d.getTime()+CLAN_TOURNAMENT_DAYS*86400000); pending={id:crypto.randomUUID(),startDate:d.toISOString(),endDate:end.toISOString(),status:'pending',results:{}}; await saveClanTournament(pending); }
+    const clans=await getAllClans();
+    const board=[];
+    for(const c of clans){ const mem=await getClanMembers(c.id); board.push({id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,points:c.points||0,wins:c.wins||0,losses:c.losses||0,members:mem.length,tournamentPoints:(t&&t.results[c.id])?(t.results[c.id].points||0):0,level:clanLevel(c.points||0),myClan:!!(user&&user.clanId===c.id)}); }
+    board.sort((a,b)=>b.tournamentPoints-a.tournamentPoints||b.points-a.points);
+    res.set('Cache-Control','no-store');
+    res.json({tournament:t?{id:t.id,status:t.status,startDate:t.startDate,endDate:t.endDate,results:t.results}:null,endedNow,pending:pending&&!t?{id:pending.id,startDate:pending.startDate,endDate:pending.endDate}:null,board,clanCount:clans.length,minClans:2,durationDays:CLAN_TOURNAMENT_DAYS});
+  }catch(e){ console.error('[clans/tournament]',e.message); res.status(500).json({error:'clan tournament error'}); } });
+app.post('/api/clans/tournament/start', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); if(!user.clanId||user.clanRole!=='leader') return res.status(403).json({error:'Solo un líder de clan puede iniciar el torneo'}); if(await getActiveClanTournament()) return res.status(400).json({error:'Ya hay un torneo de clanes activo'}); const clans=await getAllClans(); if(clans.length<2) return res.status(400).json({error:'Se necesitan 2 clanes para empezar'}); const pending=await getPendingClanTournament(); const start=new Date(); const end=new Date(start.getTime()+CLAN_TOURNAMENT_DAYS*86400000); const t={id:(pending&&pending.id)||crypto.randomUUID(),startDate:start.toISOString(),endDate:end.toISOString(),status:'active',results:{}}; for(const c of clans) t.results[c.id]={points:0}; await saveClanTournament(t); const all=await getAllClans(); for(const c of all){ const mem=await getClanMembers(c.id); for(const m of mem){ try{ await pushNotification(m.userId,'🏆 ¡Empezó el Torneo de Clanes!',' dura '+CLAN_TOURNAMENT_DAYS+' días. Juega Ranked para sumar puntos.','info'); }catch(e){} } } res.json({tournament:{id:t.id,status:t.status,startDate:t.startDate,endDate:t.endDate}}); }catch(e){ console.error('[clans/tournament/start]',e.message); res.status(500).json({error:'Error al iniciar el torneo'}); } });
+app.post('/api/clans/tournament/check', async (req,res)=>{ try{ const t=await getActiveClanTournament(); if(t && new Date(t.endDate)<=new Date()){ await endClanTournament(t); return res.json({ended:true}); } res.json({active:!!t}); }catch(e){ res.json({active:false}); } });
 
 app.get('/api/levels', async (req,res)=>{ const user=await findUserByToken(req); const ls=levelStats(user); const solved=user?((user.progress||[]).filter(p=>p.solved).map(p=>p.level)):[]; res.json({total:LEVELS.length,solved,reached:ls.reached,completed:ls.solved,levels:LEVELS}); });
 app.get('/api/chat', async (req,res)=>{ const msgs=await getChat(30); res.set('Cache-Control','no-store'); res.json({messages:msgs}); });
@@ -549,7 +989,7 @@ function computeEndDate(){ const d=new Date(); d.setDate(d.getDate()+TOURNAMENT_
 async function getActiveTournament(){ const tours=await getTournaments(); return tours.find(t=>t.status==='active')||null; }
 async function getPendingTournament(){ const tours=await getTournaments(); return tours.find(t=>t.status==='pending')||null; }
 async function startTournament(){ const now=new Date(); const endDate=computeEndDate(); const tournament={id:crypto.randomUUID(),startDate:now.toISOString(),endDate:endDate.toISOString(),status:'active',results:{}}; await createTournament(tournament); return tournament; }
-async function endTournament(tournament){ const users=await getAllUsers(); const board=users.map(u=>({id:u.id,username:u.username,solved:u.progress.filter(p=>p.solved).length,attempts:u.progress.reduce((a,p)=>a+p.attempts,0),exp:u.exp||0})).sort((a,b)=>b.solved-a.solved||b.exp-a.exp||a.attempts-b.attempts); board.forEach((entry,i)=>{ tournament.results[entry.id]={position:i+1}; }); for(const entry of board){ const pos=tournament.results[entry.id].position; const user=await getUserById(entry.id); if(!user) continue; ensureShopFields(user); let rewardText=''; if(pos===1){ if(user.frames && !user.frames.includes('campeon')) user.frames.push('campeon'); if(user.skins && !user.skins.includes('tournament_silver')) user.skins.push('tournament_silver'); user.exp=(user.exp||0)+5000; user.coins=(user.coins||0)+30000; user.tournamentStreak=(user.tournamentStreak||0)+1; user.tournamentWins=(user.tournamentWins||0)+1; rewardText='🏆 ¡Campeón! Marco Campeón + Nave Silver + 5000 EXP + 30000 pts'; } else { user.tournamentStreak=0; if(pos===2){ if(user.skins && !user.skins.includes('tournament_silver')) user.skins.push('tournament_silver'); user.exp=(user.exp||0)+3000; user.coins=(user.coins||0)+10000; rewardText='🥈 ¡Subcampeón! Nave Silver + 3000 EXP + 10000 pts'; } else if(pos===3){ user.exp=(user.exp||0)+2000; user.coins=(user.coins||0)+5000; rewardText='🥉 ¡Tercer puesto! 2000 EXP + 5000 pts'; } else { user.coins=(user.coins||0)+5000; rewardText=`🎯 Puesto #${pos}. + 5000 pts`; } } await checkAchievements(user); await updateUser(user); await pushNotification(user.id,'🏆 Torneo RANKED finalizado',`Quedaste en puesto #${pos}. ${rewardText}`,'success'); } tournament.status='finished'; await updateTournament(tournament); }
+async function endTournament(tournament){ const users=await getAllUsers(); const board=users.map(u=>({id:u.id,username:u.username,solved:u.progress.filter(p=>p.solved).length,attempts:u.progress.reduce((a,p)=>a+p.attempts,0),exp:u.exp||0})).sort((a,b)=>b.solved-a.solved||b.exp-a.exp||a.attempts-b.attempts); board.forEach((entry,i)=>{ tournament.results[entry.id]={position:i+1}; }); for(const entry of board){ const pos=tournament.results[entry.id].position; const user=await getUserById(entry.id); if(!user) continue; ensureShopFields(user); let rewardText=''; if(pos===1){ if(user.frames && !user.frames.includes('campeon')) user.frames.push('campeon'); if(user.skins && !user.skins.includes('tournament_silver')) user.skins.push('tournament_silver'); user.exp=(user.exp||0)+5000; user.coins=(user.coins||0)+30000; user.tournamentStreak=(user.tournamentStreak||0)+1; user.tournamentWins=(user.tournamentWins||0)+1; if(!user.titles.includes('titulo_campeon')) user.titles.push('titulo_campeon'); rewardText='🏆 ¡Campeón! Marco Campeón + Nave Silver + Título CAMPEÓN + 5000 EXP + 30000 pts'; } else { user.tournamentStreak=0; if(pos===2){ if(user.skins && !user.skins.includes('tournament_silver')) user.skins.push('tournament_silver'); user.exp=(user.exp||0)+3000; user.coins=(user.coins||0)+10000; rewardText='🥈 ¡Subcampeón! Nave Silver + 3000 EXP + 10000 pts'; } else if(pos===3){ user.exp=(user.exp||0)+2000; user.coins=(user.coins||0)+5000; rewardText='🥉 ¡Tercer puesto! 2000 EXP + 5000 pts'; } else { user.coins=(user.coins||0)+5000; rewardText=`🎯 Puesto #${pos}. + 5000 pts`; } } await checkAchievements(user); await updateUser(user); await pushNotification(user.id,'🏆 Torneo RANKED finalizado',`Quedaste en puesto #${pos}. ${rewardText}`,'success'); } tournament.status='finished'; await updateTournament(tournament); }
 app.get('/api/tournament', async (req,res)=>{ let tournament=await getActiveTournament(); if(!tournament) tournament=await getPendingTournament(); const users=await getAllUsers(); const playerCount=users.length; res.json({tournament: tournament?{id:tournament.id,status:tournament.status,startDate:tournament.startDate,endDate:tournament.endDate,results:tournament.results}:null, playerCount, minPlayers:10, canStart: playerCount>=10}); });
 app.post('/api/tournament/start', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); if(await getActiveTournament()) return res.status(400).json({error:'Ya hay un torneo activo'}); const users=await getAllUsers(); if(users.length<10) return res.status(400).json({error:`Se necesitan 10 jugadores para empezar`}); const tournament=await startTournament(); res.json({tournament}); });
 app.post('/api/tournament/check', async (req,res)=>{ const active=await getActiveTournament(); if(active){ if(new Date(active.endDate)<=new Date()){ await endTournament(active); return res.json({ended:true, tournament:active}); } return res.json({active:true,endDate:active.endDate}); } res.json({active:false}); });
@@ -635,7 +1075,7 @@ function clampMaxPlayers(n,fb){ n=Math.round(Number(n)); if(!Number.isFinite(n))
 function roomCard(r){
   const lobbySize=r.lobby?r.lobby.size:0;
   const st=r.match?(r.match.status||'lobby'):'lobby';
-  return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, maxPlayers:clampMaxPlayers(r.maxPlayers,4), status:st, createdAt:r.createdAt };
+  return { id:r.id, name:r.name, isPublic:!!r.isPublic, mode:r.mode||'normal', ownerId:r.ownerId, ownerName:r.ownerName||'', players:lobbySize, maxPlayers:clampMaxPlayers(r.maxPlayers,4), status:st, createdAt:r.createdAt, isRanked:!!r.isRanked, teamSize:r.teamSize||0 };
 }
 
 // ── Arena compartida multijugador ────────────────────────────────────────
@@ -749,6 +1189,8 @@ function tickRoom(r){
             ? pls.filter(p=>p.kills===win.kills&&p.misses===win.misses) : [win];
           const winIds=tied.map(p=>p.userId);
           const topKills=win.kills||0;
+          const isRankedMatch=!!m.isRanked;
+          // En ranked sólo el equipo ganador suma RP; el resto no pierde.
           for(const p of pls){
            const u=await getUserById(p.userId); if(!u) continue; ensureShopFields(u);
            const isWin=winIds.indexOf(p.userId)>=0;
@@ -760,8 +1202,26 @@ function tickRoom(r){
            u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
            await updateUser(u);
            p.expWon=expGain; p.coinsWon=coinGain;
+           let rpLine='';
+           if(isRankedMatch){
+            // +30 RP por victoria (1v1) / +20 (2v2), +1 por racha máxima.
+            const rpGain=Math.round((isWin?((m.teamSize===4)?20:30):0)+Math.min(10,Math.floor((p.best||0)/2)));
+            p.rpWon=rpGain;
+            if(rpGain!==0){ try{ await grantRankPoints(u.id,rpGain,'ranked'); }catch(e){} }
+            rpLine=' · +'+rpGain+' RP';
+            // Puntos para el torneo de clanes (sólo si hay torneo activo).
+            if(u.clanId){ try{ const ct=await getActiveClanTournament(); if(ct){ const cp=isWin?((m.teamSize===4)?30:45):Math.max(5,Math.round(p.kills*2)); await grantClanPoints(u.clanId,u.id,cp); rpLine+=' · +'+cp+' pts clan'; } }catch(e){} }
+            // Misiones diarias del clan: partida jugada, victoria, naves, oleada.
+            if(u.clanId){ try{
+              await bumpClanMissions(u.clanId,'ranked',1);
+              if(isWin) await bumpClanMissions(u.clanId,'win',1);
+              if(p.kills) await bumpClanMissions(u.clanId,'kills',p.kills);
+              const wv=Math.max(0,Number(m.wave)||0);
+              if(wv>0) await bumpClanMissions(u.clanId,'wave',wv);
+            }catch(e){} }
+           }
            const head=isWin?((tied.length>1?'🏆 ¡Empate en el primer lugar!':'🏆 ¡Ganaste el Multiplayer!')):'🛡️ Multiplayer terminado';
-           try{ await pushNotification(u.id, head, p.kills+' naves destruidas · '+score+' pts · +'+expGain+' EXP +'+coinGain+' pts', isWin?'success':'info'); }catch(e){}
+           try{ await pushNotification(u.id, head, p.kills+' naves destruidas · '+score+' pts · +'+expGain+' EXP +'+coinGain+' pts'+rpLine, isWin?'success':'info'); }catch(e){}
           }
           r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:(tied.length>1?'🤝 ¡Empate! ':'🏆 Ganador: ')+(tied.map(p=>p.username).join(' y '))+' — '+topKills+' naves destruidas',createdAt:new Date().toISOString()});
           m.status='finished'; m.finishedAt=Date.now();
@@ -773,17 +1233,20 @@ function tickRoom(r){
   }
   if(!r.match || r.match.status==='finished'){
     const l=[...r.lobby.values()];
-    if(l.length>=2 && l.every(p=>p.ready)){
+    // Ranked exige el cupo EXACTO (1v1 = 2, 2v2 = 4). Normal basta con 2+.
+    const needPlayers=r.isRanked?(r.teamSize||2):2;
+    const sizeOk=r.isRanked?(l.length===needPlayers):(l.length>=2);
+    if(sizeOk && l.every(p=>p.ready)){
       const now=Date.now();
       const players={};
       l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+ARENA_FIRST_SPAWN_MS,expWon:0,coinsWon:0}; });
-      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[]};
+      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[],isRanked:!!r.isRanked,teamSize:r.teamSize||0};
       // Las naves iniciales salen TODAS juntas y con el mismo spawnAt, para que
       // el cliente las ordene en una grilla de varias filas (la formación del
       // nivel 1) y no en una fila sola pegada al borde.
       l.forEach(p=>{ for(let i=0;i<ARENA_START_SHIPS;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now)); });
       r.match=m;
-      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'⚔️ ¡Partida iniciada en '+r.name+'! Todos contra la oleada. No hay tiempo: sobrevive.',createdAt:new Date().toISOString()});
+      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:r.isRanked?('🏅 ¡Partida RANKED '+((r.teamSize===2)?'1v1':'2v2')+'! Suerte, '+r.name):('⚔️ ¡Partida iniciada en '+r.name+'! Todos contra la oleada. No hay tiempo: sobrevive.'),createdAt:new Date().toISOString()});
     }
   }
   if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
@@ -805,18 +1268,22 @@ app.post('/api/multi/rooms', async (req,res)=>{
   try{
     const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
     ensureShopFields(user);
-    const {name,isPublic,mode,maxPlayers}=req.body||{};
+    const {name,isPublic,mode,maxPlayers,isRanked,teamSize}=req.body||{};
     const nm=String(name||'').trim().slice(0,30);
     if(nm.length<3) return res.status(400).json({error:'El lobby necesita un nombre (3+ letras)'});
     const pub=isPublic!==false;
     const md=(mode==='speedrun')?'speedrun':'normal';
-    const mx=clampMaxPlayers(maxPlayers,4);
+    const rk=!!isRanked;
+    // Ranked 1v1 = 2 jugadores exactos, 2v2 = 4 jugadores exactos.
+    const ts=rk?((Number(teamSize)===2)?2:4):0;
+    const mx=rk?ts:clampMaxPlayers(maxPlayers,4);
+    if(rk && (user.rankPoints==null)) ensureShopFields(user);
     leaveRoomInternal(user.id);
     const id=crypto.randomUUID();
-    const room={ id, name:nm, isPublic:!!pub, code:pub?null:makeRoomCode(), mode:md, maxPlayers:mx, ownerId:user.id, ownerName:user.username, createdAt:new Date().toISOString(), lobby:new Map(), chat:[], match:null };
+    const room={ id, name:nm, isPublic:!!pub, code:pub?null:makeRoomCode(), mode:md, maxPlayers:mx, isRanked:rk, teamSize:ts, ownerId:user.id, ownerName:user.username, createdAt:new Date().toISOString(), lobby:new Map(), chat:[], match:null };
     room.lobby.set(user.id,{userId:user.id,username:user.username,profilePic:user.profilePic||'',frame:user.equippedFrame||'none',skin:user.equipped||'default',laser:user.equippedLaser||'default',impact:user.equippedImpact||'default',nameColor:user.nameColor||'#ffffff',ready:false,lastSeen:Date.now()});
     Rooms.set(id,room); UserRoom.set(user.id,id);
-    room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'🚀 Sala "'+nm+'" creada por '+user.username+(room.isPublic?' (pública)':' (privada)'),createdAt:new Date().toISOString()});
+    room.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:rk?('🏅 Sala RANKED '+(ts===2?'1v1':'2v2')+' creada por '+user.username):('🚀 Sala "'+nm+'" creada por '+user.username+(room.isPublic?' (pública)':' (privada)')),createdAt:new Date().toISOString()});
     tickRoom(room);
     res.json({ok:true,room:{...roomCard(room),code:(room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:true}});
   }catch(e){ res.status(500).json({error:'create room error'}); }
@@ -887,11 +1354,11 @@ app.get('/api/multi/state', async (req,res)=>{
       const order=Object.keys(m.players);
       const players=order.map((pid,idx)=>{
         const p=m.players[pid];
-        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,aliveNow:p.alive!==false};
+        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,rpWon:p.rpWon||0,aliveNow:p.alive!==false};
       });
       if(m.shots) m.shots=m.shots.filter(s=>now-s.at<6000).slice(-20);
       if(m.events) m.events=m.events.filter(e=>now-e.at<6000).slice(-10);
-      match={id:m.id,status:m.status,winnerId:m.winnerId||null,winnerIds:m.winnerIds||[],wave:m.wave||1,totalKills:m.totalKills||0,players,enemies:(m.enemies||[]).map(e=>({id:e.id,ownerId:e.ownerId,lane:order.indexOf(e.ownerId),cat:e.cat,q:e.q,design:e.design||'html',spawnAt:e.spawnAt,fall:e.fall})),events:(m.events||[]).slice(-6),shots:(m.shots||[]).slice(-12),now,travelMs:arenaTravelMs(arenaFall(m.wave||1))};
+      match={id:m.id,status:m.status,winnerId:m.winnerId||null,winnerIds:m.winnerIds||[],wave:m.wave||1,totalKills:m.totalKills||0,isRanked:!!m.isRanked,teamSize:m.teamSize||0,players,enemies:(m.enemies||[]).map(e=>({id:e.id,ownerId:e.ownerId,lane:order.indexOf(e.ownerId),cat:e.cat,q:e.q,design:e.design||'html',spawnAt:e.spawnAt,fall:e.fall})),events:(m.events||[]).slice(-6),shots:(m.shots||[]).slice(-12),now,travelMs:arenaTravelMs(arenaFall(m.wave||1))};
     }
     const info={...roomCard(room),code:(user&&room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:!!(user&&room.ownerId===user.id)};
     res.set('Cache-Control','no-store');

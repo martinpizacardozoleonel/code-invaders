@@ -43,6 +43,7 @@
         <button class="logo-menu-item" id="menuTutorial" role="menuitem"><span class="mi-ico">📖</span><span class="mi-txt">Tutorial</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" id="shopBtn" role="menuitem"><span class="mi-ico">🛒</span><span class="mi-txt">Tienda</span><span class="badge-shop" id="coinVal">0</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" id="menuAchievements" role="menuitem"><span class="mi-ico">🏆</span><span class="mi-txt">Logros</span><span class="mi-arrow">▶</span></button>
+        <button class="logo-menu-item" id="menuClans" role="menuitem"><span class="mi-ico">🛡️</span><span class="mi-txt">Clanes</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" data-view="docs" role="menuitem"><span class="mi-ico">📚</span><span class="mi-txt">Manual de uso</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" data-view="qr" role="menuitem"><span class="mi-ico">📷</span><span class="mi-txt">QR</span><span class="mi-arrow">▶</span></button>
         <button class="logo-menu-item" id="menuSettings" role="menuitem"><span class="mi-ico">⚙️</span><span class="mi-txt">Ajustes</span><span class="mi-arrow">▶</span></button>
@@ -232,6 +233,43 @@
                   <div id="multiRoomsList" class="multi-rooms lobby-rooms"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>ESCANEANDO SECTOR...</p></div></div>
                 </div>
               </div>
+            </div>
+            <!-- ============ RANKED MULTIJUGADOR ============ -->
+            <div class="ranked-mp-bar">
+              <div class="ranked-mp-info">
+                <span class="ranked-mp-badge" id="rankedMyRankBadge">🥉 Bronce III</span>
+                <span class="ranked-mp-rp" id="rankedMyRp">0 RP</span>
+                <div class="ranked-mp-bar-track"><div class="ranked-mp-bar-fill" id="rankedMyBar"></div></div>
+                <span class="ranked-mp-next" id="rankedMyNext">0 / 400 RP</span>
+              </div>
+              <button class="btn btn-gold ranked-mp-btn" id="multiRankedBtn">🏅 JUGAR RANKED</button>
+            </div>
+            <!-- ELEGIR 1v1 / 2v2 -->
+            <div id="multiRankedPick" class="hidden ranked-pick">
+              <div class="ranked-pick-head">
+                <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🏅</span> ELEGÍ EL MODO RANKED</h3>
+                <button class="btn btn-ghost btn-sm" id="multiRankedPickClose">✕ Cancelar</button>
+              </div>
+              <p class="lobby-side-sub">Sólo cuentan los que estén listos. Cuantos másFormato, más RP.</p>
+              <div class="ranked-pick-grid">
+                <button class="ranked-pick-card" data-team="2">
+                  <span class="ranked-pick-icon">⚔️</span>
+                  <b>1v1</b>
+                  <small>2 jugadores · Duelo</small>
+                  <span class="ranked-pick-rp">+30 RP por victoria</span>
+                </button>
+                <button class="ranked-pick-card" data-team="4">
+                  <span class="ranked-pick-icon">🛡️</span>
+                  <b>2v2</b>
+                  <small>4 jugadores · Equipo</small>
+                  <span class="ranked-pick-rp">+20 RP por victoria</span>
+                </button>
+              </div>
+              <label class="lobby-label">NOMBRE DE LA SALA RANKED</label>
+              <input type="text" id="multiRankedName" class="arcade-input lobby-input" placeholder="Ej. DUELO RANKED" maxlength="30" autocomplete="off">
+              <label class="switch-wrap lobby-switch" id="multiRankedPublicSwitch" role="switch" aria-checked="true"><span class="switch-label" id="multiRankedPublicLabel">🌍 Pública</span><span class="switch on" id="multiRankedPublicTrack"><span class="switch-dot"></span></span></label>
+              <button class="btn btn-primary lobby-cta" id="multiRankedCreateBtn"><span>🏅 CREAR SALA RANKED</span><small>PRESS START ▶</small></button>
+              <div id="multiRankedList" class="multi-rooms lobby-rooms" style="margin-top:12px"></div>
             </div>
           </div>
           <!-- LOBBY DE SALA -->
@@ -467,12 +505,14 @@
         <button class="shop-tab" data-tab="lasers">⚡ Láseres</button>
         <button class="shop-tab" data-tab="impacts">💥 Impactos</button>
         <button class="shop-tab" data-tab="labels">🏷️ Etiquetas</button>
+        <button class="shop-tab" data-tab="titles">👑 Títulos</button>
         <button class="shop-tab" data-tab="lucky">🎰 Lucky Coders</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
       <div class="shop-grid hidden" id="laserGrid"></div>
       <div class="shop-grid hidden" id="impactGrid"></div>
       <div class="shop-grid hidden" id="labelGrid"></div>
+      <div class="shop-grid hidden" id="titleGrid"></div>
       <div id="luckyLayout" class="lucky-layout hidden">
         <div id="luckyWheelWrap" class="galaga-panel">
           <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
@@ -507,6 +547,85 @@
       <p class="shop-hint">Desbloquea logros especiales y gana recompensas exclusivas.</p>
       <div class="shop-grid" id="achievementsGrid"></div>
       <button class="btn btn-ghost btn-block" id="achievementsBack" style="margin-top:12px">← Volver atrás</button>
+    </div>
+  </div>
+
+  <!-- ============ CLANES ============ -->
+  <div class="overlay hidden" id="clansOverlay">
+    <div class="card card-lg clans-card">
+      <div class="shop-header">
+        <h2>🛡️ CLANES</h2>
+        <button class="btn-close" id="clansClose">✕</button>
+      </div>
+      <div class="clans-tabs" id="clansTabs">
+        <button class="clans-tab active" data-ctab="mine">🏠 Mi Clan</button>
+        <button class="clans-tab" data-ctab="list">🔎 Lista</button>
+        <button class="clans-tab" data-ctab="rank">🏆 Clasificación</button>
+        <button class="clans-tab" data-ctab="tour">⚔️ Torneo</button>
+      </div>
+
+      <!-- MI CLAN -->
+      <div id="clansPaneMine" class="clans-pane">
+        <div id="clanNoClan" class="hidden">
+          <p class="lead muted">Todavía no pertenecés a ningún clan. 🔎 Buscá uno en la pestaña <b>Lista</b> o creá el tuyo.</p>
+          <div class="clan-create-box">
+            <h3 class="panel-sec-title">➕ CREAR CLAN</h3>
+            <div class="arcade-form-row"><input type="text" id="clanNameInput" class="arcade-input" placeholder="Nombre del clan (3+)" maxlength="24" autocomplete="off"><input type="text" id="clanTagInput" class="arcade-input" placeholder="TAG" maxlength="4" autocomplete="off"></div>
+            <div class="arcade-form-row" style="margin-top:8px">
+              <select id="clanEmblemInput" class="arcade-input"></select>
+              <input type="color" id="clanColorInput" class="arcade-input" value="#00e5ff" title="Color del clan">
+            </div>
+            <textarea id="clanDescInput" class="arcade-input" rows="2" maxlength="200" placeholder="Descripción (opcional)" style="margin-top:8px;width:100%"></textarea>
+            <button class="btn btn-primary btn-block" id="clanCreateBtn" style="margin-top:8px">🛡️ Crear clan</button>
+          </div>
+        </div>
+        <div id="clanHasClan" class="hidden">
+          <div id="clanHeader"></div>
+          <div id="clanMissionsBox"></div>
+          <div class="clan-cols">
+            <div class="clan-col">
+              <h4>👥 MIEMBROS <span class="clan-count" id="clanMembersCount">0</span></h4>
+              <div id="clanMembersList" class="clan-members"></div>
+            </div>
+            <div class="clan-col">
+              <h4>💬 CHAT DEL CLAN</h4>
+              <div id="clanChatBox" class="clan-chat"></div>
+              <div class="arcade-form-row" style="margin-top:6px"><input type="text" id="clanChatInput" class="arcade-input" placeholder="Mensaje al clan..." maxlength="300" autocomplete="off"><button class="btn btn-primary btn-sm" id="clanChatSend">Enviar</button></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-block" id="clanLeaveBtn" style="margin-top:12px">🚪 Salir del clan</button>
+        </div>
+      </div>
+
+      <!-- LISTA DE CLANES -->
+      <div id="clansPaneList" class="clans-pane hidden">
+        <div class="arcade-form-row" style="margin-bottom:10px"><input type="text" id="clanSearchInput" class="arcade-input" placeholder="🔍 Buscar por nombre o TAG..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm" id="clanSearchBtn">Buscar</button></div>
+        <div id="clansList" class="clans-list"></div>
+      </div>
+
+      <!-- CLASIFICACIÓN DE CLANES -->
+      <div id="clansPaneRank" class="clans-pane hidden">
+        <div class="clan-rank-head">
+          <p class="lead muted" style="margin:0">🏆 <b>Clasificación general</b> · ordenada por puntos acumulados del clan</p>
+          <select id="clanRankSort" class="arcade-input" style="width:auto;padding:6px 10px">
+            <option value="points">🏅 Puntos</option>
+            <option value="tour">⚔️ Puntos de torneo</option>
+            <option value="members">👥 Miembros</option>
+            <option value="wins">🏆 Victorias</option>
+          </select>
+        </div>
+        <div id="clanPodium" class="clan-podium"></div>
+        <div id="clanRankTable" class="clan-rank-table"></div>
+        <p class="clan-rank-note" id="clanRankNote"></p>
+      </div>
+
+      <!-- TORNEO DE CLANES -->
+      <div id="clansPaneTour" class="clans-pane hidden">
+        <div id="clanTourBanner"></div>
+        <div id="clanTourBoard" class="clans-list"></div>
+      </div>
+
+      <button class="btn btn-ghost btn-block" id="clansBack" style="margin-top:12px">← Volver atrás</button>
     </div>
   </div>
 
@@ -563,6 +682,9 @@
               <p class="profile-level" id="profileLevel">Nivel 1 · 0 EXP</p>
               <p class="profile-hours" id="profileHours">⏱ 0 horas jugadas</p>
               <p class="profile-coins" id="profileCoins">🪙 0 puntos</p>
+              <div id="profileRankBox" class="hidden profile-rank-box"></div>
+              <div id="profileClanBox" class="hidden profile-clan-box"></div>
+              <p class="profile-title" id="profileTitle"></p>
             </div>
           </div>
           <div class="setting-item">
@@ -666,6 +788,7 @@
   <script src="js/friends.js?v=9"></script>
     <script src="js/multi.js?v=14"></script>
   <script src="js/report.js?v=1"></script>
+  <script src="js/clans.js?v=1"></script>
   <script src="js/app.js?v=10"></script>
   <script>
   const LuckyRoyale={

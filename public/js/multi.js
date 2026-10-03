@@ -560,6 +560,88 @@ const MultiUI={
   const si=document.getElementById('multiRoomSearch'); if(si) si.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.loadRooms(true); }});
   const rsw=document.getElementById('multiRoomPublicSwitch'); if(rsw) rsw.addEventListener('click',()=>this.toggleRoomPublic());
   const ccb=document.getElementById('multiCopyCodeBtn'); if(ccb) ccb.addEventListener('click',()=>this.copyCode());
+  // ---- RANKED ----
+  const rk=document.getElementById('multiRankedBtn'); if(rk) rk.addEventListener('click',()=>this.toggleRankedPick());
+  const rkc=document.getElementById('multiRankedPickClose'); if(rkc) rkc.addEventListener('click',()=>this.toggleRankedPick(false));
+  document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>this.createRankedRoom(b.dataset.team)));
+  const rkc2=document.getElementById('multiRankedCreateBtn'); if(rkc2) rkc2.addEventListener('click',()=>this.createRankedRoom(this._rkTeam||2));
+  const rkps=document.getElementById('multiRankedPublicSwitch'); if(rkps) rkps.addEventListener('click',()=>this.toggleRankedPublic());
+  const rkn=document.getElementById('multiRankedName'); if(rkn) rkn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); this.createRankedRoom(this._rkTeam||2); }});
+ },
+ /* ================= RANKED ================= */
+ rankedTeamLabel(ts){ return ts===4?'2v2':(ts===2?'1v1':''); },
+ toggleRankedPick(force){
+  const p=document.getElementById('multiRankedPick'); if(!p) return;
+  const show=(force===undefined)?p.classList.contains('hidden'):!!force;
+  p.classList.toggle('hidden',!show);
+  if(show) this.loadRankedRooms();
+ },
+ toggleRankedPublic(){
+  this._rkPublic=!(this._rkPublic!==false);
+  const on=this._rkPublic;
+  const tr=document.getElementById('multiRankedPublicTrack'), lb=document.getElementById('multiRankedPublicLabel'), sw=document.getElementById('multiRankedPublicSwitch');
+  if(tr) tr.classList.toggle('on',on);
+  if(lb) lb.textContent=on?'🌍 Pública':'🔒 Privada';
+  if(sw) sw.setAttribute('aria-checked',on?'true':'false');
+ },
+ async loadMyRank(){
+  try{
+   const d=await API.getRank();
+   const r=d.rank||{};
+   const b=document.getElementById('rankedMyRankBadge'), rp=document.getElementById('rankedMyRp'), bar=document.getElementById('rankedMyBar'), nx=document.getElementById('rankedMyNext');
+   if(b){ b.textContent=(r.icon||'')+' '+(r.name||'Bronce III'); b.style.borderColor=r.color||''; b.style.color=r.color||''; }
+   if(rp) rp.textContent=(d.rp||0)+' RP'+(d.position?' · #'+d.position:'');
+   if(bar) bar.style.width=(r.pct||0)+'%';
+   if(nx) nx.textContent=r.next?((r.into||0)+' / '+(r.span||0)+' RP → '+r.next.name):('MÁXIMO');
+  }catch(e){}
+ },
+ async loadRankedRooms(){
+  this.loadMyRank();
+  const el=document.getElementById('multiRankedList'); if(!el) return;
+  try{
+   const d=await API.multiRooms('');
+   const list=(d.rooms||[]).filter(r=>r.isRanked);
+   if(!list.length){ el.innerHTML='<p class="lobby-info dim" style="text-align:center">No hay salas ranked activas. ¡Creá la tuya! 👆</p>'; return; }
+   el.innerHTML=list.map(r=>{
+    const full=r.players>=r.maxPlayers;
+    const lbl=this.rankedTeamLabel(r.teamSize);
+    let act;
+    if(full) act='<button class="btn btn-ghost btn-sm" disabled>🚫 LLENA</button>';
+    else if(r.status==='playing') act='<button class="btn btn-ghost btn-sm" disabled>⚔️ EN BATALLA</button>';
+    else act='<button class="btn btn-primary btn-sm" data-rkjoin="'+r.id+'">▶ UNIRSE ('+r.players+'/'+r.maxPlayers+')</button>';
+    return '<div class="lobby-room-card">'+
+      '<div class="lrc-main"><b>'+this.esc(r.name)+'</b>'+
+      '<small>'+(lbl?('🏅 '+lbl):'')+' · 👥 '+r.players+'/'+r.maxPlayers+' · 👤 '+this.esc(r.ownerName||'?')+'</small></div>'+
+      act+'</div>';
+   }).join('');
+   el.querySelectorAll('[data-rkjoin]').forEach(b=>b.addEventListener('click',()=>this.joinRankedRoom(b.dataset.rkjoin)));
+  }catch(e){ el.innerHTML='<p class="lobby-info dim" style="text-align:center">Error al cargar salas ranked.</p>'; }
+ },
+ async createRankedRoom(team){
+  team=(Number(team)===4)?4:2;
+  this._rkTeam=team;
+  // Default sensato: el nombre sigue al formato elegido.
+  const inp=document.getElementById('multiRankedName');
+  if(inp&&!inp.value.trim()) inp.value='RANKED '+(team===4?'2v2':'1v1');
+  const nm=(inp&&inp.value.trim())||('RANKED '+(team===4?'2v2':'1v1'));
+  const btn=document.getElementById('multiRankedCreateBtn'); if(btn) btn.disabled=true;
+  try{
+   await API.multiCreateRoom(nm,this._rkPublic!==false,'normal',team,true,team);
+   this.toggleRankedPick(false);
+   await this.poll(true);
+   this.show('lobby');
+   Toast.success('🏅 Sala RANKED '+(team===4?'2v2':'1v1')+' creada');
+  }catch(e){ Toast.error(e.message||'Error'); }
+  finally{ if(btn) btn.disabled=false; }
+ },
+ async joinRankedRoom(id){
+  try{
+   const r=await API.multiJoinRoom(id,'');
+   this.currentRoom=r.room; this.ready=false;
+   if(r.room.mode) this.setMode(r.room.mode);
+   this.toggleRankedPick(false);
+   this.show('lobby'); await this.poll(true);
+  }catch(e){ Toast.error(e.message||'Error'); }
  },
   toggleCreatePublic(){
    this.createIsPublic=!this.createIsPublic;
@@ -687,7 +769,8 @@ const MultiUI={
  renderRoomHeader(){
   const r=this.currentRoom; if(!r) return;
   const t=document.getElementById('multiRoomTitle');
-  if(t) t.innerHTML='🚀 '+this.esc(r.name||'LOBBY')+' · '+(r.isPublic?'🌍 Pública':'🔒 Privada')+' · '+((r.mode==='speedrun')?'⚡ SPEEDRUN':'▶ JUGAR')+' · 👥 '+(r.players!=null?r.players:'?')+'/'+(r.maxPlayers||4)+' · 👑 '+this.esc(r.ownerName||'');
+  const rkTag=r.isRanked?(' · 🏅 RANKED '+((r.teamSize===4)?'2v2':'1v1')):'';
+  if(t) t.innerHTML='🚀 '+this.esc(r.name||'LOBBY')+' · '+(r.isPublic?'🌍 Pública':'🔒 Privada')+' · '+((r.mode==='speedrun')?'⚡ SPEEDRUN':'▶ JUGAR')+rkTag+' · 👥 '+(r.players!=null?r.players:'?')+'/'+(r.maxPlayers||4)+' · 👑 '+this.esc(r.ownerName||'');
   const bar=document.getElementById('multiOwnerBar');
   if(bar) bar.classList.toggle('hidden',!r.isOwner);
   const sw=document.getElementById('multiRoomPublicSwitch'), tr=document.getElementById('multiRoomPublicTrack'), lb=document.getElementById('multiRoomPublicLabel');
@@ -914,7 +997,7 @@ const MultiUI={
      if(table) table.innerHTML=head+'<div class="multi-table">'+arr.map((p,i)=>{
        const medal=isWinner(p)?'🥇':(i===0?'🥈':(i===1?'🥉':(i+1)+'°'));
        const pic=this.picHtml(p);
-       return '<div class="multi-row'+(isWinner(p)?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🌊 oleada '+(match.wave||1)+'</span><span class="mini-badge">💥 '+p.kills+' destruidas</span><span class="mini-badge">⭐ '+(p.score||((p.kills||0)*100+(p.best||0)*25))+' pts</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span></div>';
+       return '<div class="multi-row'+(isWinner(p)?' winner':'')+'"><span class="multi-pos">'+medal+'</span><div class="multi-avatar small frame-'+(p.frame||'none')+'" data-pic="'+p.userId+'">'+pic+'</div><span class="multi-name">'+this.esc(p.username)+'</span><span class="mini-badge">🌊 oleada '+(match.wave||1)+'</span><span class="mini-badge">💥 '+p.kills+' destruidas</span><span class="mini-badge">⭐ '+(p.score||((p.kills||0)*100+(p.best||0)*25))+' pts</span><span class="mini-badge">🔥 racha '+p.best+'</span><span class="mini-badge">❌ '+p.misses+'</span><span class="mini-badge">+'+(p.expWon||0)+' EXP · +'+(p.coinsWon||0)+' pts</span>'+(match.isRanked?('<span class="mini-badge rank-badge-sm">🏅 +'+(p.rpWon||0)+' RP</span>'):'')+'</div>';
      }).join('')+'</div>'+'<p class="hint" style="text-align:center;margin-top:12px">Cuando quieras otra partida: <b>🔄 Volver al lobby</b> y presioná <b>¡LISTO!</b> otra vez.</p>';
      this.ready=false;
      const rb=document.getElementById('multiReadyBtn'); if(rb) rb.textContent='✅ ¡LISTO!';

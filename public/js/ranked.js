@@ -1,5 +1,5 @@
 const Ranked={
- clockInterval:null, checkInterval:null, activeTab:'normal', boards:{normal:[],speedrun:[]}, tournamentData:null,
+ clockInterval:null, cdInterval:null, activeTab:'normal', boards:{normal:[],speedrun:[]}, tournamentData:null,
  init(){ this.bindUI(); },
  bindUI(){
   const oc=document.getElementById('inspectCloseBtn'); const ov=document.getElementById('inspectOverlay');
@@ -70,20 +70,10 @@ const Ranked={
  },
  startClock(end){ this.stopClock(); const upd=()=>{ const el=document.getElementById('tournamentClock'); if(!el){ this.stopClock(); return; } const n=new Date(); el.textContent=`🕐 ${n.toLocaleTimeString('es-AR')} — ${n.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}`; }; upd(); this.clockInterval=setInterval(upd,1000); },
  stopClock(){ if(this.clockInterval){ clearInterval(this.clockInterval); this.clockInterval=null; } },
- startCountdown(end){ if(this._cdInterval) clearInterval(this._cdInterval); const upd=()=>{ const diff=end-new Date(); if(diff<=0){ clearInterval(this._cdInterval); return; } const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000); const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=String(v).padStart(2,'0'); }; set('cdDays',d); set('cdHours',h); set('cdMins',m); set('cdSecs',s); }; upd(); this._cdInterval=setInterval(upd,1000); },
+ startCountdown(end){ if(this.cdInterval) clearInterval(this.cdInterval); const upd=()=>{ const diff=end-new Date(); if(diff<=0){ clearInterval(this.cdInterval); return; } const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000); const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=String(v).padStart(2,'0'); }; set('cdDays',d); set('cdHours',h); set('cdMins',m); set('cdSecs',s); }; upd(); this.cdInterval=setInterval(upd,1000); },
   loadingHTML(){
-   return `<div class="inspect-loading"><div class="arcade-invaders"><span>👾</span><span>👾</span><span>👾</span></div><div class="arcade-spinner"></div><p class="arcade-load-title">CARGANDO PERFIL<span class="arcade-dots"><i>.</i><i>.</i><i>.</i></span></p><div class="arcade-bar"><div class="arcade-bar-fill"></div></div><p class="arcade-load-sub">CONECTANDO CON LA GALAXIA…</p></div>`;
+return `<div class="inspect-loading"><div class="arcade-invaders"><span>👾</span><span>👾</span><span>👾</span></div><div class="arcade-spinner"></div><p class="arcade-load-title">CARGANDO PERFIL<span class="arcade-dots"><i>.</i><i>.</i><i>.</i></span></p><div class="arcade-bar"><div class="arcade-bar-fill"></div></div><p class="arcade-load-sub">CONECTANDO CON LA GALAXIA…</p></div>`;
   },
-  async inspectUser(userId){
-   const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML=this.loadingHTML(); ov.classList.remove('hidden');
-  try{
-   const data=await API.getUserProfile(userId);
-   const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:''; const pic=data.profilePic?`<img src="${data.profilePic}" alt="${data.username}" class="inspect-avatar">`:`<span class="inspect-avatar-placeholder">👾</span>`;
-   const expLevel=Math.floor((data.exp||0)/100)+1; const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido'; const speedrunHtml=data.speedrunBest?`<p class="inspect-speedrun">⚡ Speedrun: <strong>${this.formatTime(data.speedrunBest)}</strong></p>`:'<p class="inspect-speedrun muted">⚡ Sin speedrun</p>';
-   const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx); const onlineDot=`<span class="dot ${data.online?'online':'offline'}"></span> ${data.online?'En línea':'Desconectado'}`;
-   ct.innerHTML=`<div class="inspect-head"><div class="inspect-avatar-wrap${frameClass}">${pic}</div><div class="inspect-stats"><p class="inspect-name" style="${nameSt}">${data.username} ${onlineDot}</p><p class="inspect-level">Nivel ${expLevel} · ${data.exp||0} EXP</p><p class="inspect-hours">⏱ ${data.hoursPlayed||0} h</p><p class="inspect-coins">🪙 ${data.coins||0}</p>${speedrunHtml}</div></div><div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">${data.solved}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">${data.attempts}</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">${created}</span></div></div>`;
-   }catch(e){ ct.innerHTML='<div class="inspect-loading"><div style="font-size:2.2rem">🛸</div><p class="arcade-load-title" style="color:#ff5252">ERROR DE SEÑAL</p><p class="arcade-load-sub">No se pudo cargar el perfil. Reintenta.</p></div>'; }
- }
 };
 
 Ranked._bannersCache=null;
@@ -98,6 +88,7 @@ Ranked._bannerById=async function(id){
   }catch(e){ return {id:'none',name:'',grad:'',border:'#333'}; }
 };
 Ranked.inspectUser=async function(userId){
+  const escH=s=>{ const d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; };
   const ov=document.getElementById('inspectOverlay'); const ct=document.getElementById('inspectContent'); if(!ov||!ct) return; ct.innerHTML=(Ranked.loadingHTML?Ranked.loadingHTML():this.loadingHTML()); ov.classList.remove('hidden');
   const card=ov.querySelector('.inspect-card'); if(card){ card.style.background=''; card.style.borderColor=''; }
   try{
@@ -105,14 +96,37 @@ Ranked.inspectUser=async function(userId){
     const b=await this._bannerById(data.equippedBanner);
     const hasBanner=(data.equippedBanner&&data.equippedBanner!=='none')||data.bannerImg;
     const frameClass=data.equippedFrame&&data.equippedFrame!=='none'?' frame-'+data.equippedFrame:'';
-    const pic=data.profilePic?('<img src="'+data.profilePic+'" alt="'+data.username+'" class="inspect-avatar">'):('<span class="inspect-avatar-placeholder">👾</span>');
+    const pic=data.profilePic?('<img src="'+escH(data.profilePic)+'" alt="'+escH(data.username)+'" class="inspect-avatar">'):('<span class="inspect-avatar-placeholder">👾</span>');
     const championClass=data.equippedFrame==='campeon'?' frame-campeon':(data.frames&&data.frames.includes('campeon')?' champion-active':'');
     const expLevel=Math.floor((data.exp||0)/100)+1;
     const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido';
     const speedrunHtml=data.speedrunBest?('<p class="inspect-speedrun">⚡ Speedrun: <strong>'+this.formatTime(data.speedrunBest)+'</strong></p>'):('<p class="inspect-speedrun muted">⚡ Sin speedrun</p>');
     const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx);
     const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span> '+(data.online?'En línea':'Desconectado');
-    const inner='<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+championClass+'">'+pic+'</div><div class="inspect-stats"><p class="inspect-name" style="'+nameSt+'">'+data.username+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div>'+(data.description?'<div class="inspect-desc" style="margin:10px 0;padding:8px 12px;background:var(--bg-alt,#1a1a2e);border-radius:8px;font-style:italic;color:var(--text-dim,#aaa);">📝 '+data.description+'</div>':'')+'<div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
+    // --- TÍTULO (se muestra arriba del nombre, dentro del primer cuadro) ---
+    let titleHtml='';
+    if(data.equippedTitle&&data.equippedTitle!=='none'){
+      let tcss=data.titleCss||'';
+      if(!tcss){ try{ tcss=await API.titleCss(data.equippedTitle); }catch(e){} }
+      const tname=data.titleName||String(data.equippedTitle||'').replace(/_/g,' ');
+      titleHtml='<p class="inspect-player-title"'+(tcss?(' style="'+tcss+'"'):'')+'>'+escH(tname)+'</p>';
+    }
+    // --- RANGO ---
+    let rankHtml='';
+    const rk=data.rank;
+    if(rk&&rk.name){
+      rankHtml='<p class="inspect-rank"><span class="rank-badge" style="--rc:'+escH(rk.color||'#cd7f32')+'">'+escH((rk.icon||'')+' '+(rk.name||''))+'</span>'
+        +'<span class="inspect-rp">'+escH(String(data.rankPoints||0))+' RP</span></p>';
+    }
+    // --- CLAN ---
+    let clanHtml='';
+    if(data.clan&&data.clan.name){
+      const cr=data.clan.rank||null;
+      clanHtml='<p class="inspect-clan"><span class="inspect-clan-badge" style="--cc:'+escH(data.clan.color||'#00e5ff')+'">'+escH(data.clan.emblem||'🛡️')+' ['+escH(data.clan.tag||'')+'] '+escH(data.clan.name)+'</span>'
+        +(cr&&cr.name?('<span class="clan-rank-badge" style="--cr:'+escH(cr.color||'#8a6b3a')+'">'+escH(cr.icon||'')+' '+escH(cr.name)+'</span>'):'')
+        +'<span class="inspect-clan-lv">Nv '+(Number(data.clan.level)||1)+'</span></p>';
+    }
+    const inner='<div class="inspect-head"><div class="inspect-avatar-wrap'+frameClass+championClass+'">'+pic+'</div><div class="inspect-stats">'+titleHtml+clanHtml+rankHtml+'<p class="inspect-name" style="'+nameSt+'">'+escH(data.username)+' '+onlineDot+'</p><p class="inspect-level">Nivel '+expLevel+' · '+(data.exp||0)+' EXP</p><p class="inspect-hours">⏱ '+(data.hoursPlayed||0)+' h</p><p class="inspect-coins">🪙 '+(data.coins||0)+'</p>'+speedrunHtml+'</div></div>'+(data.description?'<div class="inspect-desc" style="margin:10px 0;padding:8px 12px;background:var(--bg-alt,#1a1a2e);border-radius:8px;font-style:italic;color:var(--text-dim,#aaa);">📝 '+escH(data.description)+'</div>':'')+'<div class="inspect-details"><div class="inspect-detail"><span class="inspect-detail-label">Niveles</span><span class="inspect-detail-val">'+data.solved+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Intentos</span><span class="inspect-detail-val">'+data.attempts+'</span></div><div class="inspect-detail"><span class="inspect-detail-label">Miembro desde</span><span class="inspect-detail-val">'+created+'</span></div></div>';
     if(hasBanner){
       const isVid=data.bannerImg&&data.bannerImg.startsWith('data:video');
       const bgImg=(data.bannerImg&&!isVid)?("background-image:url('"+data.bannerImg+"');"):'';
@@ -126,7 +140,7 @@ Ranked.inspectUser=async function(userId){
      }
      ct.innerHTML+='<div class="inspect-report-row"><button class="btn btn-ghost btn-sm" id="inspectReportBtn">🚩 Denunciar jugador</button></div>';
      const _rb=document.getElementById('inspectReportBtn');
-     if(_rb) _rb.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(userId,data.username); });
+     if(_rb) _rb.addEventListener('click',()=>{ if(typeof Report!=='undefined') Report.open(userId,escH(data.username)); });
    }catch(e){ ct.innerHTML='<div class="inspect-loading"><div style="font-size:2.2rem">🛸</div><p class="arcade-load-title" style="color:#ff5252">ERROR DE SEÑAL</p><p class="arcade-load-sub">No se pudo cargar el perfil. Reintenta.</p></div>'; }
 };
 

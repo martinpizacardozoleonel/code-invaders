@@ -25,6 +25,7 @@
   let ownedLasers=['default'],equippedLaser='default';
   let ownedImpacts=['default'],equippedImpact='default';
   let ownedLabelSkins=['default'],equippedLabelSkin='default';
+  let ownedTitles=['none'],equippedTitle='none';
   let frameCount=0,shootCooldown=0;
   let keys={}; let titleStars=[];
   let particles=[],lasers=[],impacts=[];
@@ -287,6 +288,7 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
         if(Array.isArray(me.lasers)) ownedLasers=me.lasers; if(me.equippedLaser) equippedLaser=me.equippedLaser;
         if(Array.isArray(me.impacts)) ownedImpacts=me.impacts; if(me.equippedImpact) equippedImpact=me.equippedImpact;
         if(Array.isArray(me.labelSkins)) ownedLabelSkins=me.labelSkins; if(me.equippedLabelSkin) equippedLabelSkin=me.equippedLabelSkin;
+        if(Array.isArray(me.titles)) ownedTitles=me.titles; if(me.equippedTitle) equippedTitle=me.equippedTitle;
         if(me.user && me.user.speedrunBest!=null) speedrunBest=me.user.speedrunBest;
         applyLabelSkin();
         score=Math.max(score,coins);
@@ -341,7 +343,7 @@ coins=me.coins; if(me.skins) ownedSkins=me.skins; if(me.equipped) equipped=me.eq
     migrateIfNeeded();
     if(isLogged()){
       coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default';
-      ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default';
+ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default'; ownedTitles=['none']; equippedTitle='none';
       score=0; speedrunBest=null;
       try{
         const uid=Auth.user.id;
@@ -1109,9 +1111,18 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         if(kg&&!kg.classList.contains('hidden')) renderLabelSkins();
       }).catch(()=>{});
     }
+    if(typeof API!=='undefined'&&API.getTitles){
+      API.getTitles().then(d=>{
+        if(d&&Array.isArray(d.titles)&&d.titles.length) window.TitleCatalog=d.titles;
+        if(d&&Array.isArray(d.owned)&&d.owned.length) ownedTitles=d.owned;
+        if(d&&d.equipped) equippedTitle=d.equipped;
+        const tg=document.getElementById('titleGrid');
+        if(tg&&!tg.classList.contains('hidden')) renderTitles();
+      }).catch(()=>{});
+    }
     const close=document.getElementById('shopClose'); const grid=document.getElementById('shopGrid');
     if(!btn||!modal) return;
-    btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); renderImpacts(); renderLabelSkins(); modal.classList.remove('hidden'); });
+    btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); renderImpacts(); renderLabelSkins(); renderTitles(); modal.classList.remove('hidden'); });
     if(close) close.addEventListener('click', ()=>{ modal.classList.add('hidden'); stopAllPreviews(); });
     modal.addEventListener('click', e=>{ if(e.target===modal){ modal.classList.add('hidden'); stopAllPreviews(); } });
     const tabs=document.getElementById('shopTabs');
@@ -1132,6 +1143,8 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
       if(ig){ ig.classList.toggle('hidden',t!=='impacts'); if(t==='impacts') renderImpacts(); }
       const kg=document.getElementById('labelGrid');
       if(kg){ kg.classList.toggle('hidden',t!=='labels'); if(t==='labels') renderLabelSkins(); }
+      const tg=document.getElementById('titleGrid');
+      if(tg){ tg.classList.toggle('hidden',t!=='titles'); if(t==='titles') renderTitles(); }
       if(layout) layout.classList.toggle('hidden',t!=='lucky');
       if(lg) lg.classList.remove('hidden');
       if(lw) lw.classList.remove('hidden');
@@ -1306,8 +1319,39 @@ function stopAllPreviews(){ for(const k in previewBufs) stopPreviews(k); }
       try{ const r=await API.equipLabelSkin(id); equippedLabelSkin=r.equippedLabelSkin; applyLabelSkin(); saveShopLocal(); renderLabelSkins(); Toast.success('Etiqueta equipada'); }
       catch(e){ Toast.error(e.message); }
     }));
-    paintLabelPreviews();
-  }
+paintLabelPreviews();
+   }
+   function renderTitles(){
+    const grid=document.getElementById('titleGrid'); const bal=document.getElementById('shopBalance');
+    if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
+    const lista=(window.TitleCatalog&&window.TitleCatalog.length)?window.TitleCatalog:[];
+    if(!lista.length){ grid.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">Cargando títulos...</p>'; return; }
+    const TIER={common:'#94a3b8',rare:'#40c4ff',epic:'#7c4dff',legendary:'#ffd600',tryhard:'#ff6d00',exclusive:'#ff1744',none:'#555'};
+    grid.innerHTML=lista.map(t=>{
+      const owned=ownedTitles.includes(t.id); const eq=equippedTitle===t.id;
+      let action='';
+      if(eq) action='<span class="shop-badge equipped">✓ Equipado</span>';
+      else if(t.exclusive&&!owned) action='<button class="btn btn-ghost btn-sm" disabled>🔒 Exclusivo</button>';
+      else if(owned) action=`<button class="btn btn-primary btn-sm" data-t-eq="${t.id}">Equipar</button>`;
+      else if(coins>=t.price) action=`<button class="btn btn-primary btn-sm" data-t-buy="${t.id}">🪙 ${t.price}</button>`;
+      else action=`<button class="btn btn-ghost btn-sm" disabled>🔒 ${t.price}</button>`;
+      const col=TIER[t.tier]||'#888';
+      return `<div class="shop-card title-card${eq?' shop-equipped':''}" style="border-top-color:${col}">`
+        + `<div class="title-preview" style="border-color:${col}"><span style="${t.css||''}">${t.name}</span></div>`
+        + `<h4 style="color:${col}">${t.name}</h4>`
+        + `<p class="shop-price">${t.exclusive?'Exclusivo':(t.price===0?'Gratis':t.price+' 🪙')}</p>${action}</div>`;
+    }).join('');
+    grid.querySelectorAll('[data-t-buy]').forEach(b=>b.addEventListener('click',async()=>{
+      const id=b.dataset.tBuy; b.disabled=true; b.textContent='...';
+      try{ const r=await API.buyTitle(id); coins=r.coins; ownedTitles=r.titles; renderTitles(); updateHUD(); Toast.success('👑 Título comprado!'); }
+      catch(e){ Toast.error(e.message); b.disabled=false; }
+    }));
+    grid.querySelectorAll('[data-t-eq]').forEach(b=>b.addEventListener('click',async()=>{
+      const id=b.dataset.tEq;
+      try{ const r=await API.equipTitle(id); equippedTitle=r.equippedTitle; renderTitles(); Toast.success('Título equipado'); }
+      catch(e){ Toast.error(e.message); }
+    }));
+   }
   function renderShop(){
     const grid=document.getElementById('shopGrid'); const bal=document.getElementById('shopBalance');
     if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';

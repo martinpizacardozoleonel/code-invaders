@@ -2226,3 +2226,307 @@ body.light .chat-reply-btn{background:#fff;border:1px solid #cbd5e1;color:#0f172
 .report-warn b{color:#ff6b81;}
 .report-modal .btn-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
 .inspect-report-row{display:flex;justify-content:center;padding:4px 20px 16px;}
+
+/* ============================================================
+   TÍTULOS — animaciones
+   ============================================================ */
+@keyframes titlePulse{0%,100%{opacity:1;text-shadow:0 0 8px #00e5ff,0 0 18px #00e5ff}50%{opacity:.75;text-shadow:0 0 14px #00e5ff,0 0 30px #00e5ff}}
+@keyframes titleFlicker{0%,100%{opacity:1}47%{opacity:1}48%{opacity:.35}49%{opacity:1}72%{opacity:1}73%{opacity:.5}74%{opacity:1}}
+@keyframes titleFlickerUp{0%,100%{opacity:1;filter:brightness(1)}30%{opacity:.85;filter:brightness(1.35)}55%{opacity:.7;filter:brightness(1.5)}70%{opacity:.95;filter:brightness(1.1)}}
+@keyframes titleGlitch{
+  0%{opacity:1;transform:translate(0);clip-path:none}
+  10%{opacity:.8;transform:translate(-2px,1px);clip-path:inset(20% 0 55% 0)}
+  20%{opacity:1;transform:translate(2px,-1px);clip-path:inset(60% 0 10% 0)}
+  30%{opacity:.9;transform:translate(0);clip-path:none}
+  70%{opacity:1;transform:translate(1px);clip-path:inset(40% 0 40% 0)}
+  71%{opacity:.5;transform:translate(-2px);clip-path:none}
+  72%{opacity:1;transform:translate(0);clip-path:none}
+  100%{opacity:1;transform:translate(0);clip-path:none}
+}
+@keyframes titleShiver{0%,100%{color:#81d4fa;text-shadow:0 0 8px #40c4ff,0 0 20px #00b0ff}50%{color:#e1f5fe;text-shadow:0 0 14px #b3e5fc,0 0 28px #40c4ff}}
+@keyframes titleRainbow{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+@keyframes titleRainbowFast{0%{background-position:0% 50%}100%{background-position:400% 50%}}
+@keyframes titleBeat{0%,100%{transform:scale(1);text-shadow:0 0 10px #ff1744,0 0 24px #b0000a}30%{transform:scale(1.09);text-shadow:0 0 18px #ff1744,0 0 40px #b0000a}60%{transform:scale(.98);text-shadow:0 0 8px #ff1744,0 0 20px #b0000a}}
+@keyframes titleShine{0%,100%{background-position:0% 50%;filter:brightness(1)}50%{background-position:100% 50%;filter:brightness(1.5)}}
+@keyframes titleShake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(.7px,-.7px) rotate(.5deg)}50%{transform:translate(-.7px,.7px) rotate(-.5deg)}75%{transform:translate(.5px,.5px) rotate(.3deg)}}
+@keyframes titleCrown{0%,100%{transform:translateY(0);text-shadow:0 0 10px #ffd600,0 0 24px #ffae00}30%{transform:translateY(-3px);text-shadow:0 0 18px #ffd600,0 0 40px #ffae00,0 0 60px #fff176}60%{transform:translateY(0);text-shadow:0 0 12px #ffd600,0 0 28px #ffae00}}
+@keyframes titleGod{0%,100%{opacity:1;text-shadow:0 0 6px #ff0000,0 0 14px #ff0000,0 0 28px #8b0000}50%{opacity:.7;text-shadow:0 0 12px #ff0000,0 0 26px #ff0000,0 0 52px #8b0000}}
+
+/* --- Título en el perfil inspeccionado --- */
+.inspect-player-title{
+  margin:0 0 3px; font-size:.78rem; font-weight:900; letter-spacing:2px;
+  text-transform:uppercase; line-height:1.2;
+  color:#ffd600; text-shadow:0 0 8px rgba(255,214,0,.55);
+}
+body.light .inspect-player-title{ text-shadow:0 0 6px rgba(255,160,0,.5); }
+
+/* --- Tarjeta de título en la tienda --- */
+.title-card{ text-align:center; }
+.title-preview{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  min-height:54px; padding:8px 6px; margin-bottom:8px;
+  border:1.5px solid #333; border-radius:8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.15));
+  overflow:hidden;
+}
+.title-preview span{ position:relative; z-index:1; font-size:.72rem; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; }
+.title-preview::after{
+  content:''; position:absolute; top:0; left:0; right:0; bottom:0; z-index:0;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.14) 50%,transparent 60%);
+  background-size:200% 100%;
+  animation:titleRainbow 5s linear infinite;
+}
+.title-card{ position:relative; }
+
+/* ============================================================
+   RANGOS
+   ============================================================ */
+.rank-badge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:999px;
+  border:1.5px solid var(--rc,#cd7f32);
+  color:var(--rc,#cd7f32); background:rgba(0,0,0,.28);
+  font-size:.72rem; font-weight:800; letter-spacing:.6px;
+  text-shadow:0 0 8px currentColor;
+  box-shadow:0 0 10px -2px var(--rc,#cd7f32), inset 0 0 10px -6px var(--rc,#cd7f32);
+  white-space:nowrap;
+}
+.rank-badge-sm{ border-color:var(--rc,#cd7f32); }
+.mini-badge.rank-badge-sm{ padding:2px 8px; font-size:.68rem; }
+
+.inspect-rank{ display:flex; align-items:center; gap:8px; margin:4px 0; flex-wrap:wrap; }
+.inspect-rp{ font-size:.72rem; font-weight:700; color:var(--text-dim,#94a3b8); }
+.inspect-clan{ display:flex; align-items:center; gap:8px; margin:3px 0; flex-wrap:wrap; }
+.inspect-clan-badge{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:2px 9px; border-radius:6px; font-size:.7rem; font-weight:800;
+  border:1px solid var(--cc,#00e5ff); color:#fff;
+  background:linear-gradient(90deg,var(--cc,#00e5ff),rgba(0,0,0,.55));
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+}
+.inspect-clan-lv{ font-size:.68rem; font-weight:700; color:var(--text-dim,#94a3b8); }
+
+/* --- Barra de rango en el perfil propio --- */
+.profile-rank-box,.profile-clan-box{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:8px; padding:8px 10px; border-radius:10px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+}
+.profile-rank-box{ flex-direction:column; align-items:stretch; gap:5px; }
+.profile-rank-rp{ font-size:.75rem; font-weight:800; color:#ffd600; }
+.profile-rank-next{ font-size:.68rem; color:var(--text-dim,#94a3b8); }
+.profile-clan-role{ font-size:.7rem; font-weight:700; color:#00e676; }
+.profile-clan-pts{ font-size:.7rem; font-weight:700; color:#ffd600; }
+.profile-title{
+  margin:8px 0 0; font-size:.78rem; font-weight:900; letter-spacing:2px;
+  text-transform:uppercase; color:#ffd600; text-align:center;
+  text-shadow:0 0 8px rgba(255,214,0,.5);
+}
+.ranked-mp-bar-track{ height:6px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; }
+.ranked-mp-bar-fill{ height:100%; border-radius:99px; background:linear-gradient(90deg,#00e5ff,#ffd600); transition:width .4s ease; }
+
+/* ============================================================
+   RANKED MULTIJUGADOR
+   ============================================================ */
+.btn.btn-gold{
+  background:linear-gradient(135deg,#ffd600,#ff8c00);
+  border-color:#ffd600; color:#1a1200; font-weight:900;
+  box-shadow:0 0 16px rgba(255,214,0,.35); text-shadow:none;
+}
+.btn.btn-gold:hover{ filter:brightness(1.12); }
+.ranked-mp-bar{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin-top:14px; padding:12px 14px; border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,214,0,.09),rgba(0,229,255,.05));
+  border:1.5px solid rgba(255,214,0,.35);
+}
+.ranked-mp-info{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:1; min-width:220px; }
+.ranked-mp-badge{
+  padding:4px 12px; border-radius:8px; font-weight:900; font-size:.85rem;
+  border:2px solid #cd7f32; color:#cd7f32; text-shadow:0 0 10px currentColor;
+  background:rgba(0,0,0,.3);
+}
+.ranked-mp-rp{ font-size:.8rem; font-weight:800; color:#ffd600; }
+.ranked-mp-next{ font-size:.7rem; color:var(--text-dim,#94a3b8); white-space:nowrap; }
+.ranked-pick{
+  margin-top:12px; padding:14px; border-radius:14px;
+  background:rgba(0,0,0,.28); border:1.5px solid rgba(255,214,0,.3);
+}
+.ranked-pick-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.ranked-pick-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; }
+.ranked-pick-card{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:14px 10px; border-radius:12px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:2px solid rgba(255,214,0,.35);
+  color:inherit; font-family:inherit; transition:all .15s;
+}
+.ranked-pick-card:hover{ background:rgba(255,214,0,.12); transform:translateY(-2px); }
+.ranked-pick-icon{ font-size:1.8rem; }
+.ranked-pick-card b{ font-size:1.15rem; font-weight:900; color:#ffd600; }
+.ranked-pick-card small{ font-size:.72rem; opacity:.75; }
+.ranked-pick-rp{ font-size:.7rem; font-weight:800; color:#00e676; margin-top:3px; }
+@media(max-width:560px){ .ranked-pick-grid{ grid-template-columns:1fr; } }
+
+/* ============================================================
+   CLANES
+   ============================================================ */
+.clans-card{ max-width:900px; width:95vw; }
+.clans-tabs{ display:flex; gap:6px; margin:10px 0 14px; flex-wrap:wrap; }
+.clans-tab{
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  border-radius:8px; padding:6px 14px; color:#94a3b8; font-weight:700;
+  font-size:.82rem; cursor:pointer; transition:all .15s;
+}
+.clans-tab:hover{ background:rgba(255,255,255,.08); color:#e2e8f0; }
+.clans-tab.active{ background:rgba(0,229,255,.1); border-color:#00e5ff; color:#00e5ff; }
+.clan-create-box{
+  margin-top:14px; padding:14px; border-radius:12px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(0,229,255,.22);
+}
+.clan-banner{
+  display:flex; align-items:center; gap:14px; padding:14px;
+  border-radius:14px; margin-bottom:10px;
+  background:linear-gradient(135deg,var(--cc,#00e5ff),rgba(0,0,0,.6));
+  border:1.5px solid var(--cc,#00e5ff);
+}
+.clan-emblem{ font-size:2.6rem; filter:drop-shadow(0 2px 6px rgba(0,0,0,.6)); }
+.clan-banner-info{ flex:1; min-width:0; }
+.clan-banner-info h3{ margin:0; font-size:1.2rem; }
+.clan-banner-info p{ margin:3px 0 0; font-size:.78rem; color:rgba(255,255,255,.8); }
+.clan-tag{ font-size:.72rem; opacity:.8; font-weight:700; }
+.clan-lv{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+.clan-lv-badge{ font-weight:900; font-size:.95rem; background:rgba(0,0,0,.4); padding:4px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.4); }
+.clan-lv-pts{ font-size:.7rem; font-weight:700; color:rgba(255,255,255,.85); }
+.clan-lv-bar{ margin:0 0 8px; }
+.clan-role{ font-size:.8rem; margin:6px 0 10px; }
+
+/* --- Rango de clan (propio, distinto al de Ranked) --- */
+@keyframes clanRankGlow{0%,100%{box-shadow:0 0 8px var(--cr,#8a6b3a),inset 0 0 8px -4px var(--cr,#8a6b3a)}50%{box-shadow:0 0 16px var(--cr,#8a6b3a),0 0 28px -6px var(--cr,#8a6b3a),inset 0 0 10px -4px var(--cr,#8a6b3a)}}
+.clan-rank-badge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 9px; border-radius:6px; white-space:nowrap;
+  border:1.5px solid var(--cr,#8a6b3a); color:var(--cr,#8a6b3a);
+  background:rgba(0,0,0,.3); font-size:.68rem; font-weight:900;
+  letter-spacing:.8px; text-transform:uppercase; text-shadow:0 0 8px currentColor;
+  animation:clanRankGlow 2.4s ease-in-out infinite;
+}
+.clan-rank-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 6px; }
+.clan-rank-next{ font-size:.7rem; color:var(--text-dim,#94a3b8); font-weight:700; }
+
+/* --- Misiones del clan --- */
+.clan-missions{ display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+.clan-missions-title{ margin:0 0 7px; font-size:.86rem; display:flex; align-items:center; gap:7px; }
+.clan-reset{ font-size:.64rem; font-weight:600; opacity:.55; text-transform:none; letter-spacing:0; }
+.clan-mission{
+  display:flex; align-items:center; gap:10px; padding:9px 11px;
+  border-radius:11px; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+}
+.clan-mission.wip{ opacity:.75; }
+.clan-mission.ready{ border-color:rgba(0,230,118,.5); background:rgba(0,230,118,.08); box-shadow:0 0 10px -3px rgba(0,230,118,.5); }
+.clan-mission.done{ opacity:.55; border-color:rgba(255,214,0,.28); }
+.clan-mission-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.clan-mission-main b{ font-size:.8rem; font-weight:800; }
+.clan-mission-main small{ font-size:.67rem; opacity:.75; font-weight:700; }
+.clan-mission-track{ height:5px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; margin-top:2px; }
+.clan-mission-fill{ height:100%; border-radius:99px; background:linear-gradient(90deg,#00e676,#ffd600); transition:width .35s ease; }
+.clan-mission-done{ font-size:.7rem; font-weight:800; color:#ffd600; white-space:nowrap; }
+.clan-mission-lock{ font-size:.7rem; font-weight:700; color:var(--text-dim,#94a3b8); white-space:nowrap; }
+.clan-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.clan-col h4{ margin:0 0 8px; font-size:.9rem; display:flex; align-items:center; gap:6px; }
+.clan-count{ background:rgba(0,0,0,.35); padding:1px 8px; border-radius:99px; font-size:.7rem; }
+.clan-members{ max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+.clan-member{
+  display:flex; align-items:center; gap:9px; padding:7px 9px;
+  border-radius:10px; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+}
+.clan-mem-avatar{ width:34px; height:34px; border-radius:50%; overflow:hidden; background:#1a2332; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+.clan-mem-avatar img{ width:100%; height:100%; object-fit:cover; }
+.clan-mem-info{ flex:1; min-width:0; font-size:.8rem; display:flex; flex-direction:column; gap:2px; }
+.clan-mem-info small{ font-size:.68rem; opacity:.7; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.clan-role-tag{ font-size:.62rem; padding:1px 6px; border-radius:99px; font-weight:800; }
+.role-leader{ background:rgba(255,214,0,.2); color:#ffd600; }
+.role-officer{ background:rgba(0,230,118,.2); color:#00e676; }
+.role-member{ background:rgba(148,163,184,.2); color:#94a3b8; }
+.clan-mem-acts{ display:flex; gap:3px; }
+.clan-mem-acts .btn{ padding:3px 7px; font-size:.72rem; }
+.clan-chat{
+  height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:5px;
+  padding:9px; border-radius:10px; background:rgba(0,0,0,.3);
+  border:1px solid rgba(255,255,255,.07);
+}
+.clan-chat-msg{ font-size:.78rem; display:flex; gap:6px; }
+.clan-chat-msg b{ color:#00e5ff; flex-shrink:0; }
+.clan-list{ display:flex; flex-direction:column; gap:8px; max-height:440px; overflow-y:auto; }
+.clan-list-card{
+  display:flex; align-items:center; gap:12px; padding:10px 12px;
+  border-radius:12px; background:rgba(255,255,255,.04);
+  border:1.5px solid rgba(255,255,255,.08); border-left:4px solid var(--cc,#00e5ff);
+}
+.clan-list-card.my-clan{ background:rgba(0,229,255,.09); border-color:#00e5ff; }
+.clan-list-emblem{ font-size:1.7rem; }
+.clan-list-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.clan-list-info b{ font-size:.88rem; }
+.clan-list-info small{ font-size:.7rem; opacity:.7; }
+.clan-list-mine{ font-size:.7rem; font-weight:800; color:#00e676; }
+
+/* --- Clasificación de clanes --- */
+.clan-rank-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.clan-rank-note{ font-size:.7rem; opacity:.7; text-align:center; margin:12px 0 0; }
+
+.clan-podium{ display:flex; align-items:flex-end; justify-content:center; gap:10px; margin-bottom:16px; }
+.podium{ display:flex; align-items:flex-end; justify-content:center; gap:10px; width:100%; }
+.podium-col{
+  flex:1; max-width:180px; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:10px 8px; border-radius:12px; text-align:center;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(0,0,0,.28));
+  border:1.5px solid var(--cc,#00e5ff);
+  position:relative;
+}
+.podium-col.p1{ padding-top:22px; padding-bottom:18px; box-shadow:0 0 18px -2px rgba(255,214,0,.45); border-color:#ffd600; }
+.podium-col.p2{ padding-bottom:12px; box-shadow:0 0 14px -4px rgba(192,192,192,.4); }
+.podium-col.p3{ padding-bottom:8px; }
+.podium-medal{ font-size:1.5rem; line-height:1; }
+.podium-col.p1 .podium-medal{ font-size:2.1rem; filter:drop-shadow(0 0 8px rgba(255,214,0,.7)); }
+.podium-emblem{ font-size:1.9rem; filter:drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
+.podium-name{ font-size:.8rem; font-weight:900; }
+.podium-tag{ font-size:.64rem; opacity:.7; font-weight:700; }
+.podium-stats{ font-size:.66rem; opacity:.85; font-weight:700; }
+
+.clan-rank-table{ display:flex; flex-direction:column; gap:4px; max-height:420px; overflow-y:auto; }
+.clan-rt-head,.clan-rt-row{
+  display:grid; grid-template-columns:38px 1fr auto 62px 44px 44px 52px;
+  gap:8px; align-items:center; padding:8px 10px; font-size:.78rem;
+}
+.clan-rt-head{ font-size:.66rem; font-weight:800; opacity:.6; text-transform:uppercase; letter-spacing:.5px;
+  border-bottom:1px solid rgba(255,255,255,.1); position:sticky; top:0; background:#0d1420; z-index:2; }
+.clan-rt-row{ background:rgba(255,255,255,.04); border-radius:8px; border-left:3px solid var(--cc,#00e5ff); }
+.clan-rt-row.my-clan{ background:rgba(0,229,255,.1); border-color:#00e5ff; border-left-color:#00e5ff; }
+.clan-rt-pos{ font-weight:900; opacity:.75; text-align:center; }
+.clan-rt-name{ display:flex; align-items:center; gap:6px; min-width:0; font-weight:700; flex-wrap:wrap; }
+.clan-rt-emblem{ font-size:1.1rem; }
+.clan-rt-mine{ font-size:.58rem; font-weight:900; padding:1px 6px; border-radius:99px; background:#00e5ff; color:#04202a; }
+.clan-rt-pts{ font-weight:900; color:#ffd600; text-align:right; }
+@media(max-width:700px){
+  .clan-rt-head,.clan-rt-row{ grid-template-columns:28px 1fr auto 48px; font-size:.72rem; }
+  .clan-rt-head span:nth-child(4),.clan-rt-row>*:nth-child(4),
+  .clan-rt-head span:nth-child(6),.clan-rt-row>*:nth-child(6),
+  .clan-rt-head span:nth-child(7),.clan-rt-row>*:nth-child(7){ display:none; }
+  .podium-col{ max-width:120px; }
+}
+.clan-tour-active,.clan-tour-pending{
+  padding:12px; border-radius:12px; margin-bottom:12px; font-size:.85rem;
+  display:flex; flex-direction:column; gap:4px;
+}
+.clan-tour-active{ background:rgba(255,214,0,.1); border:1.5px solid rgba(255,214,0,.4); }
+.clan-tour-pending{ background:rgba(0,229,255,.07); border:1.5px solid rgba(0,229,255,.3); }
+.clan-tour-active small,.clan-tour-pending small{ font-size:.72rem; opacity:.8; }
+@media(max-width:640px){ .clan-cols{ grid-template-columns:1fr; } .clan-banner{ flex-wrap:wrap; } }
+
+/* Light theme */
+body.light .clans-tab{ background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.1); color:#64748b; }
+body.light .clans-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c8; color:#0077b6; }
+body.light .clan-member,body.light .clan-list-card,body.light .clan-chat{ background:rgba(0,0,0,.03); border-color:rgba(15,23,42,.08); }
+body.light .clan-chat-msg b{ color:#0096c8; }
+body.light .title-preview{ background:linear-gradient(180deg,#f8fafc,#eef2f7); }

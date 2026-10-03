@@ -65,6 +65,8 @@
       if (shopBtn) shopBtn.addEventListener('click', () => closeMenu());
       const menuAchievements = document.getElementById('menuAchievements');
       if (menuAchievements) menuAchievements.addEventListener('click', () => closeMenu());
+      const menuClans = document.getElementById('menuClans');
+      if (menuClans) menuClans.addEventListener('click', () => closeMenu());
       const shopBack = document.getElementById('shopBack');
       if (shopBack) shopBack.addEventListener('click', () => {
         const m = document.getElementById('shopModal');

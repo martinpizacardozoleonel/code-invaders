@@ -595,6 +595,42 @@ const Profile = {
       if (levelEl) { const lvl = (this.expLevel && typeof this.expLevel === 'object' ? this.expLevel.level : this.expLevel); levelEl.textContent = `Nivel ${lvl||1} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
       if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
       if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
+      // --- TÍTULO ---
+      const tEl=document.getElementById('profileTitle');
+      if(tEl){
+        const tid=this.user.equippedTitle;
+        if(tid&&tid!=='none'){
+          tEl.style.display='';
+          API.titleCss(tid).then(css=>{ if(css) tEl.style.cssText=css; }).catch(()=>{});
+          API.titleName(tid).then(n=>{ tEl.textContent=n||tid.replace(/_/g,' '); }).catch(()=>{ tEl.textContent=tid.replace(/_/g,' '); });
+        } else { tEl.style.display='none'; tEl.textContent=''; }
+      }
+      // --- RANGO ---
+      const rBox=document.getElementById('profileRankBox');
+      if(rBox){
+        const rk=this.user.rank||null; const rp=this.user.rankPoints||0;
+        if(rk&&rk.name){
+          rBox.classList.remove('hidden');
+          rBox.innerHTML='<span class="rank-badge" style="--rc:'+(rk.color||'#cd7f32')+'">'+(rk.icon||'')+' '+(rk.name||'')+'</span>'
+            +'<span class="profile-rank-rp">'+rp+' RP</span>'
+            +'<div class="ranked-mp-bar-track"><div class="ranked-mp-bar-fill" style="width:'+(rk.pct||0)+'%"></div></div>'
+            +'<span class="profile-rank-next">'+(rk.next?((rk.into||0)+' / '+(rk.span||0)+' RP → '+rk.next.name):'RANGO MÁXIMO')+'</span>';
+        } else rBox.classList.add('hidden');
+      }
+      // --- CLAN ---
+      const cBox=document.getElementById('profileClanBox');
+      if(cBox){
+        const cid=this.user.clanId;
+        if(cid){
+          cBox.classList.remove('hidden');
+          const cl=this.user.clan||{};
+          const cr=cl.rank||null;
+          cBox.innerHTML='<span class="inspect-clan-badge">'+((cl.emblem||'🛡️')+' '+(cl.name||'')+(cl.tag?(' ['+cl.tag+']'):''))+'</span>'
+            +(cr&&cr.name?('<span class="clan-rank-badge" style="--cr:'+(cr.color||'#8a6b3a')+'">'+(cr.icon||'')+' '+(cr.name||'')+'</span>'):'')
+            +'<span class="profile-clan-role">'+({leader:'👑 Líder',officer:'⭐ Oficial',member:'🛡️ Miembro'}[this.user.clanRole]||'🛡️ Miembro')+'</span>'
+            +'<span class="profile-clan-pts">🏅 '+(this.user.clanPoints||0)+' pts</span>';
+        } else cBox.classList.add('hidden');
+      }
       const descInp = document.getElementById('profileDescInput');
       const descCount = document.getElementById('descCharCount');
       if (descInp) { descInp.value = this.user.description || ''; if(descCount) descCount.textContent = (this.user.description||'').length + '/200'; }
