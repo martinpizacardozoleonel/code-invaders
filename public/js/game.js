@@ -26,6 +26,7 @@
   let ownedImpacts=['default'],equippedImpact='default';
   let ownedLabelSkins=['default'],equippedLabelSkin='default';
   let ownedTitles=['none'],equippedTitle='none';
+  let _titlesLoading=false,_titlesTries=0;
   let frameCount=0,shootCooldown=0;
   let keys={}; let titleStars=[];
   let particles=[],lasers=[],impacts=[];
@@ -369,6 +370,12 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
         const sc=sessionStorage.getItem('ci_guest_score'); score=sc?parseInt(sc)||0:0;
         const sb=sessionStorage.getItem('ci_guest_speedrun_best'); speedrunBest=sb?parseFloat(sb):null;
       }catch(e){ coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default'; ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default'; score=0; speedrunBest=null; }
+    }
+    // Si el catálogo de títulos no llegó (típico: la página cargó antes de
+    // estar autenticado y /api/titles devolvió 401), se reintenta ahora que ya
+    // hay sesión y también se sincronizan los títulos que el usuario posee.
+    if(isLogged() && !(window.TitleCatalog && window.TitleCatalog.length)){
+      _titlesTries=0; loadTitles();
     }
     loadShopLocal();
   }
@@ -1111,15 +1118,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         if(kg&&!kg.classList.contains('hidden')) renderLabelSkins();
       }).catch(()=>{});
     }
-    if(typeof API!=='undefined'&&API.getTitles){
-      API.getTitles().then(d=>{
-        if(d&&Array.isArray(d.titles)&&d.titles.length) window.TitleCatalog=d.titles;
-        if(d&&Array.isArray(d.owned)&&d.owned.length) ownedTitles=d.owned;
-        if(d&&d.equipped) equippedTitle=d.equipped;
-        const tg=document.getElementById('titleGrid');
-        if(tg&&!tg.classList.contains('hidden')) renderTitles();
-      }).catch(()=>{});
-    }
+    if(typeof API!=='undefined'&&API.getTitles){ loadTitles(); }
     const close=document.getElementById('shopClose'); const grid=document.getElementById('shopGrid');
     if(!btn||!modal) return;
     btn.addEventListener('click', ()=>{ renderShop(); renderLasers(); renderImpacts(); renderLabelSkins(); renderTitles(); modal.classList.remove('hidden'); });
@@ -1321,11 +1320,50 @@ function stopAllPreviews(){ for(const k in previewBufs) stopPreviews(k); }
     }));
 paintLabelPreviews();
    }
-   function renderTitles(){
+   // Carga el catálogo de títulos bajo demanda. Antes se pedía una sola vez al
+  // iniciar la página: si el usuario todavía no estaba autenticado el endpoint
+  // devolvía 401, el .catch lo silenciaba y la grilla quedaba en "Cargando…"
+  // para siempre. Ahora se reintenta solo y avisa si realmente falla.
+  function loadTitles(){
+    if(typeof API==='undefined'||!API.getTitles) return;
+    if(_titlesLoading) return;
+    if(_titlesTries>3){
+      const g=document.getElementById('titleGrid');
+      if(g) g.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">⚠️ No se pudieron cargar los títulos. Reintentá recargando la página.</p>';
+      return;
+    }
+    _titlesLoading=true; _titlesTries++;
+    API.getTitles().then(d=>{
+      _titlesLoading=false; _titlesTries=0;
+      if(d&&Array.isArray(d.owned)&&d.owned.length) ownedTitles=d.owned;
+      if(d&&d.equipped) equippedTitle=d.equipped;
+      if(d&&Array.isArray(d.titles)&&d.titles.length){
+        window.TitleCatalog=d.titles;
+      } else {
+        // Respuesta válida pero sin catálogo: no reintentar en bucle.
+        const g=document.getElementById('titleGrid');
+        if(g) g.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">No hay títulos disponibles.</p>';
+        return;
+      }
+      renderTitles();
+    }).catch(e=>{
+      _titlesLoading=false;
+      // Sin esto la grilla se quedaba en "Cargando…" si el click del usuario
+      // ocurría mientras la petición inicial seguía en vuelo.
+      const g=document.getElementById('titleGrid');
+      if(g) renderTitles();
+    });
+  }
+  function renderTitles(){
     const grid=document.getElementById('titleGrid'); const bal=document.getElementById('shopBalance');
     if(!grid) return; if(bal) bal.textContent='🪙 '+coins+' puntos';
     const lista=(window.TitleCatalog&&window.TitleCatalog.length)?window.TitleCatalog:[];
-    if(!lista.length){ grid.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">Cargando títulos...</p>'; return; }
+    if(!lista.length){
+      if(_titlesLoading){ grid.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">Cargando títulos…</p>'; return; }
+      if(_titlesTries===0){ grid.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">Cargando títulos…</p>'; loadTitles(); return; }
+      grid.innerHTML='<p class="lead muted" style="grid-column:1/-1;text-align:center">⚠️ No se pudieron cargar los títulos. ¿Estás conectado?</p>';
+      return;
+    }
     const TIER={common:'#94a3b8',rare:'#40c4ff',epic:'#7c4dff',legendary:'#ffd600',tryhard:'#ff6d00',exclusive:'#ff1744',none:'#555'};
     grid.innerHTML=lista.map(t=>{
       const owned=ownedTitles.includes(t.id); const eq=equippedTitle===t.id;

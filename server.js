@@ -405,6 +405,7 @@ function rankFromRP(rp){
 
 // ============ ROLES DE CLAN ============
 const CLAN_ROLES={ leader:'👑 Líder', officer:'⭐ Oficial', member:'🛡️ Miembro' };
+const CLAN_CREATE_COST=10000;   // pts necesarios para fundar un clan
 const CLAN_EMBLEMS=['🛡️','⚔️','🔥','🐉','👹','🦅','🐺','🦁','🐍','⚡','🌑','☄️','💀','👾','🤖','👑'];
 
 // ============================================================
@@ -811,7 +812,10 @@ async function bumpClanMissions(clanId,event,amount){
 async function grantClanPoints(clanId,userId,pts){
   try{
     const c=await getClanById(clanId); if(!c) return;
-    const before=clanLevelProgress(c.points||0).level;
+    // La progresión visible del clan es el RANGO (300 pts/división). El viejo
+    // "nivel" por sqrt seguía creciendo hasta 50 y notificaba en otro momento,
+    // así que se unificó todo en el rango.
+    const beforeR=clanRankFromPoints(c.points||0);
     c.points=(c.points||0)+pts;
     await saveClan(c);
     await addClanMemberPoints(clanId,userId,pts);
@@ -827,17 +831,59 @@ async function grantClanPoints(clanId,userId,pts){
         await saveClanTournament(ct);
       }
     }catch(e){ console.error('[clanTournamentPoints]',e.message); }
-    const after=clanLevelProgress(c.points||0).level;
-    if(after>before){
+    const afterR=clanRankFromPoints(c.points||0);
+    if(afterR.name!==beforeR.name){
+      const up=afterR.minRP>beforeR.minRP;
       const mem=await getClanMembers(clanId);
-      for(const m of mem){ try{ await pushNotification(m.userId,'⬆️ Clan '+c.tag+' subió de nivel','¡'+c.name+' ahora es nivel '+after+'!','success'); }catch(e){} }
+      for(const m of mem){ try{ await pushNotification(m.userId,(up?'⬆️':'⬇️')+' El clan cambió de rango',(up?'🏅 ':'📉 ')+c.name+' ahora es '+afterR.name,'info'); }catch(e){} }
     }
   }catch(e){ console.error('[grantClanPoints]',e.message); }
 }
 
-app.get('/api/clans', async (req,res)=>{ try{ const user=await findUserByToken(req); const q=String(req.query.q||'').trim().toLowerCase(); let list=await getAllClans(); if(q) list=list.filter(c=>String(c.tag||'').toLowerCase().includes(q)||String(c.name||'').toLowerCase().includes(q)); list.sort((a,b)=>(b.points||0)-(a.points||0)); const out=[]; for(const c of list.slice(0,50)){ const mem=await getClanMembers(c.id); out.push({...c,members:mem.length,level:clanLevel(c.points||0),levelPct:clanLevelProgress(c.points||0).pct,rank:clanRankFromPoints(c.points||0),myRole:(user&&user.clanId===c.id)?user.clanRole:''}); } res.set('Cache-Control','no-store'); res.json({clans:out,emblems:CLAN_EMBLEMS,roles:CLAN_ROLES,ranks:CLAN_RANKS,total:list.length}); }catch(e){ console.error('[clans]',e.message); res.status(500).json({error:'clans error'}); } });
-app.get('/api/clans/mine', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.json({clan:null}); const c=await getClanById(user.clanId); if(!c){ user.clanId=''; user.clanRole=''; await updateUser(user); return res.json({clan:null}); } const mem=await getClanMembers(c.id); const chat=await getClanChat(c.id,50); const missions=await ensureDailyClanMissions(c.id); const rk=clanRankFromPoints(c.points||0); res.set('Cache-Control','no-store'); res.json({clan:{...c,members:mem.length,level:clanLevel(c.points||0),levelPct:clanLevelProgress(c.points||0).pct,rank:rk},myRole:user.clanRole,members:mem,chat,missions}); }catch(e){ console.error('[clans/mine]',e.message); res.status(500).json({error:'clan mine error'}); } });
-app.post('/api/clans/create', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(user.clanId) return res.status(400).json({error:'Ya pertenecés a un clan. Salí primero.'}); const {name,tag,emblem,color,description}=req.body||{}; const nm=String(name||'').trim().slice(0,24); const tg=String(tag||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); if(nm.length<3) return res.status(400).json({error:'El nombre del clan necesita 3+ caracteres'}); if(tg.length<2) return res.status(400).json({error:'La etiqueta necesita 2-4 caracteres (A-Z, 0-9)'}); if(await getClanByTag(tg)) return res.status(409).json({error:'La etiqueta '+tg+' ya está en uso'}); const c={id:crypto.randomUUID(),tag:tg,name:nm,emblem:String(emblem||CLAN_EMBLEMS[0]).slice(0,4),color:String(color||'#00e5ff').slice(0,9),description:String(description||'').slice(0,200),points:0,wins:0,losses:0,createdAt:new Date().toISOString(),ownerId:user.id}; await saveClan(c); await setClanMember(c.id,user.id,'leader'); user.clanId=c.id; user.clanRole='leader'; await updateUser(user); try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:user.id,username:user.username,text:'🛡️ '+user.username+' creó el clan '+c.name,createdAt:new Date().toISOString()}); }catch(e){} res.status(201).json({clan:c}); }catch(e){ console.error('[clans/create]',e.message); res.status(500).json({error:'Error al crear el clan'}); } });
+// Conteo de miembros en una sola query (antes eran hasta 50 getClanMembers,
+// y en modo JSON cada una cargaba TODOS los usuarios).
+async function getClansMemberCounts(){
+  const counts=new Map();
+  if(USE_PG){ const r=await pool.query('SELECT clan_id, COUNT(*)::int AS c FROM clan_members GROUP BY clan_id'); r.rows.forEach(x=>counts.set(x.clan_id,x.c)); }
+  else { (fileDb.clanMembers||[]).forEach(m=>counts.set(m.clanId,(counts.get(m.clanId)||0)+1)); }
+  return counts;
+}
+app.get('/api/clans', async (req,res)=>{ try{ const user=await findUserByToken(req); if(user) ensureShopFields(user); const q=String(req.query.q||'').trim().toLowerCase(); let list=await getAllClans(); if(q) list=list.filter(c=>String(c.tag||'').toLowerCase().includes(q)||String(c.name||'').toLowerCase().includes(q)); list.sort((a,b)=>(b.points||0)-(a.points||0)); const counts=await getClansMemberCounts(); const out=list.slice(0,50).map(c=>({...c,members:counts.get(c.id)||0,rank:clanRankFromPoints(c.points||0),myRole:(user&&user.clanId===c.id)?user.clanRole:''})); res.set('Cache-Control','no-store'); res.json({clans:out,emblems:CLAN_EMBLEMS,roles:CLAN_ROLES,createCost:CLAN_CREATE_COST,myCoins:(user&&user.coins)||0,total:list.length}); }catch(e){ console.error('[clans]',e.message); res.status(500).json({error:'clans error'}); } });
+app.get('/api/clans/mine', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.json({clan:null,coins:user.coins||0,createCost:CLAN_CREATE_COST}); const c=await getClanById(user.clanId); if(!c){ user.clanId=''; user.clanRole=''; await updateUser(user); return res.json({clan:null,coins:user.coins||0,createCost:CLAN_CREATE_COST}); } const mem=await getClanMembers(c.id); const chat=await getClanChat(c.id,50); const missions=await ensureDailyClanMissions(c.id); const rk=clanRankFromPoints(c.points||0); res.set('Cache-Control','no-store'); res.json({clan:{...c,members:mem.length,level:clanLevel(c.points||0),levelPct:clanLevelProgress(c.points||0).pct,rank:rk},myRole:user.clanRole,members:mem,chat,missions,coins:user.coins||0,createCost:CLAN_CREATE_COST}); }catch(e){ console.error('[clans/mine]',e.message); res.status(500).json({error:'clan mine error'}); } });
+app.post('/api/clans/create', async (req,res)=>{ try{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
+  ensureShopFields(user);
+  if(user.clanId) return res.status(400).json({error:'Ya pertenecés a un clan. Salí primero.'});
+  // Se valida el costo ANTES de tocar nada, y se descuenta SOLO al final:
+  // así un fallo posterior no deja al jugador sin puntos.
+  if((user.coins||0)<CLAN_CREATE_COST) return res.status(400).json({error:'Necesitas '+CLAN_CREATE_COST+' pts para fundar un clan (tenés '+(user.coins||0)+')',need:CLAN_CREATE_COST,coins:user.coins||0});
+  const {name,tag,emblem,color,description}=req.body||{};
+  const nm=String(name||'').trim().slice(0,24);
+  const tg=String(tag||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+  if(nm.length<3) return res.status(400).json({error:'El nombre del clan necesita 3+ caracteres'});
+  if(tg.length<2) return res.status(400).json({error:'La etiqueta necesita 2-4 caracteres (A-Z, 0-9)'});
+  if(await getClanByTag(tg)) return res.status(409).json({error:'La etiqueta '+tg+' ya está en uso'});
+  const c={id:crypto.randomUUID(),tag:tg,name:nm,emblem:String(emblem||CLAN_EMBLEMS[0]).slice(0,4),color:String(color||'#00e5ff').slice(0,9),description:String(description||'').slice(0,200),points:0,wins:0,losses:0,createdAt:new Date().toISOString(),ownerId:user.id};
+  // Orden importante: se cobra y se guarda el usuario PRIMERO; recién
+  // después se crea el clan. Si algo falla después, se devuelve el cobro
+  // (antes quedaba un clan huérfano que además quemaba la TAG).
+  user.coins=(user.coins||0)-CLAN_CREATE_COST;
+  await updateUser(user);
+  await saveClan(c);
+  try{
+    await setClanMember(c.id,user.id,'leader');
+    user.clanId=c.id; user.clanRole='leader';
+    await updateUser(user);
+  }catch(e){
+    // Reembolso + limpieza para no dejar el clan a medias.
+    try{ if(USE_PG){ await pool.query('DELETE FROM clan_members WHERE user_id=$1',[user.id]); await pool.query('DELETE FROM clans WHERE id=$1',[c.id]); } else { fileDb.clanMembers=(fileDb.clanMembers||[]).filter(m=>m.clanId!==c.id); fileDb.clans=(fileDb.clans||[]).filter(x=>x.id!==c.id); saveDb(fileDb); } }catch(_e){}
+    try{ const u2=await getUserById(user.id); if(u2){ ensureShopFields(u2); u2.coins=(u2.coins||0)+CLAN_CREATE_COST; u2.clanId=''; u2.clanRole=''; await updateUser(u2); } }catch(_e){}
+    throw e;
+  }
+  try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:user.id,username:user.username,text:'🛡️ '+user.username+' creó el clan '+c.name,createdAt:new Date().toISOString()}); }catch(e){}
+  try{ await pushNotification(user.id,'🛡️ ¡Clan fundado!','Creaste '+c.name+' ['+c.tag+'] por '+CLAN_CREATE_COST+' pts. ¡Suma miembros y dominates la clasificación!','success'); }catch(e){}
+  res.status(201).json({clan:c,coins:user.coins,cost:CLAN_CREATE_COST});
+}catch(e){ console.error('[clans/create]',e.message); res.status(500).json({error:'Error al crear el clan'}); } });
 app.post('/api/clans/join', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(user.clanId) return res.status(400).json({error:'Ya pertenecés a un clan'}); const {clanId,tag}=req.body||{}; const c=clanId?await getClanById(clanId):await getClanByTag(tag); if(!c) return res.status(404).json({error:'Clan no encontrado'}); const mem=await getClanMembers(c.id); if(mem.length>=50) return res.status(400).json({error:'El clan está lleno (50/50)'}); await setClanMember(c.id,user.id,'member'); user.clanId=c.id; user.clanRole='member'; await updateUser(user); try{ await bumpClanMissions(c.id,'join',1); }catch(e){} try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:user.id,username:user.username,text:'👋 '+user.username+' se unió al clan',createdAt:new Date().toISOString()}); }catch(e){} res.json({clan:c}); }catch(e){ console.error('[clans/join]',e.message); res.status(500).json({error:'Error al unirse al clan'}); } });
 app.post('/api/clans/leave', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.status(400).json({error:'No pertenecés a ningún clan'}); const c=await getClanById(user.clanId); await removeClanMember(user.id); if(c && user.clanRole==='leader'){ const rest=(await getClanMembers(c.id)); if(rest.length){ const heir=rest.find(m=>m.role==='officer')||rest[0]; heir.role='leader'; await setClanMember(c.id,heir.userId,'leader'); const hu=await getUserById(heir.userId); if(hu){ ensureShopFields(hu); hu.clanRole='leader'; await updateUser(hu); } try{ await addClanChat({id:crypto.randomUUID(),clanId:c.id,userId:heir.userId,username:heir.username,text:'👑 '+heir.username+' ahora es líder del clan',createdAt:new Date().toISOString()}); }catch(e){} } else { if(USE_PG){ await pool.query('DELETE FROM clan_chat WHERE clan_id=$1',[c.id]); await pool.query('DELETE FROM clans WHERE id=$1',[c.id]); } else { fileDb.clans=(fileDb.clans||[]).filter(x=>x.id!==c.id); fileDb.clanChat=(fileDb.clanChat||[]).filter(x=>x.clanId!==c.id); saveDb(fileDb); } } } user.clanId=''; user.clanRole=''; user.clanPoints=0; user.clanWins=0; await updateUser(user); res.json({ok:true}); }catch(e){ console.error('[clans/leave]',e.message); res.status(500).json({error:'Error al salir del clan'}); } });
 app.post('/api/clans/role', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId||user.clanRole!=='leader') return res.status(403).json({error:'Solo el líder puede cambiar roles'}); const {userId,role}=req.body||{}; if(!['member','officer'].includes(role)) return res.status(400).json({error:'Rol inválido'}); if(userId===user.id) return res.status(400).json({error:'No podés cambiarte tu propio rol'}); const mem=await getClanMembers(user.clanId); const m=mem.find(x=>x.userId===userId); if(!m) return res.status(404).json({error:'Ese usuario no está en tu clan'}); await setClanMember(user.clanId,userId,role); const tu=await getUserById(userId); if(tu){ ensureShopFields(tu); tu.clanRole=role; await updateUser(tu); } const c=await getClanById(user.clanId); try{ await addClanChat({id:crypto.randomUUID(),clanId:user.clanId,userId:user.id,username:user.username,text:(role==='officer'?'⭐ ':'🛡️ ')+m.username+' ahora es '+CLAN_ROLES[role],createdAt:new Date().toISOString()}); }catch(e){} res.json({ok:true,role}); }catch(e){ console.error('[clans/role]',e.message); res.status(500).json({error:'Error al cambiar el rol'}); } });
@@ -847,21 +893,14 @@ app.post('/api/clans/kick', async (req,res)=>{ try{ const user=await findUserByT
 /* ============================================================
    RANGOS Y MISIONES DE CLAN
    ============================================================ */
-app.get('/api/clans/ranks',(req,res)=>{ res.json({ranks:CLAN_RANKS}); });
-// Clasificación global: evita el N+1 trayendo los conteos en una sola query.
+// Ranking de clanes (la escalera completa ya viene en /api/clans -> ranks).
 app.get('/api/clans/ranking', async (req,res)=>{ try{
   const user=await findUserByToken(req); if(user) ensureShopFields(user);
   const sort=String(req.query.sort||'points');
   const t=await getActiveClanTournament();
   let list=await getAllClans();
-  // Conteo de miembros en una sola pasada.
-  let counts=new Map();
-  if(USE_PG){
-    const r=await pool.query('SELECT clan_id, COUNT(*)::int AS c FROM clan_members GROUP BY clan_id');
-    r.rows.forEach(x=>counts.set(x.clan_id,x.c));
-  } else {
-    (fileDb.clanMembers||[]).forEach(m=>counts.set(m.clanId,(counts.get(m.clanId)||0)+1));
-  }
+// Conteo de miembros en una sola pasada (compartido con /api/clans).
+let counts=await getClansMemberCounts();
   const board=list.map(c=>{
     const tourPts=(t&&t.results&&t.results[c.id])?(t.results[c.id].points||0):0;
     return { id:c.id, tag:c.tag, name:c.name, emblem:c.emblem, color:c.color,
@@ -884,7 +923,8 @@ app.get('/api/clans/ranking', async (req,res)=>{ try{
             myPosition:(myPos>=0)?myPos+1:null,myClan:(myPos>=0)?board[myPos]:null,
             labels:{points:'Puntos',tour:'Puntos de torneo',members:'Miembros',wins:'Victorias'}});
 }catch(e){ console.error('[clans/ranking]',e.message); res.status(500).json({error:'ranking error'}); } });
-app.get('/api/clans/missions', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); if(!user.clanId) return res.json({missions:[],day:dayIndex(),rank:null}); const list=await ensureDailyClanMissions(user.clanId); const c=await getClanById(user.clanId); res.set('Cache-Control','no-store'); res.json({missions:list,day:dayIndex(),rank:c?clanRankFromPoints(c.points||0):null}); }catch(e){ console.error('[clans/missions]',e.message); res.status(500).json({error:'missions error'}); } });
+// Las misiones ya llegan dentro de /api/clans/mine, así que este endpoint
+// no lo usa nadie: se eliminó para no mantener código muerto.
 app.post('/api/clans/missions/claim', async (req,res)=>{ try{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
   ensureShopFields(user);
@@ -895,8 +935,17 @@ app.post('/api/clans/missions/claim', async (req,res)=>{ try{
   if(!m) return res.status(404).json({error:'Misión no encontrada'});
   if(m.claimedBy) return res.status(400).json({error:'Esta misión ya fue reclamada'});
   if(!m.ready) return res.status(400).json({error:'La misión todavía no está completa'});
-  if(USE_PG) await pool.query('UPDATE clan_missions SET claimed_by=$1, claimed_at=$2, completed=true WHERE id=$3',[user.id,new Date().toISOString(),m.id]);
-  else { const row=(fileDb.clanMissions||[]).find(x=>x.id===m.id); if(row){ row.claimedBy=user.id; row.claimedAt=new Date().toISOString(); row.completed=true; } saveDb(fileDb); }
+  // UPDATE condicional: si dos requests llegan juntos, sólo uno obtiene
+  // rowCount 1 y se lleva la recompensa. El otro recibe 409 y no paga nada.
+  if(USE_PG){
+    const up=await pool.query('UPDATE clan_missions SET claimed_by=$1, claimed_at=$2, completed=true WHERE id=$3 AND (claimed_by IS NULL OR claimed_by=\'\')',[user.id,new Date().toISOString(),m.id]);
+    if(!up.rowCount) return res.status(409).json({error:'Esta misión ya fue reclamada'});
+  } else {
+    const row=(fileDb.clanMissions||[]).find(x=>x.id===m.id);
+    if(!row) return res.status(409).json({error:'Esta misión ya fue reclamada'});
+    if(row.claimedBy) return res.status(409).json({error:'Esta misión ya fue reclamada'});
+    row.claimedBy=user.id; row.claimedAt=new Date().toISOString(); row.completed=true; saveDb(fileDb);
+  }
   // Recompensa: pts al clan + pts al jugador que reclamó.
   if(m.coins>0){ user.coins=(user.coins||0)+m.coins; }
   await updateUser(user);
@@ -952,12 +1001,15 @@ async function endClanTournament(t){
 }
 app.get('/api/clans/tournament', async (req,res)=>{ try{ const user=await findUserByToken(req); if(user) ensureShopFields(user); let t=await getActiveClanTournament();
     let endedNow=false;
-    if(t && new Date(t.endDate)<=new Date()){ const finishedId=t.id; await endClanTournament(t); endedNow=true; t=(await getClanTournaments()).find(x=>x.id===finishedId)||null; }
+    if(t && new Date(t.endDate)<=new Date()){ await endClanTournament(t); endedNow=true; t=null; }
+    // Si no hay torneo activo se abre el siguiente en estado "pending" para
+    // que el líder tenga dóndePRESSIONAR "iniciar". Antes, al terminar uno,
+    // 't' seguía siendo el finished y no se creaba el nuevo.
     let pending=await getPendingClanTournament();
     if(!t && !pending){ const d=new Date(); const end=new Date(d.getTime()+CLAN_TOURNAMENT_DAYS*86400000); pending={id:crypto.randomUUID(),startDate:d.toISOString(),endDate:end.toISOString(),status:'pending',results:{}}; await saveClanTournament(pending); }
     const clans=await getAllClans();
-    const board=[];
-    for(const c of clans){ const mem=await getClanMembers(c.id); board.push({id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,points:c.points||0,wins:c.wins||0,losses:c.losses||0,members:mem.length,tournamentPoints:(t&&t.results[c.id])?(t.results[c.id].points||0):0,level:clanLevel(c.points||0),myClan:!!(user&&user.clanId===c.id)}); }
+    const counts=await getClansMemberCounts();
+    const board=clans.map(c=>({id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,points:c.points||0,wins:c.wins||0,losses:c.losses||0,members:counts.get(c.id)||0,rank:clanRankFromPoints(c.points||0),tournamentPoints:(t&&t.results[c.id])?(t.results[c.id].points||0):0,myClan:!!(user&&user.clanId===c.id)}));
     board.sort((a,b)=>b.tournamentPoints-a.tournamentPoints||b.points-a.points);
     res.set('Cache-Control','no-store');
     res.json({tournament:t?{id:t.id,status:t.status,startDate:t.startDate,endDate:t.endDate,results:t.results}:null,endedNow,pending:pending&&!t?{id:pending.id,startDate:pending.startDate,endDate:pending.endDate}:null,board,clanCount:clans.length,minClans:2,durationDays:CLAN_TOURNAMENT_DAYS});
@@ -1209,8 +1261,11 @@ function tickRoom(r){
             p.rpWon=rpGain;
             if(rpGain!==0){ try{ await grantRankPoints(u.id,rpGain,'ranked'); }catch(e){} }
             rpLine=' · +'+rpGain+' RP';
-            // Puntos para el torneo de clanes (sólo si hay torneo activo).
-            if(u.clanId){ try{ const ct=await getActiveClanTournament(); if(ct){ const cp=isWin?((m.teamSize===4)?30:45):Math.max(5,Math.round(p.kills*2)); await grantClanPoints(u.clanId,u.id,cp); rpLine+=' · +'+cp+' pts clan'; } }catch(e){} }
+            // Puntos de clan. SIEMPRE se acreditan al clan (aunque no haya torneo):
+            // si se condicionaran al torneo, la escalera de rangos de clan
+            // quedaría inalcanzable en el día a día. grantClanPoints ya suma
+            // al torneo internamente sólo si hay uno activo.
+            if(u.clanId){ try{ const cp=isWin?((m.teamSize===4)?30:45):Math.max(5,Math.round(p.kills*2)); if(cp>0){ await grantClanPoints(u.clanId,u.id,cp); rpLine+=' · +'+cp+' pts clan'; } }catch(e){} }
             // Misiones diarias del clan: partida jugada, victoria, naves, oleada.
             if(u.clanId){ try{
               await bumpClanMissions(u.clanId,'ranked',1);

@@ -13,8 +13,56 @@ const Clans = (() => {
   let emblemList = [];
   let roleLabels = { leader: '👑 Líder', officer: '⭐ Oficial', member: '🛡️ Miembro' };
   let pollTimer = null;
-  let rankedPublic = true;
-  let lastChatKey = '';
+let lastChatKey = '';
+let createCost = 10000;      // lo devuelve /api/clans
+let myCoinsCache = null;
+
+function myCoins() {
+  if (typeof myCoinsCache === 'number') return myCoinsCache;
+  if (typeof Auth !== 'undefined' && Auth.user && typeof Auth.user.coins === 'number') return Auth.user.coins;
+  return 0;
+}
+
+// Propaga el saldo nuevo a TODAS las vistas (HUD, tienda, perfil).
+// Sin esto, pagar 10.000 por un clan dejaba el contador viejo y la tienda
+// habilitaba compras que el server ya iba a rechazar.
+function syncCoins(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return;
+  myCoinsCache = n;
+  try { if (typeof Auth !== 'undefined' && Auth.user) Auth.user.coins = n; } catch (e) {}
+  try {
+    if (typeof Game !== 'undefined' && typeof Game.coins === 'number') Game.coins = n;
+  } catch (e) {}
+  const cv = document.getElementById('coinVal');
+  if (cv) cv.textContent = String(n);
+  const sb = document.getElementById('shopBalance');
+  if (sb) sb.textContent = '🪙 ' + n + ' puntos';
+  try {
+    if (typeof Profile !== 'undefined' && Profile.user && typeof Profile.user.coins === 'number') {
+      Profile.user.coins = n;
+      if (typeof Profile.renderProfile === 'function') Profile.renderProfile();
+    }
+  } catch (e) {}
+}
+
+// Muestra el costo de fundar un clan y deshabilita el botón si no alcanza.
+function renderCreateCost() {
+  const box = $('clanCreateCost');
+  const btn = $('clanCreateBtn');
+  const cost = createCost || 10000;
+  const coins = myCoins();
+  const falta = Math.max(0, cost - coins);
+  if (box) {
+    box.innerHTML = coins >= cost
+      ? '<span class="clan-cost-ok">✅ Podés fundar el clan · -' + cost + ' pts</span> <span class="clan-cost-have">Tenés ' + coins + '</span>'
+      : '<span class="clan-cost-no">🔒 Te faltan ' + falta + ' pts</span> <span class="clan-cost-have">Tenés ' + coins + ' / ' + cost + '</span>';
+  }
+  if (btn) {
+    const listo = coins >= cost;
+    btn.disabled = !listo;
+    btn.textContent = listo ? '🛡️ Fundar clan (-' + cost + ' pts)' : '🔒 Necesitás ' + falta + ' pts más';
+  }
+}
 
   function rankBadge(r) {
     if (!r || !r.name) return '';
@@ -91,6 +139,10 @@ const Clans = (() => {
       if (!Array.isArray(data.chat)) data.chat = [];
       if (!Array.isArray(data.missions)) data.missions = [];
       if (!data.myRole) data.myRole = '';
+      // El saldo y el costo vienen del server: si no, el botón "fundar clan"
+      // se quedaba deshabilitado con un saldo viejo para toda la sesión.
+      if (typeof data.createCost === 'number') createCost = data.createCost;
+      if (typeof data.coins === 'number') syncCoins(data.coins);
       renderMine();
       renderMissions();
     } catch (e) {
@@ -139,7 +191,7 @@ const Clans = (() => {
     try {
       const r = await API.claimClanMission(missionId);
       Toast.success('🎁 Misión reclamada · +' + (r.clanPoints || 0) + ' pts de clan');
-      if (r.coins != null && typeof Auth !== 'undefined' && Auth.user) Auth.user.coins = r.coins;
+      syncCoins(r.coins);
       lastChatKey = '';
       await refresh();
     } catch (e) {
@@ -152,6 +204,7 @@ const Clans = (() => {
   function renderMine() {
     const none = $('clanNoClan'), has = $('clanHasClan');
     if (!emblemList.length) fillEmblems();
+    renderCreateCost();
     if (!data.clan) {
       if (none) none.classList.remove('hidden');
       if (has) has.classList.add('hidden');
@@ -171,8 +224,8 @@ const Clans = (() => {
             '<p class="muted">' + esc(c.description || 'Sin descripción') + '</p>' +
           '</div>' +
           '<div class="clan-lv">' +
-            '<span class="clan-lv-badge">Nv ' + (Number(c.level) || 1) + '</span>' +
-            '<span class="clan-lv-pts">' + (Number(c.points) || 0) + ' pts</span>' +
+            '<span class="clan-lv-badge">🏅 ' + (Number(c.points) || 0) + '</span>' +
+            '<span class="clan-lv-pts">pts</span>' +
           '</div>' +
         '</div>' +
         '<div class="clan-rank-row">' + clanRankBadge(c.rank) +
@@ -268,14 +321,24 @@ const Clans = (() => {
     const description = dEl ? dEl.value.trim() : '';
     if (name.length < 3) { Toast.error('El nombre necesita 3+ caracteres'); return; }
     if (tag.length < 2) { Toast.error('La TAG necesita 2-4 caracteres'); return; }
+    // Chequeo local del costo (el server igual lo valida de nuevo).
+    const cost = createCost || 10000;
+    const coins = myCoins();
+    if (coins < cost) {
+      Toast.error('Necesitás ' + cost + ' pts para fundar un clan (tenés ' + coins + ')');
+      return;
+    }
+    if (!confirm('Fundar ' + tag + ' te costará ' + cost + ' pts. ¿Seguís?')) return;
     const btn = $('clanCreateBtn');
     if (btn) btn.disabled = true;
     try {
-      await API.createClan({ name, tag, emblem, color, description });
-      Toast.success('🛡️ ¡Clan creado!');
+      const r = await API.createClan({ name, tag, emblem, color, description });
+      Toast.success('🛡️ ¡Clan creado! -' + (r.cost || cost) + ' pts');
+      syncCoins(typeof r.coins === 'number' ? r.coins : (coins - cost));
       if (nEl) nEl.value = '';
       if (tEl) tEl.value = '';
       if (dEl) dEl.value = '';
+      renderCreateCost();
       await refresh();
     } catch (e) { Toast.error((e && e.message) || 'Error al crear'); }
     finally { if (btn) btn.disabled = false; }
@@ -297,6 +360,9 @@ const Clans = (() => {
       const list = (d && Array.isArray(d.clans)) ? d.clans : [];
       if (Array.isArray(d.emblems) && d.emblems.length) emblemList = d.emblems;
       if (d.roles) roleLabels = d.roles;
+      if (typeof d.createCost === 'number') createCost = d.createCost;
+      if (typeof d.myCoins === 'number') syncCoins(d.myCoins);
+      renderCreateCost();
       if (!list.length) { el.innerHTML = '<p class="lead muted" style="text-align:center">No hay clanes. ¡Creá el primero! 👇</p>'; return; }
       el.innerHTML = list.map(c => {
         const mine = !!c.myRole;

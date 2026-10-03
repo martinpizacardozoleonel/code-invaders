@@ -570,13 +570,15 @@
           <p class="lead muted">Todavía no pertenecés a ningún clan. 🔎 Buscá uno en la pestaña <b>Lista</b> o creá el tuyo.</p>
           <div class="clan-create-box">
             <h3 class="panel-sec-title">➕ CREAR CLAN</h3>
+            <p class="clan-cost-hint">Fundar un clan cuesta <b>10.000 pts</b>. Se descuentan de tu saldo.</p>
+            <div id="clanCreateCost" class="clan-cost"></div>
             <div class="arcade-form-row"><input type="text" id="clanNameInput" class="arcade-input" placeholder="Nombre del clan (3+)" maxlength="24" autocomplete="off"><input type="text" id="clanTagInput" class="arcade-input" placeholder="TAG" maxlength="4" autocomplete="off"></div>
             <div class="arcade-form-row" style="margin-top:8px">
               <select id="clanEmblemInput" class="arcade-input"></select>
               <input type="color" id="clanColorInput" class="arcade-input" value="#00e5ff" title="Color del clan">
             </div>
             <textarea id="clanDescInput" class="arcade-input" rows="2" maxlength="200" placeholder="Descripción (opcional)" style="margin-top:8px;width:100%"></textarea>
-            <button class="btn btn-primary btn-block" id="clanCreateBtn" style="margin-top:8px">🛡️ Crear clan</button>
+            <button class="btn btn-primary btn-block" id="clanCreateBtn" style="margin-top:8px">🛡️ Fundar clan (-10.000 pts)</button>
           </div>
         </div>
         <div id="clanHasClan" class="hidden">
@@ -781,7 +783,7 @@
     <script src="js/ships.js?v=2"></script>
     <script src="js/lasers.js?v=1"></script>
     <script src="js/impacts.js?v=1"></script>
-    <script src="js/game.js?v=28"></script>
+    <script src="js/game.js?v=29"></script>
   <script src="js/profile.js?v=14"></script>
   <script src="js/ranked.js?v=9"></script>
   <script src="js/chat.js?v=7"></script>

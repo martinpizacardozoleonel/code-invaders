@@ -2383,6 +2383,17 @@ body.light .inspect-player-title{ text-shadow:0 0 6px rgba(255,160,0,.5); }
   margin-top:14px; padding:14px; border-radius:12px;
   background:rgba(255,255,255,.04); border:1px solid rgba(0,229,255,.22);
 }
+.clan-cost-hint{ font-size:.75rem; opacity:.8; margin:0 0 6px; }
+.clan-cost-hint b{ color:#ffd600; }
+.clan-cost{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:.76rem; font-weight:800; margin-bottom:8px;
+  padding:6px 10px; border-radius:8px;
+  background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.08);
+}
+.clan-cost-ok{ color:#00e676; }
+.clan-cost-no{ color:#ff8a65; }
+.clan-cost-have{ opacity:.7; font-weight:700; }
 .clan-banner{
   display:flex; align-items:center; gap:14px; padding:14px;
   border-radius:14px; margin-bottom:10px;

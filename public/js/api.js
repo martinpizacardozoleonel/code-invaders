@@ -163,9 +163,7 @@ async equipNameColor(colorId){ return request('/api/name-colors/equip',{method:'
     async sendClanChat(text){ return request('/api/clans/chat',{method:'POST',body:JSON.stringify({text})}); },
     async getClanTournament(){ return request('/api/clans/tournament'); },
     async startClanTournament(){ return request('/api/clans/tournament/start',{method:'POST'}); },
-    async getClanRanks(){ return request('/api/clans/ranks'); },
     async getClanRanking(sort){ return request('/api/clans/ranking'+(sort?('?sort='+encodeURIComponent(sort)):'')); },
-    async getClanMissions(){ return request('/api/clans/missions'); },
     async claimClanMission(missionId){ return request('/api/clans/missions/claim',{method:'POST',body:JSON.stringify({missionId})}); },
 
     qrUrl:(text,size,color)=>{ const hex=(color||'#43a047').replace('#',''); return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${hex}&bgcolor=ffffff&data=${encodeURIComponent(text)}`; },
