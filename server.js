@@ -502,29 +502,31 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 process.on('unhandledRejection',(e)=>{ console.error('[unhandled]',e&&e.message||e); });
 async function checkAchievements(user){
  ensureShopFields(user);
- let newly=[];
+ let newly=[]; let avisos=[];
  if(!user.achievements.includes('triple_champion') && (user.tournamentStreak||0)>=3){
    user.achievements.push('triple_champion');
    if(!user.frames.includes('universo')) user.frames.push('universo');
    newly.push('triple_champion');
-   await pushNotification(user.id,'🏆 ¡LOGRO DESBLOQUEADO!','Tricampeón: 3 torneos seguidos → 🌌 Marco Universo desbloqueado','success');
+   avisos.push(['🏆 ¡LOGRO DESBLOQUEADO! Tricampeón','Tricampeón: 3 torneos seguidos → 🌌 Marco Universo desbloqueado']);
  }
 if(!user.achievements.includes('speed_demon') && user.speedrunBest!=null && user.speedrunBest<=SPEEDRUN_ACHIEVEMENT_MS){
    user.achievements.push('speed_demon');
    if(!user.banners.includes('aurora')) user.banners.push('aurora');
    newly.push('speed_demon');
-   await pushNotification(user.id,'⚡ ¡LOGRO DESBLOQUEADO!','Demonio Veloz: '+(user.speedrunBest/1000).toFixed(2)+'s ≤ 11.5s → 🌠 Banner Aurora desbloqueado','success');
+   avisos.push(['⚡ ¡LOGRO DESBLOQUEADO! Demonio Veloz','Demonio Veloz: '+(user.speedrunBest/1000).toFixed(2)+'s ≤ 11.5s → 🌠 Banner Aurora desbloqueado']);
   }
 if(!user.achievements.includes('centurion') && (user.exp||0)>=100000){
    user.achievements.push('centurion');
    if(!user.fonts.includes('phantom')) user.fonts.push('phantom');
    user.coins=(user.coins||0)+100000;
    newly.push('centurion');
-   await pushNotification(user.id,'💯 ¡LOGRO DESBLOQUEADO!','Centurión: 100k EXP → 👻 Letra Fantasma + 100.000 pts','success');
+   avisos.push(['💯 ¡LOGRO DESBLOQUEADO! Centurión','Centurión: 100k EXP → 👻 Letra Fantasma + 100.000 pts']);
   }
-  // Persiste acá siuos mismo: antes dependedía de que el llamador guardara
-  // DESPUÉS, y /api/speedrun guardaba antes -> el logro se perdía siempre.
+  // Guarda el logro PRIMERO y avisa después. Antes la notificación iba antes
+  // del update: si esa insert fallaba, la excepción se comía el update y el
+  // logro se perdía para siempre (el jugador cumplía y no se enteraba).
   if(newly.length){ try{ await updateUser(user); }catch(e){ console.error('[checkAchievements] persist fail',e.message); } }
+  for(const aviso of avisos){ try{ await pushNotification(user.id,aviso[0],aviso[1],'success'); }catch(e){ console.error('[checkAchievements] notificacion:',e.message); } }
   return newly;
 }
 function pickLuckyItem(){
@@ -960,6 +962,7 @@ app.post('/api/clans/missions/claim', async (req,res)=>{ try{
   }
   // Recompensa: pts al clan + pts al jugador que reclamó.
   if(m.coins>0){ user.coins=(user.coins||0)+m.coins; }
+  await checkAchievements(user);
   await updateUser(user);
   let clanPts=0;
   if(m.points>0){
@@ -1314,8 +1317,12 @@ function tickRoom(r){
            p.score=score;
            const expGain=(isWin?300:150)+p.kills*10+(isWin?(topKills*5):0);
            const coinGain=(isWin?500:200)+p.kills*20+(isWin?(topKills*10):0);
-           u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
-           await updateUser(u);
+u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().toISOString();
+            // OJO: acá faltaba el chequeo de logros. El EXP del multijugador y el
+            // ranked entra por acá, así que un jugador podía pasar los 100.000
+            // EXP jugando y nunca ver el logro Centurión.
+            await checkAchievements(u);
+            await updateUser(u);
            p.expWon=expGain; p.coinsWon=coinGain;
            let rpLine='';
            if(isRankedMatch){
@@ -1562,6 +1569,11 @@ app.get('/api/achievements', async (req,res)=>{
  try{
   const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'});
   ensureShopFields(user);
+  // Reclamo al MIRAR la lista: si el jugador ya cumple un requisito pero el
+  // logro nunca se acreditó (por ejemplo porque se le escapó un chequeo), al
+  // abrir el panel se le otorga igual. Antes solo se revisaba al iniciar
+  // sesión, y ahí el panel decía "bloqueado" con el requisito cumplido.
+  try{ await checkAchievements(user); }catch(e){ console.error('[achievements] check fail',e.message); }
   // Progreso real por logro, para que se vea cuánto falta en vez de
   // un "bloqueado" sin explicación.
   const stats={speedrunBest:user.speedrunBest,exp:user.exp,tournamentStreak:user.tournamentStreak||0,tournamentWins:user.tournamentWins||0};
@@ -1588,7 +1600,7 @@ function luckyOdds(){ const total=LUCKY_ITEMS.reduce((s,i)=>s+i.weight,0); retur
 app.get('/api/lucky/pool', (req,res)=>{ res.json({items:luckyOdds()}); });
 const LUCKY_PACKS={1:1000,5:3000,10:5000};
 app.post('/api/lucky/spin', async (req,res)=>{
- try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const count=Number((req.body||{}).count)||1; if(!LUCKY_PACKS[count]) return res.status(400).json({error:'Pack inválido (1, 5 o 10 giros)'}); const cost=LUCKY_PACKS[count]; if((user.coins||0)<cost) return res.status(400).json({error:'Puntos insuficientes (necesitas '+cost+' pts)'}); user.coins-=cost; const items=[]; for(let k=0;k<count;k++){ const item=pickLuckyItem(); items.push(item); if(item.type==='coins'){ user.coins=(user.coins||0)+item.amount; } else if(item.type==='exp'){ user.exp=(user.exp||0)+item.amount; } else if(item.type==='bubble'){ if(!user.chatBubbles.includes(item.bubbleId)) user.chatBubbles.push(item.bubbleId); } } user.luckySpins=(user.luckySpins||0)+count; await updateUser(user); const summary=items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '); await pushNotification(user.id,'🎰 Lucky Coders x'+count,`Ganaste: ${summary}`,'success'); const RV={common:0,rare:1,epic:2,legendary:3,mythic:4}; let best=items[0]; for(const it of items){ if((RV[it.rarity]||0)>(RV[best.rarity]||0)) best=it; } res.json({item:items[0],items,winId:best.id,pool:luckyOdds(),coins:user.coins,exp:user.exp,chatBubbles:user.chatBubbles,luckySpins:user.luckySpins,count,cost}); }catch(e){ res.status(500).json({error:'spin error'}); }
+ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const count=Number((req.body||{}).count)||1; if(!LUCKY_PACKS[count]) return res.status(400).json({error:'Pack inválido (1, 5 o 10 giros)'}); const cost=LUCKY_PACKS[count]; if((user.coins||0)<cost) return res.status(400).json({error:'Puntos insuficientes (necesitas '+cost+' pts)'}); user.coins-=cost; const items=[]; for(let k=0;k<count;k++){ const item=pickLuckyItem(); items.push(item); if(item.type==='coins'){ user.coins=(user.coins||0)+item.amount; } else if(item.type==='exp'){ user.exp=(user.exp||0)+item.amount; } else if(item.type==='bubble'){ if(!user.chatBubbles.includes(item.bubbleId)) user.chatBubbles.push(item.bubbleId); } } user.luckySpins=(user.luckySpins||0)+count; await checkAchievements(user); await updateUser(user); const summary=items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '); await pushNotification(user.id,'🎰 Lucky Coders x'+count,`Ganaste: ${summary}`,'success'); const RV={common:0,rare:1,epic:2,legendary:3,mythic:4}; let best=items[0]; for(const it of items){ if((RV[it.rarity]||0)>(RV[best.rarity]||0)) best=it; } res.json({item:items[0],items,winId:best.id,pool:luckyOdds(),coins:user.coins,exp:user.exp,chatBubbles:user.chatBubbles,luckySpins:user.luckySpins,count,cost}); }catch(e){ res.status(500).json({error:'spin error'}); }
 });
 app.use((err,req,res,next)=>{ console.error('[server]',err.message||err); if(!res.headersSent) res.status(500).json({error:'Error interno del servidor'}); });
 app.get('/api/status', async (req,res)=>{ try{ const users=await getAllUsers(); res.json({storage:USE_PG?'postgres':'json',users:users.length,time:new Date().toISOString()}); }catch(e){ res.status(500).json({error:'status error'}); } });
