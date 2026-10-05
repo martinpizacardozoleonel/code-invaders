@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -678,11 +678,11 @@ app.get('/api/name-colors',(req,res)=>{ res.json({colors:NAME_COLORS}); });
 app.post('/api/name-colors/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {colorId}=req.body||{}; const col=NAME_COLORS.find(c=>c.id===colorId); if(!col) return res.status(404).json({error:'Color no existe'}); if(user.ownedNameColors.includes(colorId)) return res.status(400).json({error:'Ya tienes este color'}); if((user.exp||0)<col.price) return res.status(400).json({error:`Necesitas ${col.price} EXP (tienes ${user.exp})`}); user.exp-=col.price; user.ownedNameColors.push(colorId); await updateUser(user); await pushNotification(user.id,'¡Color comprado! 🎨',`Desbloqueaste ${col.name}`,'success'); res.json({exp:user.exp, ownedNameColors:user.ownedNameColors}); });
 app.post('/api/name-colors/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {colorId}=req.body||{}; if(colorId==='white'){ user.nameColor='#ffffff'; await updateUser(user); return res.json({nameColor:user.nameColor}); } const col=NAME_COLORS.find(c=>c.id===colorId); if(!col) return res.status(404).json({error:'Color no existe'}); if(!user.ownedNameColors.includes(colorId)) return res.status(400).json({error:'No tienes este color'}); user.nameColor=col.color; await updateUser(user); res.json({nameColor:user.nameColor}); });
 app.get('/api/banners',(req,res)=>{ res.json({banners:BANNERS}); });
-app.post('/api/banners/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {bannerId}=req.body||{}; const b=BANNERS.find(x=>x.id===bannerId); if(!b) return res.status(404).json({error:'Banner no existe'}); if(user.banners.includes(bannerId)) return res.status(400).json({error:'Ya tienes este banner'}); if((user.coins||0)<b.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=b.price; user.banners.push(bannerId); await updateUser(user); await pushNotification(user.id,'Banner comprado!','Desbloqueaste '+b.name,'success'); res.json({coins:user.coins,banners:user.banners}); });
+app.post('/api/banners/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {bannerId}=req.body||{}; const b=BANNERS.find(x=>x.id===bannerId); if(!b) return res.status(404).json({error:'Banner no existe'}); if(b.exclusive) return res.status(400).json({error:'Este banner es exclusivo y no se puede comprar'}); if(user.banners.includes(bannerId)) return res.status(400).json({error:'Ya tienes este banner'}); if((user.coins||0)<b.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=b.price; user.banners.push(bannerId); await updateUser(user); await pushNotification(user.id,'Banner comprado!','Desbloqueaste '+b.name,'success'); res.json({coins:user.coins,banners:user.banners}); });
 app.post('/api/banners/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {bannerId}=req.body||{}; if(bannerId==='none'){ user.equippedBanner='none'; await updateUser(user); return res.json({equippedBanner:user.equippedBanner}); } const b=BANNERS.find(x=>x.id===bannerId); if(!b) return res.status(404).json({error:'Banner no existe'}); if(!user.banners.includes(bannerId)) return res.status(400).json({error:'No tienes este banner'}); user.equippedBanner=bannerId; await updateUser(user); res.json({equippedBanner:user.equippedBanner}); });
 
 app.get('/api/fonts',(req,res)=>{ res.json({fonts:FONTS}); });
-app.post('/api/fonts/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {fontId}=req.body||{}; const f=FONTS.find(x=>x.id===fontId); if(!f) return res.status(404).json({error:'Letra no existe'}); if(user.fonts.includes(fontId)) return res.status(400).json({error:'Ya tienes esta letra'}); if((user.coins||0)<f.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=f.price; user.fonts.push(fontId); await updateUser(user); await pushNotification(user.id,'Letra comprada!','Desbloqueaste '+f.name,'success'); res.json({coins:user.coins,fonts:user.fonts}); });
+app.post('/api/fonts/buy', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {fontId}=req.body||{}; const f=FONTS.find(x=>x.id===fontId); if(!f) return res.status(404).json({error:'Letra no existe'}); if(f.exclusive) return res.status(400).json({error:'Esta letra es exclusiva y no se puede comprar'}); if(user.fonts.includes(fontId)) return res.status(400).json({error:'Ya tienes esta letra'}); if((user.coins||0)<f.price) return res.status(400).json({error:'Puntos insuficientes'}); user.coins-=f.price; user.fonts.push(fontId); await updateUser(user); await pushNotification(user.id,'Letra comprada!','Desbloqueaste '+f.name,'success'); res.json({coins:user.coins,fonts:user.fonts}); });
 app.post('/api/fonts/equip', async (req,res)=>{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user); const {fontId}=req.body||{}; if(fontId==='normal'){ user.equippedFont='normal'; await updateUser(user); return res.json({equippedFont:user.equippedFont}); } const f=FONTS.find(x=>x.id===fontId); if(!f) return res.status(404).json({error:'Letra no existe'}); if(!user.fonts.includes(fontId)) return res.status(400).json({error:'No tienes esta letra'}); user.equippedFont=fontId; await updateUser(user); res.json({equippedFont:user.equippedFont}); });
 
 app.get('/api/fxs',(req,res)=>{ res.json({fxs:FXS}); });
@@ -1075,31 +1075,82 @@ async function dumpDb(){
 }
 async function importDb(d){
   if(!d||!Array.isArray(d.users)) throw new Error('Respaldo invalido');
+  // Si el respaldo trae un usuario con el MISMO nombre pero distinto id, se le
+  // adapta el id al que ya existe acá. Si no, el INSERT revienta contra el
+  // UNIQUE de username y se pierde TODA la importación (por eso el id de los
+  // amigos, sesiones y mensajes también se reasignan).
+  const mapId={}; let fusionados=0;
+  for(const u of d.users){ if(!u||!u.id||!u.username) continue; const actual=await getUserByUsername(u.username); if(actual&&actual.id!==u.id){ mapId[u.id]=actual.id; fusionados++; } }
+  const id=(x)=>mapId[x]||x;
   if(USE_PG){
-    for(const u of d.users){ ensureShopFields(u); await pgUpsertUser(u); }
-    for(const s of (d.sessions||[])){ try{ await pool.query('INSERT INTO sessions(token,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[s.token,s.userId]); }catch(e){} }
-    for(const n of (d.notifications||[])){ try{ await pool.query('INSERT INTO notifications(id,user_id,title,body,type,read,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING',[n.id,n.userId,n.title,n.body,n.type,n.read,n.createdAt]); }catch(e){} }
+    for(const u of d.users){ ensureShopFields(u); if(mapId[u.id]) u.id=mapId[u.id]; await pgUpsertUser(u); }
+    for(const s of (d.sessions||[])){ try{ await pool.query('INSERT INTO sessions(token, user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[s.token,id(s.userId)]); }catch(e){} }
+    for(const n of (d.notifications||[])){ try{ await pool.query('INSERT INTO notifications(id,user_id,title,body,type,read,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING',[n.id,id(n.userId),n.title,n.body,n.type,n.read,n.createdAt]); }catch(e){} }
     for(const t of (d.tournaments||[])){ try{ await pool.query('INSERT INTO tournaments(id,status,start_date,end_date,results) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[t.id,t.status,t.startDate,t.endDate,JSON.stringify(t.results||{})]); }catch(e){} }
-    for(const m of (d.chat||[])){ try{ await pool.query('INSERT INTO chat_messages(id,user_id,username,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,m.userId,m.username,m.text,m.createdAt]); }catch(e){} }
-    for(const f of (d.friendships||[])){ try{ await pool.query('INSERT INTO friendships(id,requester_id,addressee_id,status,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[f.id,f.requesterId,f.addresseeId,f.status,f.createdAt]); }catch(e){} }
-    for(const m of (d.privateMessages||[])){ try{ await pool.query('INSERT INTO private_messages(id,sender_id,receiver_id,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,m.senderId,m.receiverId,m.text,m.createdAt]); }catch(e){} }
-    for(const g of (d.gifts||[])){ try{ await pool.query('INSERT INTO gifts(id,sender_id,receiver_id,amount,message,created_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',[g.id,g.senderId,g.receiverId,g.amount,g.message||'',g.createdAt]); }catch(e){} }
+    for(const m of (d.chat||[])){ try{ await pool.query('INSERT INTO chat_messages(id,user_id,username,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,id(m.userId),m.username,m.text,m.createdAt]); }catch(e){} }
+    for(const f of (d.friendships||[])){ try{ await pool.query('INSERT INTO friendships(id,requester_id,addressee_id,status,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[f.id,id(f.requesterId),id(f.addresseeId),f.status,f.createdAt]); }catch(e){} }
+    for(const m of (d.privateMessages||[])){ try{ await pool.query('INSERT INTO private_messages(id,sender_id,receiver_id,text,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',[m.id,id(m.senderId),id(m.receiverId),m.text,m.createdAt]); }catch(e){} }
+    for(const g of (d.gifts||[])){ try{ await pool.query('INSERT INTO gifts(id,sender_id,receiver_id,amount,message,created_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',[g.id,id(g.senderId),id(g.receiverId),g.amount,g.message||'',g.createdAt]); }catch(e){} }
   } else {
     const byId=(arr)=>(new Map((arr||[]).map(x=>[x.id,x])));
-    const mu=byId(fileDb.users); (d.users||[]).forEach(u=>{ ensureShopFields(u); mu.set(u.id,u); }); fileDb.users=[...mu.values()];
-    const ms=byId(fileDb.sessions); (d.sessions||[]).forEach(s=>ms.set(s.token||s.id,s)); fileDb.sessions=[...ms.values()];
-    const mn=byId(fileDb.notifications); (d.notifications||[]).forEach(n=>mn.set(n.id,n)); fileDb.notifications=[...mn.values()];
+    const mu=byId(fileDb.users); (d.users||[]).forEach(u=>{ ensureShopFields(u); if(mapId[u.id]) u.id=mapId[u.id]; mu.set(u.id,u); }); fileDb.users=[...mu.values()];
+    const ms=byId(fileDb.sessions); (d.sessions||[]).forEach(s=>ms.set(s.token||s.id,Object.assign({},s,{userId:id(s.userId)}))); fileDb.sessions=[...ms.values()];
+    const mn=byId(fileDb.notifications); (d.notifications||[]).forEach(n=>mn.set(n.id,Object.assign({},n,{userId:id(n.userId)}))); fileDb.notifications=[...mn.values()];
     const mt=byId(fileDb.tournaments); (d.tournaments||[]).forEach(x=>mt.set(x.id,x)); fileDb.tournaments=[...mt.values()];
-    const mc=byId(fileDb.chat); (d.chat||[]).forEach(m=>mc.set(m.id,m)); fileDb.chat=[...mc.values()];
-    const mf=byId(fileDb.friendships); (d.friendships||[]).forEach(f=>mf.set(f.id,f)); fileDb.friendships=[...mf.values()];
-    const mp=byId(fileDb.privateMessages); (d.privateMessages||[]).forEach(m=>mp.set(m.id,m)); fileDb.privateMessages=[...mp.values()];
-    const mg=byId(fileDb.gifts); (d.gifts||[]).forEach(g=>mg.set(g.id,g)); fileDb.gifts=[...mg.values()];
+    const mc=byId(fileDb.chat); (d.chat||[]).forEach(m=>mc.set(m.id,Object.assign({},m,{userId:id(m.userId)}))); fileDb.chat=[...mc.values()];
+    const mf=byId(fileDb.friendships); (d.friendships||[]).forEach(f=>mf.set(f.id,Object.assign({},f,{requesterId:id(f.requesterId),addresseeId:id(f.addresseeId)}))); fileDb.friendships=[...mf.values()];
+    const mp=byId(fileDb.privateMessages); (d.privateMessages||[]).forEach(m=>mp.set(m.id,Object.assign({},m,{senderId:id(m.senderId),receiverId:id(m.receiverId)}))); fileDb.privateMessages=[...mp.values()];
+    const mg=byId(fileDb.gifts); (d.gifts||[]).forEach(g=>mg.set(g.id,Object.assign({},g,{senderId:id(g.senderId),receiverId:id(g.receiverId)}))); fileDb.gifts=[...mg.values()];
     saveDb(fileDb);
   }
-  return {users:(d.users||[]).length};
+return {users:(d.users||[]).length, fusionados};
 }
+/* ============ RESTAURAR CUENTAS (piza, enzo, guguslu, tecojobienelorto) ====
+   Cuando Render suspendió el servicio se perdieron las cuentas y no había forma
+   de recuperarlas. Esto las vuelve a crear con el MISMO hash que usa el login
+   (scrypt + salt), para que entren con la contraseña de siempre.
+
+   Reglas:
+     - Si la cuenta NO existe → se crea con todos los datos de cuentas.json.
+     - Si la cuenta YA existe → no se toca (queda la partida nueva), salvo que
+       venga overwrite:true. Así un deploy repetido nunca pisa un récord.
+     - Sin ADMIN_KEY configurada el endpoint está cerrado (403). */
+const CUENTAS_FILE = path.join(__dirname, 'cuentas.json');
+function cuentasPorDefecto(){
+  try{ const d=JSON.parse(fs.readFileSync(CUENTAS_FILE,'utf8')); return Array.isArray(d.accounts)?d.accounts:[]; }catch(e){ return []; }
+}
+function nivelesAProgress(levels, attempts, solvedAt){
+  return (Array.isArray(levels)?levels:[]).filter(n=>Number(n)>0).map(n=>({ level:Number(n), attempts:Number((attempts||{})[n])||1, solved:true, solvedAt:solvedAt||new Date().toISOString() }));
+}
+async function restaurarCuenta(a, overwrite){
+  const username=String((a&&a.username)||'').trim();
+  const password=a&&a.password!=null?String(a.password):'';
+  if(!username||!password) return { username:username||'(sin nombre)', error:'Falta el usuario o la contraseña' };
+  if(await isBanned('',username)) return { username, error:'Ese nombre está vetado en este servidor' };
+  const existing=await getUserByUsername(username);
+  if(existing && !overwrite) return { username, accion:'ya existía (no se tocó)', id:existing.id, exp:existing.exp||0, coins:existing.coins||0, niveles:levelStats(existing).solved };
+  // El id solo se reutiliza si está libre: si otro usuario ya lo usa, se genera
+  // uno nuevo para no romper la clave primaria de la tabla.
+  let id=existing?existing.id:(a.id||crypto.randomUUID());
+  if(!existing && a.id){ const ocupado=await getUserById(a.id); if(ocupado&&ocupado.username!==username) id=crypto.randomUUID(); }
+  const salt=existing?existing.salt:crypto.randomBytes(16).toString('hex');
+  const u=existing||{ createdAt:(a&&a.createdAt)||new Date().toISOString(), lastSeen:(a&&a.createdAt)||new Date().toISOString() };
+  u.id=id; u.username=username; u.salt=salt; u.passwordHash=hashPassword(password,salt);
+  if(a.exp!=null&&a.exp!=='') u.exp=Math.max(0,Math.round(Number(a.exp))||0);
+  if(a.coins!=null&&a.coins!=='') u.coins=Math.max(0,Math.round(Number(a.coins))||0);
+  if(a.hours!=null&&a.hours!=='') u.hoursPlayed=Math.max(0,Math.round(Number(a.hours)*3600)||0);
+  if(a.levels) u.progress=nivelesAProgress(a.levels,a.attempts,a.createdAt);
+  if(a.speedrunBest!=null) u.speedrunBest=Number(a.speedrunBest)||null;
+  if(Array.isArray(a.speedrunHistory)) u.speedrunHistory=a.speedrunHistory;
+  if(a.rankPoints!=null) u.rankPoints=Math.max(0,Math.round(Number(a.rankPoints))||0);
+  if(typeof a.description==='string') u.description=a.description.slice(0,200);
+  ensureShopFields(u);
+  if(existing) await updateUser(u); else await createUser(u);
+  return { username, accion:existing?'actualizada':'creada', id:u.id, exp:u.exp||0, coins:u.coins||0, niveles:levelStats(u).solved, speedrunBest:u.speedrunBest==null?null:u.speedrunBest };
+}
+app.post('/api/admin/restore-accounts', async (req,res)=>{ const {key,accounts,overwrite}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const lista=Array.isArray(accounts)&&accounts.length?accounts:cuentasPorDefecto(); if(!lista.length) return res.status(400).json({error:'No hay cuentas para restaurar (revisá cuentas.json)' }); const results=[]; for(const a of lista){ try{ results.push(await restaurarCuenta(a,!!overwrite)); }catch(e){ console.error('[restore]',e.message); results.push({username:(a&&a.username)||'?',error:e.message}); } } res.json({ok:true,storage:USE_PG?'postgres':'json',results:results.filter(r=>!r.error),errors:results.filter(r=>r.error)}); }catch(e){ console.error('[restore]',e.message); res.status(500).json({error:'No se pudieron restaurar las cuentas'}); } });
 app.post('/api/admin/export', async (req,res)=>{ const {key}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const dump=await dumpDb(); res.json({dump}); }catch(e){ res.status(500).json({error:'No se pudo exportar'}); } });
-app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
+app.post('/api/admin/import', async (req,res)=>{ const {key,dump}=req.body||{}; if(!ADMIN_KEY||key!==ADMIN_KEY) return res.status(403).json({error:'Clave de admin incorrecta o no configurada'}); try{ const r=await importDb(dump); res.json({ok:true,users:r.users,fusionados:r.fusionados||0}); }catch(e){ res.status(400).json({error:e.message||'Respaldo invalido'}); } });
 
 /* ============ MULTIPLAYER SALAS (buscador + público/privado con código, polling) ============ */
 // ── Responder mensajes ───────────────────────────────────────────────────
@@ -1563,4 +1614,9 @@ app.get('/api/health', async (req,res)=>{
   res.set('Cache-Control','no-store');
   res.json(info);
 });
-(async()=>{ await initPg(); try{ const _u=await getUserByUsername('guguslu'); if(_u){ const _t=15020; _u.speedrunBest=_t; if(!_u.speedrunHistory) _u.speedrunHistory=[]; if(!_u.speedrunHistory.some(h=>h.time===_t)) _u.speedrunHistory.push({time:_t,at:new Date().toISOString()}); await updateUser(_u); console.log(`[fix] guguslu speedrun forced ${_t}ms`); } }catch(e){ console.log('fix guguslu',e.message); } try{ const _p=await getUserByUsername('piza'); if(_p){ const _t2=12020; _p.speedrunBest=_t2; if(!_p.speedrunHistory) _p.speedrunHistory=[]; if(!_p.speedrunHistory.some(h=>h.time===_t2)) _p.speedrunHistory.push({time:_t2,at:new Date().toISOString()}); await updateUser(_p); console.log(`[fix] piza speedrun forced ${_t2}ms`); } }catch(e){ console.log('fix piza',e.message); } try{ const _e=await getUserByUsername('enzo'); if(_e && _e.frames && _e.frames.includes('campeon')){ _e.frames=_e.frames.filter(f=>f!=='campeon'); if(_e.equippedFrame==='campeon') _e.equippedFrame='none'; await updateUser(_e); console.log(`[fix] Removed campeon frame from enzo`); } }catch(e){ console.log('fix enzo campeon',e.message); } app.listen(PORT,()=>{ console.log(`👾 Code Invaders corriendo en http://localhost:${PORT} ${USE_PG?'[PG conectado ✅]':'[JSON ⚠️ '+(PG_ERROR||'sin Postgres')+']'}`); }); })();
+(async()=>{ await initPg();
+// IMPORTANTE: aca NO debe modificarse ningun dato de usuario al arrancar.
+// Antes habia hacks de desarrollo que forzaban el speedrunBest de jugadores
+// concretos (piza, guguslu) en CADA deploy. Eso pisaba los records reales y
+// dejaba imposible ganar logros como "Demonio Veloz" (que requiere <= 11.5s).
+app.listen(PORT,()=>{ console.log('[OK] Code Invaders escuchando en http://localhost:'+PORT+' '+(USE_PG?'[PG conectado]':'[JSON local'+(PG_ERROR?' - '+PG_ERROR:'')+']')); }); })();

@@ -10,3 +10,8 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      # Clave de los endpoints /api/admin/*. En el panel de Render hay que
+      # ponerla a mano (no se sube desde acá). Sirve para exportar/importar
+      # respaldos y para restaurar cuentas.
+      - key: ADMIN_KEY
+        sync: false

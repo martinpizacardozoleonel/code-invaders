@@ -755,7 +755,16 @@
         <p class="hint">🎰 Exclusivas de Lucky Coders: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
         <div class="frames-grid" id="bubblesGrid"></div>
       </div>
-      <div class="frames-section hidden" id="backupSection"></div>
+      <div class="frames-section" id="backupSection">
+        <h3>💾 Respaldo de la base de datos</h3>
+        <p class="hint">Solo para el dueño del juego. Descargá un respaldo con todas las cuentas (y subilo de vuelta si se pierde la base). Necesita la clave de admin.</p>
+        <input type="password" id="backupKey" placeholder="Clave de admin" autocomplete="off" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a3350;background:#0a0e1a;color:#e6ecff">
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm" id="backupExportBtn">⬇️ Descargar respaldo</button>
+          <button class="btn btn-ghost btn-sm" id="backupImportBtn">⬆️ Subir respaldo</button>
+          <input type="file" id="backupFile" accept="application/json,.json" hidden>
+        </div>
+      </div>
       <div class="danger-zone" id="dangerZone">
         <h3>⚠️ Zona peligrosa</h3>
         <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
