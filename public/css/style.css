@@ -2587,3 +2587,18 @@ body.light .clans-tab.active{ background:rgba(0,150,200,.1); border-color:#0096c
 body.light .clan-member,body.light .clan-list-card,body.light .clan-chat{ background:rgba(0,0,0,.03); border-color:rgba(15,23,42,.08); }
 body.light .clan-chat-msg b{ color:#0096c8; }
 body.light .title-preview{ background:linear-gradient(180deg,#f8fafc,#eef2f7); }
+
+/* ══ GALAXIA 2 (nivel 7 en adelante) ═════════════════════════════════════
+   El <body> lleva la clase "galaxy2" cuando el jugador cruzó el portal del
+   jefe de JavaScript. A partir de ahí el fondo del espacio, el cartel de nivel
+   (la mini descripción de qué hay que destruir) y el cartel de "destruir →"
+   usan la paleta de la Nebulosa Violeta en vez de la verde de la primera
+   galaxia. Las reglas van al final para ganarle a las del tema claro, que
+   también usan !important con la misma especificidad.                     */
+body.galaxy2 .canvas-wrap{ background:#1a0626!important; box-shadow:0 10px 28px rgba(26,6,38,.16), inset 0 0 0 1px rgba(0,0,0,.6)!important; }
+body.galaxy2 #gameCanvas{ background:#1a0626!important; }
+body.galaxy2 .q-banner{ border-color:#ff4fd8!important; box-shadow:0 0 25px rgba(255,79,216,.25)!important; }
+body.galaxy2 .q-banner-text{ color:#ff4fd8; }
+body.galaxy2 .hud-target{ color:#ff4fd8; }
+body.galaxy2 .input-bar{ border-color:rgba(255,79,216,.45); }
+body.galaxy2 .hud-val#levelVal{ color:#ffb3ec; }

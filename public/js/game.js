@@ -1,4 +1,4 @@
-﻿const Game = (() => {
+const Game = (() => {
   const SKINS=[
     {id:'default',name:'DEV Cyan',price:0,body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
     {id:'crimson',name:'Crimson Fury',price:120,body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},
@@ -13,8 +13,25 @@
     {id:2,title:'CSS Básico',questions:[{q:'Margen exterior',a:'margin'},{q:'Color de texto',a:'color'},{q:'Borde',a:'border'},{q:'Posición',a:'position'},{q:'Selector por clase',a:'.'},{q:'Selector por ID',a:'#'},{q:'Tamaño de fuente',a:'font-size'},{q:'Alinear texto',a:'text-align'},{q:'Pseudoclase hover',a:':hover'},{q:'Activar flexbox',a:'display: flex'}],enemySpeed:0.7,spawnInterval:75,enemyHealth:1},
     {id:3,title:'JS Básico',questions:[{q:'Variable mutable',a:'let'},{q:'Variable constante',a:'const'},{q:'Comparación estricta',a:'==='},{q:'Función flecha',a:'=>'},{q:'Condición si',a:'if'},{q:'Bucle for',a:'for'}],enemySpeed:0.5,spawnInterval:95,enemyHealth:1},
     {id:4,title:'👑 JEFE FINAL',isBoss:true,bossHealth:12,questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Color de texto',a:'color'},{q:'Variable mutable',a:'let'},{q:'Selector por ID',a:'#'},{q:'Borde',a:'border'},{q:'Función flecha',a:'=>'},{q:'Tabla',a:'<table>'},{q:'Obtener por ID',a:'getElementById()'},{q:'Petición HTTP',a:'fetch()'},{q:'Agregar al final',a:'push()'}],enemySpeed:0,spawnInterval:0,enemyHealth:12},
-    {id:5,title:'👑 JEFE CSS',isBoss:true,isCssBoss:true,bossHealth:10,questions:[{q:'Color de texto',a:'color'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde',a:'border'},{q:'Ancho',a:'width'},{q:'Altura',a:'height'},{q:'Posición',a:'position'},{q:'Alinear ítems',a:'align-items'},{q:'Justificar contenido',a:'justify-content'}],enemySpeed:0,spawnInterval:0,enemyHealth:1}
+    {id:5,title:'👑 JEFE CSS',isBoss:true,isCssBoss:true,bossHealth:10,questions:[{q:'Color de texto',a:'color'},{q:'Fondo',a:'background'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde',a:'border'},{q:'Ancho',a:'width'},{q:'Altura',a:'height'},{q:'Posición',a:'position'},{q:'Alinear ítems',a:'align-items'},{q:'Justificar contenido',a:'justify-content'}],enemySpeed:0,spawnInterval:0,enemyHealth:1},
+    {id:6,title:'👑 JEFE JAVASCRIPT',isBoss:true,isJsBoss:true,bossHealth:15,questions:[{tag:'<h1>'},{tag:'<p>'},{tag:'<a>'},{tag:'<img>'},{tag:'<ul>'},{tag:'<div>'},{tag:'<span>'},{tag:'<button>'},{tag:'<input>'},{tag:'<table>'},{tag:'margin'},{tag:'padding'},{tag:'border'},{tag:'display: flex'},{tag:'text-align'}],enemySpeed:0,spawnInterval:0,enemyHealth:1},
+    {id:7,title:'Galaxia 2 · HTML + CSS + JS',galaxy:2,questions:[{q:'Etiqueta de negrita',a:'<strong>'},{q:'Etiqueta de cursiva',a:'<em>'},{q:'Salto de línea',a:'<br>'},{q:'Etiqueta de párrafo',a:'<p>'},{q:'Etiqueta de lista',a:'<ul>'},{q:'Etiqueta de divisor',a:'<hr>'},{q:'Etiqueta de cita',a:'<blockquote>'},{q:'Etiqueta de código',a:'<code>'},{q:'Margen exterior',a:'margin'},{q:'Margen interior',a:'padding'},{q:'Borde redondeado',a:'border-radius'},{q:'Sombra de la caja',a:'box-shadow'},{q:'Transición',a:'transition'}],enemySpeed:0.5,spawnInterval:90,enemyHealth:1}
   ];
+  // El nivel 7 abre la segunda galaxia: de ahí en más el cartel que cuenta qué
+  // hay que destruir se pinta con la paleta de esa galaxia.
+  const GALAXIES={
+    1:{bg:'#080c18',star:'180,200,255',accent:'#ab47bc',accent2:'#ce93d8',label:'GALAXIA 1 · SECTOR CÓDIGO'},
+    2:{bg:'#1a0626',star:'255,170,235',accent:'#ff4fd8',accent2:'#ffb3ec',label:'GALAXIA 2 · NEBULOSA VIOLETA'}
+  };
+  // Etiquetas HTML y CSS que usa el jefe de JavaScript (nivel 6) para las naves
+  // que tira en cada etapa.
+  const JS_HTML_TAGS=['<h1>','<p>','<a>','<img>','<ul>','<div>','<span>','<button>','<input>','<table>','<strong>','<em>'];
+  const JS_CSS_TAGS=['margin','padding','border','display','position','width','height','color','background','justify-content','align-items','text-align','border-radius','box-shadow','font-size'];
+  // Cambia de galaxia: pinta el fondo del lienzo con la paleta de esa galaxia y
+  // le pone una clase al <body> para que el cartel de nivel (la "mini
+  // descripción" de qué hay que destruir) tome el mismo color.
+  function setGalaxy(g){ galaxy=(Number(g)===2?2:1); document.body.classList.toggle('galaxy2',galaxy===2); }
+  function gal(){ return GALAXIES[galaxy]||GALAXIES[1]; }
   let canvas,ctx,W,H;
   let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
   let gameOptsBtnEl,gameOptsMenuEl,gameInfoBtnEl,gameAbandonBtnEl,gameBackBtnEl,gameInfoPanelEl,gameInfoBodyEl,gameInfoCloseBtnEl;
@@ -54,6 +71,14 @@
   let playSecAcc=0;
   let cssBoss=false,cssBossWave=0,cssBossSpawnTimer=0,cssBossBubble='',cssBossBubbleTimer=0;
   let bossVX=1.8,bossVY=1.2;
+  // ── Jefe de JavaScript (nivel 6) ────────────────────────────────────────
+  // Va por etapas: 4 naves con etiqueta HTML, después 2 naves con vida (3
+  // escrituras cada una), después se vuelve furioso (la galaxia tiembla) y
+  // tira 5 naves con etiqueta CSS que sólo se destruyen disparando las balas
+  // que se ganan escribiendo el código correcto. Al final abre un portal.
+  let jsBoss=false,jsBossPhase=0,jsBossBullets=0,jsBossShake=0,jsBossFreeze=0,jsBossPortal=null,jsBossBubble='',jsBossBubbleTimer=0;
+  let portalFade=0;
+  let galaxy=1;
   const BOSS_TAG_DEFS=[
     {tag:'<h1>',color:'#e44d26'},{tag:'<p>',color:'#e44d26'},{tag:'<a>',color:'#e44d26'},
     {tag:'.class',color:'#264de4'},{tag:'#id',color:'#264de4'},{tag:'margin',color:'#264de4'},
@@ -127,6 +152,14 @@
       const ae=document.activeElement;
       const isAnswerFocused=ae===inputEl;
       const typing = isTyping();
+      // Etapa 3 del jefe de JavaScript: el SPACE dispara con las balas que
+      // ganaste escribiendo, así que se lo sacamos al input para que no se
+      // pegue un espacio en el medio del código.
+      if(e.key===' '&&jsBoss&&state==='playing'&&jsBossPhase===3&&!jsBossPortal){
+        e.preventDefault(); keys[' ']=true;
+        if(isAnswerFocused&&inputEl&&inputEl.value.endsWith(' ')) inputEl.value=inputEl.value.slice(0,-1);
+        return;
+      }
       if(e.key==='Escape' && isInGame() && gameMenuOpen()){ e.preventDefault(); hideGameMenu(); if(isAnswerFocused&&inputEl) inputEl.focus(); return; }
       if(typing && !isAnswerFocused){
         if(e.key==='Escape' && isInGame() && exitOverlayEl && !exitOverlayEl.classList.contains('hidden')){ e.preventDefault(); hideExitConfirm(); return; }
@@ -207,6 +240,7 @@
           }
           return;
         }
+        if(jsBoss){ if(!jsBossShoot()&&!inputEl.value.trim()) { try{ showToast(jsBossBullets>0?'💥 Dispará con SPACE o 💥':'Escribí el código de una nave'); }catch(err){} } return; }
         fireAnswer();
       };
       tcFire.addEventListener('touchstart',mobileFire,{passive:false});
@@ -221,7 +255,7 @@
     const answerFireBtn=document.getElementById('answerFireBtn');
     if(answerFireBtn){
       let _lastAF=0;
-      const af=(e)=>{ if(e) e.preventDefault(); if(Date.now()-_lastAF<450) return; _lastAF=Date.now(); if(bossDodge && !cssBoss) doBossDodgeShoot(); else fireAnswer(); };
+      const af=(e)=>{ if(e) e.preventDefault(); if(Date.now()-_lastAF<450) return; _lastAF=Date.now(); if(bossDodge && !cssBoss) doBossDodgeShoot(); else if(jsBoss&&!jsBossShoot()&&!inputEl.value.trim()) fireJsBossAnswer(); else if(!jsBoss) fireAnswer(); };
       answerFireBtn.addEventListener('touchstart',af,{passive:false});
       answerFireBtn.addEventListener('click',af);
     }
@@ -457,7 +491,7 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
     }
   });
   function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable); }
-  function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'; }
+  function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'||state==='portal'; }
   function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else { exitBtnEl.classList.add('hidden'); hideGameMenu(); } if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
   function gameMenuOpen(){ return !!((gameOptsMenuEl&&!gameOptsMenuEl.classList.contains('hidden'))||(gameInfoPanelEl&&!gameInfoPanelEl.classList.contains('hidden'))); }
   function hideGameMenu(){ if(gameOptsMenuEl) gameOptsMenuEl.classList.add('hidden'); if(gameInfoPanelEl) gameInfoPanelEl.classList.add('hidden'); if(gameOptsBtnEl) gameOptsBtnEl.setAttribute('aria-expanded','false'); }
@@ -466,18 +500,19 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
   function fillGameInfo(){
     if(!gameInfoBodyEl) return;
     const mode=speedrun?'⚡ SPEEDRUN':'▶ NORMAL (jugar)';
-    const lvl=levelData?(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE FINAL'):('Nivel '+levelData.id+' · '+levelData.title)):'—';
+    const lvl=levelData?(levelData.isJsBoss?('Nivel '+levelData.id+' · '+levelData.title):(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE FINAL'):('Nivel '+levelData.id+' · '+levelData.title))):'—';
     let foes='—';
-    if(levelData&&levelData.isBoss){ foes=cssBoss?(enemies.length+' naves + jefe '+bossHP+'❤'):('Jefe '+bossHP+'/'+bossMaxHP+'❤'); }
+    if(levelData&&levelData.isJsBoss){ foes=jsBossPortal?'🌀 yendo al portal':('etapa '+jsBossPhase+'/3 · '+enemies.length+' naves · 🔫 '+jsBossBullets); }
+    else if(levelData&&levelData.isBoss){ foes=cssBoss?(enemies.length+' naves + jefe '+bossHP+'❤'):('Jefe '+bossHP+'/'+bossMaxHP+'❤'); }
     else if(levelData){ foes=(enemies.length+questionsLeft.length)+' naves'; }
     let t='—';
     if(speedrun){ try{ t=formatTime(speedrunFinished?speedrunTime:(performance.now()-speedrunStart)); }catch(e){} }
-    const rows=[['🎮 Modo',mode],['🗺 Nivel',lvl],['⭐ Puntos',String(score)],['🪙 Monedas',String(coins)],['❤ Vidas',String(Math.max(lives,0))],['👾 Enemigos',foes],['🔥 Racha',String(comboCount)],['⏱ Tiempo',t]];
+    const rows=[['🎮 Modo',mode],['🌌 Galaxia',gal().label],['🗺 Nivel',lvl],['⭐ Puntos',String(score)],['🪙 Monedas',String(coins)],['❤ Vidas',String(Math.max(lives,0))],['👾 Enemigos',foes],['🔥 Racha',String(comboCount)],['⏱ Tiempo',t]];
     gameInfoBodyEl.innerHTML=rows.map(r=>'<div class="game-info-row"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
   }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
-  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
+  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; setGalaxy(1); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
   function showBtns(){
     if(startBtnEl) startBtnEl.classList.add('hidden');
     if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden');
@@ -501,11 +536,11 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
   function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
-  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
+  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
   let sIdx=0;
   startLevel(sIdx); enterMobileFS(); }
   function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; speedrunStart=performance.now(); 
-  score=0; lives=2; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); enterMobileFS(); }
+  score=0; lives=2; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); enterMobileFS(); }
   function startLevel(lvl){
     level=lvl; const base=LEVELS[level];
     if(speedrun && level===0){ levelData={...base,title:base.title+' ⚡ SPEEDRUN',enemySpeed:1.45,spawnInterval:45,enemyHealth:1}; }
@@ -515,7 +550,10 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
     enemies=[]; currentEnemy=null; particles=[]; lasers=[]; frameCount=0; shootCooldown=0;
     comboCount=0; comboTimer=0; comboPop=0; slowTimer=0; fastTimer=0;
     player.speed=player.baseSpeed; state='intro'; levelPause=90;
+    setGalaxy(levelData.galaxy||1);
     if(inputEl){ inputEl.value=''; inputEl.disabled=true; }
+    if(levelData.isJsBoss){ startJsBoss(); updateHUD(); return; }
+    jsBoss=false; jsBossPhase=0; jsBossBullets=0; jsBossPortal=null; jsBossShake=0; jsBossFreeze=0; jsBossBubble=''; jsBossBubbleTimer=0;
     if(levelData.isBoss){
       if(levelData.isCssBoss){
         cssBoss=true; cssBossWave=0; cssBossSpawnTimer=0; cssBossBubble='¡Soy el Jefe CSS! Destruye mis etiquetas 😈'; cssBossBubbleTimer=90;
@@ -715,6 +753,10 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   const CSS_HIT_MSGS=['¡Auch! 😡','¡Me diste! 🤬','¡Sorpresa! 😲','¡Te odio! 👿','¡Me enojo! 🔥'];
   const CSS_KILL_MSGS=['¡Nooo! 💀','¡Imposible! 😱','¡Te odio más! 🤯','¡Me enfada! 😤'];
   function showCssBubble(txt,frames=90){ cssBossBubble=txt; cssBossBubbleTimer=frames; }
+  const JS_HIT_MSGS=['¡Auch! 😡','¡Mis naves! 🤬','¡Todavía sigo! 🔥','¡No me molestes! 👿'];
+  const JS_ANGRY_MSGS=['¡YA BASTA! 😤','¡ESTOY FURIOSO! 🔥🔥','¡SE ME ACABÓ LA PACIENCIA! 😱','¡TE VOY A ROMPER! 💢'];
+  const JS_FAIL_MSGS=['¡Error 404! 😂','¡undefined! 🤡','¡NaN! 🤣','¡SyntaxError! 💀','¡Bug en tu cabeza! 🐛'];
+  function showJsBubble(txt,frames=100){ jsBossBubble=txt; jsBossBubbleTimer=frames; }
   function spawnCssWave(){
     const pool=levelData.questions;
     for(let i=0;i<2;i++){
@@ -758,6 +800,210 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     }
     player.x=Math.max(player.w/2,Math.min(CW-player.w/2,player.x));
     updateHUD();
+  }
+
+  // ══ JEFE DE JAVASCRIPT (nivel 6) ══════════════════════════════════════
+  // Es el jefe más enredado: no se le dispara a él, hay que sacarle las naves
+  // que va tirando, y cada etapa es más difícil que la anterior.
+  //   Etapa 1 → 4 naves con etiqueta HTML (1 escritura cada una).
+  //   Etapa 2 → se enoja: 2 naves con vida, hay que escribir su código 3 veces.
+  //   Etapa 3 → se vuelve furioso: la galaxia tiembla y tira 5 naves con
+  //             etiqueta CSS. Escribir el código NO las destruye: da 1 bala.
+  //             Recién con las balas (1 por nave, o todas juntas) se destruyen.
+  //   Final   → abre un portal, el espacio se congela y hay que meterse.
+  function jsNorm(s){ return String(s==null?'':s).toLowerCase().replace(/\s+/g,'').replace(/^</,'').replace(/>$/,''); }
+  function startJsBoss(){
+    jsBoss=true; jsBossPhase=0; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; jsBossPortal=null;
+    jsBossBubble='¡Yo soy el Jefe JavaScript! 🤖'; jsBossBubbleTimer=120;
+    cssBoss=false; bossDodge=false;
+    bossX=CW/2; bossY=80; bossHP=levelData.bossHealth; bossMaxHP=levelData.bossHealth;
+    enemies=[]; currentEnemy=null; particles=[]; lasers=[]; bossTags=[]; bossItems=[];
+  }
+  function spawnJsShips(tags,count,health,w,h,y,vy){
+    // Sin repetir etiqueta dentro de la misma tanda: así cada nave pide un
+    // código distinto y se lee bien cuál hay que escribir.
+    const pool=tags.slice();
+    const gap=count>1?(CW-200)/(count-1):0;
+    for(let i=0;i<count;i++){
+      const k=Math.floor(Math.random()*pool.length);
+      const t=pool.splice(k,1)[0]||tags[Math.floor(Math.random()*tags.length)];
+      const sx=CW/2+(i-(count-1)/2)*gap;
+      enemies.push({baseX:sx,baseY:y,x:sx,y,w,h,health,maxHealth:health,question:t,answer:t,flash:0,wobble:Math.random()*Math.PI*2,wobbleAmp:0.5,wobbleSpeed:0.04,vy,jsShip:true});
+    }
+  }
+  function jsBossNextPhase(){
+    jsBossPhase++;
+    if(jsBossPhase===1){ spawnJsShips(JS_HTML_TAGS,4,1,98,58,140,0.3); showJsBubble('Etapa 1 · Rompé mis 4 etiquetas HTML 😈',110); }
+    else if(jsBossPhase===2){ spawnJsShips(JS_HTML_TAGS,2,3,116,66,140,0.45); showJsBubble('¡YA BASTA! Escribí el código 3 veces 😤',110); playSound('pickup'); }
+    else if(jsBossPhase===3){ jsBossShake=1; spawnJsShips(JS_CSS_TAGS,5,1,96,58,150,0.5); showJsBubble('¡¡FURIOSO!! Escribí para ganar balas 🔫',120); playSound('pickup'); }
+    else if(jsBossPhase===4){ openJsPortal(); }
+    bossHP=Math.max(0,bossMaxHP-5*(jsBossPhase-1));
+    updateHUD();
+  }
+  function openJsPortal(){
+    // El portal se queda quieto en el lugar donde se abrió: el jugador sólo
+    // tiene quecorrerse para underneath.
+    jsBossPortal={x:Math.max(70,Math.min(CW-70,bossX)),y:bossY+16,t:0};
+    jsBossFreeze=1; jsBossShake=0; jsBossBullets=0;
+    showJsBubble('¡ABRÍ UN PORTAL! Metete debajo 🌀',180);
+    explode(bossX,bossY,'#ff4fd8',30,true,50); playSound('pickup');
+  }
+  function jsBossShoot(){
+    if(state!=='playing'||!jsBoss||jsBossPortal) return false;
+    if(jsBossPhase!==3) return false;
+    if(shootCooldown>0||jsBossBullets<=0) return false;
+    const targets=enemies.filter(e=>e.jsShip).slice(0,jsBossBullets);
+    if(!targets.length) return false;
+    shootCooldown=18; jsBossBullets-=targets.length;
+    for(const e of targets){ makeLaser(player.x,player.y-22,e.x,e.y,'#ffea00'); explode(e.x,e.y,'#ff0',22,true,40); }
+    enemies=enemies.filter(e=>targets.indexOf(e)<0);
+    const pts=targets.length*20; score+=pts; addCoins(pts); scorePop=14; playSound('explosion');
+    showJsBubble(targets.length>1?('💥 ¡'+targets.length+' naves de un tiro!'):JS_HIT_MSGS[Math.floor(Math.random()*JS_HIT_MSGS.length)],80);
+    if(enemies.length===0) jsBossNextPhase();
+    updateHUD();
+    return true;
+  }
+  function fireJsBossAnswer(){
+    if(shootCooldown>0||jsBossPortal){ inputEl.value=''; if(inputEl) inputEl.focus(); return; }
+    const typed=inputEl.value.trim(); if(!typed){ return; }
+    shootCooldown=15;
+    const hit=enemies.find(e=>e.jsShip&&jsNorm(e.answer)===jsNorm(typed));
+    if(hit){
+      makeLaser(player.x,player.y-22,hit.x,hit.y,'#0f0');
+      hit.flash=12;
+      if(jsBossPhase===3){
+        jsBossBullets++; score+=5; addCoins(2); scorePop=10;
+        showJsBubble('🔫 +1 BALA  (tenés '+jsBossBullets+')',80); playSound('pickup');
+      } else {
+        hit.health--; score+=10; addCoins(4); scorePop=12;
+        explode(hit.x,hit.y,'#0f0',16,true,34); playSound('explosion');
+        if(hit.health>0) showJsBubble('❤️ Le quedan '+hit.health+' golpes a '+hit.question,80);
+        else { showJsBubble(JS_ANGRY_MSGS[Math.floor(Math.random()*JS_ANGRY_MSGS.length)],70); }
+        if(hit.health<=0){ enemies=enemies.filter(e=>e!==hit); if(enemies.length===0) jsBossNextPhase(); }
+      }
+    } else {
+      makeLaser(player.x,player.y-22,player.x+(Math.random()-0.5)*80,0,'#f66'); explode(player.x,player.y-30,'#f66',6);
+      score=Math.max(0,score-3); coins=Math.max(0,coins-1); saveShopLocal(); scorePop=-8;
+      showJsBubble(JS_FAIL_MSGS[Math.floor(Math.random()*JS_FAIL_MSGS.length)],80);
+      damagePlayer();
+    }
+    inputEl.value=''; inputEl.focus(); updateHUD();
+  }
+  function updateJsBoss(){
+    if(jsBossBubbleTimer>0) jsBossBubbleTimer--;
+    if(jsBossShake>0) jsBossShake=Math.max(0,jsBossShake-0.004);
+    if(state==='playing'&&jsBossPhase===0) jsBossNextPhase();
+    if(!jsBossPortal){ bossX=CW/2+Math.sin(frameCount*0.011)*130; bossY=82+Math.sin(frameCount*0.028)*7; }
+    if(jsBossPhase<4){
+      for(let i=enemies.length-1;i>=0;i--){
+        const e=enemies[i];
+        e.wobble+=e.wobbleSpeed; e.x=e.baseX+Math.sin(e.wobble)*3;
+        e.y+=e.vy; if(e.flash>0) e.flash--;
+        if(e.y>H+50){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); damagePlayer(); showJsBubble(JS_FAIL_MSGS[Math.floor(Math.random()*JS_FAIL_MSGS.length)],70); continue; }
+        const dx=e.x-player.x, dy=e.y-player.y;
+        if(Math.abs(dx)<(e.w+player.w)/2-8&&Math.abs(dy)<(e.h+player.h)/2-8){ if(e===currentEnemy) currentEnemy=null; enemies.splice(i,1); explode(e.x,e.y,'#f44',14); damagePlayer(); showJsBubble(JS_FAIL_MSGS[Math.floor(Math.random()*JS_FAIL_MSGS.length)],70); }
+      }
+      // En la etapa 3 el SPACE dispara aunque estés escribiendo: el handler de
+      // teclas le saca el preventDefault al espacio para que no se pegue en el
+      // input (los códigos CSS que se escriben no llevan espacios).
+      if(state==='playing'&&!jsBossPortal&&keys[' ']) jsBossShoot();
+    }
+    if(jsBossPortal){
+      const p=jsBossPortal; p.t++;
+      if(p.y<player.y) p.y=Math.min(player.y,p.y+0.9);
+      if(p.y>=player.y-0.5&&Math.abs(player.x-p.x)<48){ enterJsPortal(); return; }
+    }
+    for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
+    for(let i=lasers.length-1;i>=0;i--){ lasers[i].life--; if(lasers[i].life<=0) lasers.splice(i,1); }
+    if(!isTyping()){
+      if(keys['ArrowLeft']||keys['a']||keys['A']) player.x-=player.speed;
+      if(keys['ArrowRight']||keys['d']||keys['D']) player.x+=player.speed;
+    }
+    player.x=Math.max(player.w/2,Math.min(CW-player.w/2,player.x));
+    updateHUD();
+  }
+  function enterJsPortal(){
+    if(state!=='playing') return;
+    jsBossPortal=null; state='portal'; portalFade=0;
+    addCoins(150); if(typeof Profile!=='undefined') Profile.addExp(150,100);
+    explode(player.x,player.y,'#ff4fd8',40,true,60); playSound('explosion');
+    saveProgress(true); updateHUD(); updateExitBtn();
+  }
+  function drawPortalTravel(){
+    ctx.fillStyle='#05010c'; ctx.fillRect(0,0,W,H);
+    const k=Math.min(1,portalFade/70), cx=W/2, cy=H/2;
+    for(let i=0;i<10;i++){
+      const r=Math.max(1,(14+k*440)*(1-i*0.07));
+      ctx.strokeStyle='rgba(255,79,216,'+((0.12+k*0.75)*(1-i*0.08))+')';
+      ctx.lineWidth=2+k*4;
+      ctx.beginPath(); ctx.arc(cx,cy,r,frameCount*0.03*(i%2?1:-1),frameCount*0.03*(i%2?1:-1)+Math.PI*(1.4+k)); ctx.stroke();
+    }
+    ctx.fillStyle='rgba(255,179,236,'+(0.25+k*0.75)+')'; ctx.shadowColor='#ff4fd8'; ctx.shadowBlur=20+k*30;
+    ctx.beginPath(); ctx.arc(cx,cy,Math.max(1,6+k*120),0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+    if(k>0.3){
+      ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 26px monospace';
+      ctx.fillText('🌌 GALAXIA 2',cx,cy-16);
+      ctx.font='bold 12px monospace'; ctx.fillStyle='#ffb3ec';
+      ctx.fillText('Nebulosa Violeta · te espera el nivel 7',cx,cy+16);
+    }
+  }
+  function drawJsBoss(){
+    // El jefe desaparece en cuanto abre el portal: sólo queda el portal.
+    if(jsBossPortal){
+      const p=jsBossPortal, r=p.r||Math.max(8,30+Math.sin(p.t*0.06)*3);
+      ctx.save();
+      // Guía punteada hasta tu fila: así se ve a dónde hay que meterse.
+      ctx.strokeStyle='rgba(255,179,236,.45)'; ctx.lineWidth=2; ctx.setLineDash([6,8]);
+      ctx.beginPath(); ctx.moveTo(p.x,p.y+r); ctx.lineTo(p.x,player.y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(255,179,236,'+(0.35+Math.abs(Math.sin(p.t*0.12))*0.5)+')'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.ellipse(p.x,player.y,46,16,0,0,Math.PI*2); ctx.stroke();
+      const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,r*2.1);
+      g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(0.35,'rgba(255,79,216,.85)'); g.addColorStop(1,'rgba(120,20,160,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,r*2.1,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,179,236,.9)'; ctx.lineWidth=3;
+      for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(p.x,p.y,r*(0.5+i*0.28),p.t*0.04+i,p.t*0.04+i+Math.PI*1.2); ctx.stroke(); }
+      ctx.fillStyle='#fff'; ctx.font='bold 11px monospace'; ctx.textAlign='center';
+      ctx.fillText('🌀 PORTAL — ponete abajo (⬅ ➡)',p.x,p.y-r-12);
+      ctx.restore();
+    }
+    if(!jsBossPortal){
+      ctx.save();
+      // Ojitos furiosos
+      ctx.fillStyle='#0b3d16'; ctx.shadowColor='#00e676'; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.ellipse(bossX,bossY,44,34,0,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#fff';
+      for(const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(bossX+s*16,bossY-6,12,9,0,0,Math.PI*2); ctx.fill(); }
+      const angry=jsBossPhase>=3;
+      ctx.fillStyle=angry?'#ff1744':'#0b3d16';
+      for(const s of [-1,1]){ ctx.beginPath(); ctx.arc(bossX+s*16+Math.sin(frameCount*0.2)*2,bossY-4,5,0,Math.PI*2); ctx.fill(); }
+      // Boca (cuanto más furioso, más grande)
+      ctx.strokeStyle='#0b3d16'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(bossX,bossY+18,10+jsBossPhase*3,Math.PI*(angry?0.05:0.15),Math.PI*(angry?0.95:0.85)); ctx.stroke();
+      // Antena con el "{ }" del lenguaje
+      ctx.strokeStyle='#a5d6a7'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(bossX,bossY-30); ctx.lineTo(bossX,bossY-48); ctx.stroke();
+      ctx.fillStyle='#ffea00'; ctx.beginPath(); ctx.arc(bossX,bossY-52,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#0b3d16'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('{}',bossX,bossY-52);
+      // Brazos
+      ctx.strokeStyle='#2e7d32'; ctx.lineWidth=6; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(bossX-40,bossY+6); ctx.lineTo(bossX-58,bossY+22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bossX+40,bossY+6); ctx.lineTo(bossX+58,bossY+22); ctx.stroke();
+      // Barra de vida + etapa
+      const bw=210, hp=Math.max(0,bossHP/bossMaxHP);
+      ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(bossX-bw/2,bossY-76,bw,9);
+      ctx.fillStyle=hp>0.5?'#00e676':hp>0.25?'#ffd600':'#ff1744'; ctx.fillRect(bossX-bw/2,bossY-76,bw*hp,9);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(bossX-bw/2,bossY-76,bw,9);
+      ctx.fillStyle='#fff'; ctx.font='bold 10px monospace';
+      ctx.fillText('🤖 JEFE JAVASCRIPT · etapa '+jsBossPhase+'/3 · '+bossHP+'❤',bossX,bossY-64);
+      if(jsBossBubble&&jsBossBubbleTimer>0){
+        const bw2=ctx.measureText(jsBossBubble).width+16;
+        ctx.fillStyle='rgba(255,255,255,.95)'; ctx.strokeStyle='#2e7d32'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.roundRect(bossX-bw2/2,bossY-108,bw2,26,10); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#0b3d16'; ctx.textAlign='center'; ctx.font='bold 11px monospace';
+        ctx.fillText(jsBossBubble,bossX,bossY-95);
+      }
+      ctx.restore();
+    }
   }
   function drawCssBoss(){
     ctx.save();
@@ -824,10 +1070,12 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     }
   }
   // Diseño de nave que corresponde al nivel en curso: uno distinto para cada
-  // uno de los 5 niveles (los mismos que usa el multijugador).
-  const LEVEL_SHIP={1:'html',2:'css',3:'js',4:'boss',5:'bossCss'};
+  // nivel (los mismos que usa el multijugador). Del 6 para abajo (el nivel 7,
+  // en la galaxia 2) se reciclan los modelos que ya había.
+  const LEVEL_SHIP={1:'html',2:'css',3:'js',4:'boss',5:'bossCss',6:'js',7:'js'};
   function enemyDesignFor(){
     if(!levelData) return 'html';
+    if(levelData.isJsBoss) return 'js';
     if(levelData.isCssBoss) return 'bossCss';
     if(levelData.isBoss) return 'boss';
     return LEVEL_SHIP[Number(levelData.id)]||'html';
@@ -854,6 +1102,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   }
   function fireAnswer(){
     if(state!=='playing'||!inputEl) return;
+    if(jsBoss){ fireJsBossAnswer(); return; }
     if(bossDodge && !cssBoss){
       if(!doBossDodgeShoot() && inputEl.value.trim()){
         const t=inputEl.value.trim().toLowerCase();
@@ -939,8 +1188,10 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     if(exitOverlayEl && !exitOverlayEl.classList.contains('hidden')) return;
     if(speedrun&&!speedrunFinished&&(state==='playing'||state==='intro')) updateSpeedrunHud();
     if(state==='title'||state==='gameover'||state==='win'||state==='speedrunWin'||state==='bossWin') return;
-    if(state==='intro'){ levelPause--; if(levelPause<=0){ state='playing'; if(bossDodge){ } else buildFormation(); if(inputEl){ inputEl.disabled=false; inputEl.focus(); } } return; }
+    if(state==='portal'){ portalFade++; if(portalFade>120){ setGalaxy(2); startLevel(level+1); } return; }
+    if(state==='intro'){ levelPause--; if(levelPause<=0){ state='playing'; if(bossDodge||jsBoss){ } else buildFormation(); if(inputEl){ inputEl.disabled=false; inputEl.focus(); } } return; }
     if(state==='levelcomplete') return;
+    if(jsBoss&&state==='playing'){ updateJsBoss(); return; }
     if(cssBoss&&state==='playing'){ updateCssBoss(); return; }
     if(bossDodge&&state==='playing'){ updateBossDodge(); return; }
     if(slowTimer>0){ slowTimer--; player.speed=player.baseSpeed*0.4; } else if(fastTimer>0){ fastTimer--; player.speed=player.baseSpeed*1.3; } else player.speed=player.baseSpeed;
@@ -970,8 +1221,19 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
     checkLevelComplete(); updateHUD();
   }
-  function render(){ ctx.clearRect(0,0,W,H); ctx.fillStyle='#080c18'; ctx.fillRect(0,0,W,H); drawStars(); if(state==='title'){ drawTitle(); return; } if(state==='intro'){ drawIntro(); return; } if(cssBoss&&state==='playing'){ drawCssBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(bossDodge&&(state==='playing'||state==='bossquiz')){ drawPlayer(); drawBossDodge(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='win') drawWin(); if(state==='speedrunWin') drawSpeedrunWin(); if(state==='bossWin') drawBossWin(); if(state==='levelcomplete') drawLevelComplete(); }
-  function drawStars(){ for(const s of titleStars){ s.y+=s.speed; if(s.y>H){ s.y=0; s.x=Math.random()*W; } ctx.fillStyle=`rgba(180,200,255,${0.3+Math.sin(frameCount*0.02+s.x)*0.2})`; ctx.fillRect(s.x,s.y,s.size,s.size); } }
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=gal().bg; ctx.fillRect(0,0,W,H);
+    // Cuando el jefe de JavaScript se vuelve furioso la galaxia entera tiembla.
+    ctx.save();
+    if(jsBossShake>0&&(state==='playing'||state==='intro')){ const m=jsBossShake*7; ctx.translate((Math.random()-0.5)*m,(Math.random()-0.5)*m); }
+    drawFrame();
+    ctx.restore();
+  }
+  function drawFrame(){ drawStars(); if(state==='title'){ drawTitle(); return; } if(state==='portal'){ drawPortalTravel(); return; } if(state==='intro'){ drawIntro(); return; } if(jsBoss&&state==='playing'){ drawJsBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(cssBoss&&state==='playing'){ drawCssBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(bossDodge&&(state==='playing'||state==='bossquiz')){ drawPlayer(); drawBossDodge(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='win') drawWin(); if(state==='speedrunWin') drawSpeedrunWin(); if(state==='bossWin') drawBossWin(); if(state==='levelcomplete') drawLevelComplete(); }
+  // Las estrellas se congelan cuando el jefe abre el portal (el espacio "se
+  // detiene") y el color depende de la galaxia en la que estemos.
+  function drawStars(){ for(const s of titleStars){ if(!jsBossFreeze){ s.y+=s.speed; if(s.y>H){ s.y=0; s.x=Math.random()*W; } } ctx.fillStyle=`rgba(${gal().star},${0.3+Math.sin(frameCount*0.02+s.x)*0.2})`; ctx.fillRect(s.x,s.y,s.size,s.size); } }
   function drawPlayer(){
     const {x,y}=player; const sk=skinById(equipped); ctx.save(); if(player.flash>0&&player.flash%4<2) ctx.globalAlpha=0.4;
     ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
@@ -1025,17 +1287,37 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     ctx.fillStyle='#7a8a9a'; ctx.font='bold 9px monospace'; ctx.textAlign='left'; ctx.fillText('🪙 '+coins,12,52);
     ctx.textAlign='right'; ctx.fillStyle='#7a8a9a'; ctx.font='bold 10px monospace'; ctx.fillText('VIDAS',W-12,16);
     const hs=16,gap=21,n=Math.min(Math.max(lives,0),2); ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=8; ctx.fillStyle='#ff1744'; for(let i=0;i<n;i++){ const hx=W-12-hs/2-(n-1-i)*gap; drawHeart(hx,20,hs); } ctx.restore();
-    if(levelData&&levelData.isBoss){
+    if(levelData&&levelData.isJsBoss){
+      if(jsBossPortal){ ctx.fillStyle='#ffb3ec'; ctx.font='bold 14px monospace'; ctx.textAlign='center'; ctx.fillText('🌀 ¡EL PORTAL ESTÁ ABIERTO! Ponete abajo para entrar',W/2,44); }
+      else {
+        ctx.fillStyle='#a5d6a7'; ctx.font='bold 13px monospace'; ctx.textAlign='center';
+        const qs=[...new Set(enemies.map(e=>e.question))];
+        ctx.fillText('🤖 Etapa '+jsBossPhase+'/3  →  '+(qs.length?qs.join('  |  '):'...'),W/2,44);
+        const bw=260; const hp=bossHP/bossMaxHP;
+        ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,58,bw,8);
+        ctx.fillStyle=hp>0.5?'#00e676':hp>0.25?'#ffd600':'#ff1744'; ctx.fillRect(W/2-bw/2,58,bw*hp,8);
+        ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.strokeRect(W/2-bw/2,58,bw,8);
+      }
+    } else if(levelData&&levelData.isBoss){
       const b=enemies[0]; if(b){ ctx.fillStyle='#ce93d8'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('👑 JEFE: '+b.health+'/'+b.maxHealth+'  →  '+b.question, W/2, 44); }
       const bw=260; const hp=b?b.health/b.maxHealth:0; ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,58,bw,8); ctx.fillStyle=hp>0.5?'#ab47bc':hp>0.25?'#ffd600':'#ff1744'; ctx.fillRect(W/2-bw/2,58,bw*hp,8); ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.strokeRect(W/2-bw/2,58,bw,8);
     } else if(currentEnemy){ ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.fillText('Destruye → '+currentEnemy.question,W/2,44); } else { ctx.fillStyle='#8af'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('Haz clic izquierdo en una nave para apuntarla',W/2,44); }
-    if(levelData&&levelData.isBoss){
+    if(levelData&&levelData.isJsBoss){
+      ctx.fillStyle='#a5d6a7'; ctx.font='bold 11px monospace'; ctx.textAlign='center';
+      const hint=jsBossPhase===1?'Escribí la etiqueta HTML y ENTER para destruirla'
+        :jsBossPhase===2?'Estas tienen 3 ❤️ : escribí el código 3 veces'
+        :jsBossPhase===3?'Escribí el código CSS = +1 🔫 · Dispará con SPACE o 💥 para matarlas'
+        :'El jefe se enfureció 😱';
+      ctx.fillText(hint,W/2,78);
+      ctx.fillStyle='#ffd600'; ctx.font='bold 15px monospace'; ctx.textAlign='right';
+      ctx.fillText('🔫 '+jsBossBullets,W-12,80);
+    } else if(levelData&&levelData.isBoss){
       if(cssBoss){
         ctx.fillStyle='#ce93d8'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText('Escribe la propiedad CSS correcta y presiona ENTER. Fallo = -1 vida',W/2,78);
       } else {
         ctx.fillStyle='#ce93d8'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText('¡El Jefe no avanza! Escribe la etiqueta y presiona ENTER. Fallo = -1 vida',W/2,78);
       }
-    } else if(formationCountdown>0){ const secs=Math.ceil(formationCountdown/60); const color=secs<=3?'#ff1744':secs<=8?'#ffd600':'#7ff'; ctx.fillStyle=color; ctx.font='bold 14px monospace'; ctx.textAlign='center'; ctx.fillText('⏱ Las naves bajan en '+secs+'s  (-2s por error)',W/2,64); const bw=160,pct=formationCountdown/(speedrun?SPEEDRUN_COUNTDOWN:FORMATION_COUNTDOWN_FRAMES); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,69,bw,4); ctx.fillStyle=color; ctx.fillRect(W/2-bw/2,69,bw*pct,4); } else if(!levelData.isBoss){ ctx.fillStyle='#f66'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('¡LAS NAVES AVANZAN!',W/2,64); }
+    } else if(formationCountdown>0){ const secs=Math.ceil(formationCountdown/60); const color=secs<=3?'#ff1744':secs<=8?'#ffd600':(galaxy===2?'#ffb3ec':'#7ff'); ctx.fillStyle=color; ctx.font='bold 14px monospace'; ctx.textAlign='center'; ctx.fillText('⏱ Las naves bajan en '+secs+'s  (-2s por error)',W/2,64); const bw=160,pct=formationCountdown/(speedrun?SPEEDRUN_COUNTDOWN:FORMATION_COUNTDOWN_FRAMES); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(W/2-bw/2,69,bw,4); ctx.fillStyle=color; ctx.fillRect(W/2-bw/2,69,bw*pct,4); } else if(!levelData.isBoss){ ctx.fillStyle='#f66'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.fillText('¡LAS NAVES AVANZAN!',W/2,64); }
     if(speedrun){ ctx.fillStyle='#ffd600'; ctx.font='bold 10px monospace'; ctx.textAlign='left'; const ms=speedrunFinished?speedrunTime:(state==='playing'||state==='intro'?performance.now()-speedrunStart:0); ctx.fillText('SPEEDRUN '+formatTime(ms),12,66); }
     if(comboCount>=3){ const pulse=comboPop>0?1+(comboPop/24)*0.3:1; ctx.save(); ctx.translate(W-12,36); ctx.scale(pulse,pulse); ctx.textAlign='right'; ctx.font=(comboPop>0?'bold 22px':'bold 18px')+' monospace'; ctx.fillStyle=comboPop>0?'#ffd600':'#ffeb3b'; ctx.shadowColor='#ffd600'; ctx.shadowBlur=comboPop>0?18:6; ctx.fillText('🔥 '+comboCount,0,0); ctx.restore(); ctx.fillStyle='#7a8a9a'; ctx.font='bold 9px monospace'; ctx.textAlign='right'; ctx.shadowBlur=0; ctx.fillText('racha',W-12,50); }
     if(slowTimer>0||fastTimer>0){ ctx.fillStyle=slowTimer>0?'#81d4fa':'#ff8a80'; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=12; ctx.font='bold 12px monospace'; ctx.textAlign='center'; ctx.fillText(slowTimer>0?'✊ lento (destruido)':'⚡ rápido (error)',W/2,88); ctx.shadowColor='rgba(0,0,0,0)'; ctx.shadowBlur=0; }
@@ -1057,8 +1339,8 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   }
   function drawIntro(){
     const alpha=Math.min(1,(90-levelPause)/30); ctx.globalAlpha=alpha;
-    if(levelData&&levelData.isBoss){ ctx.fillStyle='#ab47bc'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText(levelData.isCssBoss?'👑 JEFE CSS':'👑 JEFE FINAL',W/2,H/2-50); ctx.fillStyle='#fff'; ctx.font='16px monospace'; if(levelData.isCssBoss){ ctx.fillText('¡Destruye las naves escribiendo la propiedad CSS correcta!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  Escribe la respuesta y ENTER',W/2,H/2+20); ctx.fillText('Cada respuesta correcta daña al jefe -2 HP',W/2,H/2+40); ctx.fillText(bossHP+' HP para vencerlo',W/2,H/2+60); } else { ctx.fillText('¡Esquiva las etiquetas y derrota al Prof. Froggio!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (con balas)',W/2,H/2+20); ctx.fillText('Recoge 🔫 balas  |  ❓ preguntas  |  💀 trampas',W/2,H/2+40); ctx.fillText(bossHP+' golpes para vencerlo',W/2,H/2+60); } }
-    else { ctx.fillStyle=speedrun?'#ffd600':'#0a1'; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText((speedrun?'NIVEL 1 ⚡ SPEEDRUN':'NIVEL '+levelData.id),W/2,H/2-30); ctx.fillStyle='#fff'; ctx.font='18px monospace'; ctx.fillText(levelData.title,W/2,H/2+10); ctx.font='13px monospace'; ctx.fillStyle='#aaa'; ctx.fillText(levelData.questions.length+' enemigos'+(speedrun?' • ¡MODO DIFÍCIL!':''),W/2,H/2+45); }
+    if(levelData&&levelData.isBoss){ ctx.fillStyle=gal().accent; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText(levelData.isJsBoss?'👑 JEFE JAVASCRIPT':(levelData.isCssBoss?'👑 JEFE CSS':'👑 JEFE FINAL'),W/2,H/2-50); ctx.fillStyle='#fff'; ctx.font='16px monospace'; if(levelData.isJsBoss){ ctx.fillText('¡Tres etapas y un portal! Cuidado, se vuelve furioso 😈',W/2,H/2-10); ctx.font='12px monospace'; ctx.fillStyle=gal().accent2; ctx.fillText('1 · 4 naves HTML   |   2 · 2 naves con 3 vidas (3 escrituras)',W/2,H/2+16); ctx.fillText('3 · FURIOSO: la galaxia tiembla, escribí = +1 bala 🔫 y dispará',W/2,H/2+36); ctx.fillText('⬅ ➡ Mover  |  Escribe y ENTER  |  SPACE o 💥 para disparar',W/2,H/2+60); } else if(levelData.isCssBoss){ ctx.fillText('¡Destruye las naves escribiendo la propiedad CSS correcta!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  Escribe la respuesta y ENTER',W/2,H/2+20); ctx.fillText('Cada respuesta correcta daña al jefe -2 HP',W/2,H/2+40); ctx.fillText(bossHP+' HP para vencerlo',W/2,H/2+60); } else { ctx.fillText('¡Esquiva las etiquetas y derrota al Prof. Froggio!',W/2,H/2-10); ctx.font='13px monospace'; ctx.fillStyle='#ce93d8'; ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (con balas)',W/2,H/2+20); ctx.fillText('Recoge 🔫 balas  |  ❓ preguntas  |  💀 trampas',W/2,H/2+40); ctx.fillText(bossHP+' golpes para vencerlo',W/2,H/2+60); } }
+    else { ctx.fillStyle=speedrun?'#ffd600':gal().accent; ctx.font='bold 32px monospace'; ctx.textAlign='center'; ctx.fillText((speedrun?'NIVEL 1 ⚡ SPEEDRUN':'NIVEL '+levelData.id),W/2,H/2-30); ctx.fillStyle='#fff'; ctx.font='18px monospace'; ctx.fillText(levelData.title,W/2,H/2+10); ctx.font='13px monospace'; ctx.fillStyle=gal().accent2; ctx.fillText(gal().label,W/2,H/2+34); ctx.fillStyle='#aaa'; ctx.fillText(levelData.questions.length+' enemigos'+(speedrun?' • ¡MODO DIFÍCIL!':''),W/2,H/2+55); }
     ctx.globalAlpha=1;
   }
   function drawLevelComplete(){
@@ -1102,8 +1384,13 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   }
   function updateHUD(){
     const eLevel=document.getElementById('levelVal'); const eTarget=document.getElementById('targetQuestion');
-    if(eLevel) eLevel.textContent=levelData?(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE'):(speedrun?'1 ⚡':levelData.id)):'-';
-    if(levelData&&levelData.isBoss){
+    if(eLevel) eLevel.textContent=levelData?(levelData.isJsBoss?'🤖 JEFE JS':(levelData.isBoss?(cssBoss?'👑 JEFE CSS':'👑 JEFE'):(speedrun?'1 ⚡':levelData.id))):'-';
+    if(levelData&&levelData.isJsBoss){
+      if(jsBossPortal){ if(eTarget) eTarget.textContent='🌀 Ponete abajo para entrar al portal'; }
+      else if(enemies.length>0){ const qs=[...new Set(enemies.map(e=>e.question))]; if(eTarget) eTarget.textContent=qs.join(' | '); }
+      else if(state==='playing'){ if(eTarget) eTarget.textContent='etapa '+jsBossPhase+'/3 · 🔫 '+jsBossBullets; }
+    }
+    else if(levelData&&levelData.isBoss){
       if(cssBoss && enemies.length>0){
         const qs=[...new Set(enemies.map(e=>e.question))];
         if(eTarget) eTarget.textContent=qs.join(' | ');
@@ -1113,7 +1400,14 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     }
     else if(currentEnemy){ if(eTarget) eTarget.textContent=currentEnemy.question; } else { if(eTarget) eTarget.textContent=state==='playing'?'clic en una nave':'—'; }
     if(qBannerEl&&qBannerTextEl){
-      if(state==='intro'){ qBannerTextEl.textContent=(levelData&&levelData.isBoss?(cssBoss?'👑 Jefe CSS: ':'👑 Jefe Final: '):'')+'Preparando '+(levelData?levelData.title:'')+'...'; qBannerEl.classList.remove('hidden'); }
+      if(state==='portal'){ qBannerTextEl.textContent='🌀 Entrando a la GALAXIA 2...'; qBannerEl.classList.remove('hidden'); }
+      else if(state==='intro'){ qBannerTextEl.textContent=(levelData&&levelData.isJsBoss?'🤖 Jefe JavaScript: ':(levelData&&levelData.isBoss?(cssBoss?'👑 Jefe CSS: ':'👑 Jefe Final: '):''))+'Preparando '+(levelData?levelData.title:'')+'...'; qBannerEl.classList.remove('hidden'); }
+      else if(levelData&&levelData.isJsBoss){
+        if(jsBossPortal) qBannerTextEl.textContent='🌀 ¡PORTAL ABIERTO! Metete debajo';
+        else if(enemies.length>0){ const qs=[...new Set(enemies.map(e=>e.question))]; qBannerTextEl.textContent='Etapa '+jsBossPhase+'/3 · 🔫 '+jsBossBullets+'  →  '+qs.join('  |  '); }
+        else qBannerTextEl.textContent='🤖 Jefe JavaScript';
+        qBannerEl.classList.remove('hidden');
+      }
       else if(levelData&&levelData.isBoss&&cssBoss&&enemies.length>0){ const qs=[...new Set(enemies.map(e=>e.question))]; qBannerTextEl.textContent=qs.join('  |  '); qBannerEl.classList.remove('hidden'); }
       else if(levelData&&levelData.isBoss&&enemies[0]){ qBannerTextEl.textContent=enemies[0].question; qBannerEl.classList.remove('hidden'); }
       else if(currentEnemy){ qBannerTextEl.textContent=currentEnemy.question; qBannerEl.classList.remove('hidden'); }

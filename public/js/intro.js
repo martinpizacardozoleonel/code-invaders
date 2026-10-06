@@ -58,7 +58,7 @@ const Intro = (() => {
         </div>
         <div class="intro-badges">
           <span class="intro-badge">SIN EXPERIENCIA</span>
-          <span class="intro-badge intro-badge-gold">5 NIVELES</span>
+          <span class="intro-badge intro-badge-gold">7 NIVELES · 2 GALAXIAS</span>
           <span class="intro-badge intro-badge-cyan">2 MODOS</span>
         </div>
       `
@@ -137,15 +137,17 @@ const Intro = (() => {
         <div class="intro-modes">
           <div class="intro-mode intro-mode-normal">
             <div class="intro-mode-head"><span class="intro-mode-icon">▶</span><h4>MODO NORMAL</h4><span class="intro-mode-tag">RECOMENDADO</span></div>
-            <p class="intro-mode-desc">5 niveles: 3 de preguntas + 2 Jefes. Progreso guardado.</p>
+            <p class="intro-mode-desc">7 niveles: 4 de preguntas + 3 Jefes, y al final cruzás a otra galaxia. Progreso guardado.</p>
             <ul>
               <li>Nivel 1: HTML básico (10 enemigos)</li>
               <li>Nivel 2: CSS básico (10 enemigos)</li>
               <li>Nivel 3: JavaScript básico (6 enemigos)</li>
               <li>Nivel 4: 👑 JEFE FINAL — esquivar por toda la pantalla (12 HP)</li>
               <li>Nivel 5: 👑 JEFE CSS — estacionario, burbujas, tira 2 naves CSS, 10 HP (-2 por oleada)</li>
+              <li>Nivel 6: 🤖 JEFE JAVASCRIPT — 3 etapas: 4 naves HTML → 2 naves con 3 vidas (escribís 3 veces) → FURIOSO con la galaxia temblando: 5 naves CSS donde escribir el código te da 1 bala 🔫 y recién con las balas las destruís. Al final abre un portal.</li>
+              <li>Nivel 7: 🌌 GALAXIA 2 (Nebulosa Violeta) — 13 enemigos, misma velocidad y mismo tiempo que la primera galaxia. De acá en más el cartel de nivel va en otro color.</li>
             </ul>
-            <div class="intro-mode-foot"><span class="intro-dot-cyan"></span> 5 niveles + ranking por EXP</div>
+            <div class="intro-mode-foot"><span class="intro-dot-cyan"></span> 7 niveles + ranking por EXP</div>
           </div>
           <div class="intro-mode intro-mode-speedrun">
             <div class="intro-mode-head"><span class="intro-mode-icon">⚡</span><h4>SPEEDRUN</h4><span class="intro-mode-tag intro-mode-tag-gold">RÉCORD</span></div>
@@ -241,6 +243,8 @@ const Intro = (() => {
           <div class="intro-mission"><span class="intro-m-icon">👥</span><h4>AMIGOS</h4><p>Solicitud → notificación campanita → aceptar → chat privado. Verde en línea / rojo desconectado.</p></div>
           <div class="intro-mission"><span class="intro-m-icon">🏆</span><h4>RANKED</h4><p>Orden: niveles → EXP → intentos. Torneo 15 días a las 00:00, banner animado al finalizar.</p></div>
           <div class="intro-mission intro-mission-boss"><span class="intro-m-icon">👑</span><h4>JEFES</h4><p>Nivel 4: Prof. Froggio esquivar (12 HP, se mueve por todos lados). Nivel 5: Jefe CSS (10 HP, tira 2 naves CSS, burbujas “¡Que burro!” / “¡Me enojo!”).</p></div>
+          <div class="intro-mission intro-mission-boss"><span class="intro-m-icon">🤖</span><h4>JEFE JS</h4><p>Nivel 6: 3 etapas y un portal. Tirás de las naves escribiendo su código; cuando se vuelve furioso te da balas para dispararlas.</p></div>
+          <div class="intro-mission intro-mission-boss"><span class="intro-m-icon">🌌</span><h4>GALAXIA 2</h4><p>Nivel 7 en adelante: otra paleta de colores para el cartel de nivel, para que se note el viaje.</p></div>
         </div>
         <div class="intro-cta-wrap">
           <p class="intro-cta-text">¿Listo para defender la galaxia?</p>

@@ -94,6 +94,51 @@ const LEVELS = [
     enemySpeed: 0,
     spawnInterval: 0,
     enemyHealth: 1
+  },
+  {
+    // Nivel 6 · Jefe de JavaScript. Va por etapas (el juego las maneja
+    // aparte): 4 naves HTML, después 2 naves con vida y después se vuelve
+    // furioso y tira 5 naves CSS. Al final abre un portal.
+    id: 6,
+    title: '👑 JEFE JAVASCRIPT',
+    isBoss: true,
+    isJsBoss: true,
+    bossHealth: 15,
+    questions: [
+      { tag: '<h1>' }, { tag: '<p>' }, { tag: '<a>' }, { tag: '<img>' },
+      { tag: '<ul>' }, { tag: '<div>' }, { tag: '<span>' }, { tag: '<button>' },
+      { tag: '<input>' }, { tag: '<table>' }, { tag: 'margin' }, { tag: 'padding' },
+      { tag: 'border' }, { tag: 'display: flex' }, { tag: 'text-align' }
+    ],
+    enemySpeed: 0,
+    spawnInterval: 0,
+    enemyHealth: 1
+  },
+  {
+    // Nivel 7 · Primer nivel de la GALAXIA 2 (Nebulosa Violeta). Son 13 naves
+    // y baja exactamente igual que en la primera galaxia (misma velocidad y
+    // mismo tiempo), pero hay más: tardan un poco más en limpiarse.
+    id: 7,
+    title: 'Galaxia 2 · HTML + CSS + JS',
+    galaxy: 2,
+    questions: [
+      { q: 'Etiqueta de negrita', a: '<strong>' },
+      { q: 'Etiqueta de cursiva', a: '<em>' },
+      { q: 'Salto de línea', a: '<br>' },
+      { q: 'Etiqueta de párrafo', a: '<p>' },
+      { q: 'Etiqueta de lista', a: '<ul>' },
+      { q: 'Etiqueta de divisor', a: '<hr>' },
+      { q: 'Etiqueta de cita', a: '<blockquote>' },
+      { q: 'Etiqueta de código', a: '<code>' },
+      { q: 'Margen exterior', a: 'margin' },
+      { q: 'Margen interior', a: 'padding' },
+      { q: 'Borde redondeado', a: 'border-radius' },
+      { q: 'Sombra de la caja', a: 'box-shadow' },
+      { q: 'Transición', a: 'transition' }
+    ],
+    enemySpeed: 0.5,
+    spawnInterval: 90,
+    enemyHealth: 1
   }
 ];
 
