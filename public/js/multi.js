@@ -786,7 +786,7 @@ const MultiUI={
  async openLobby(){
   if(typeof Auth==='undefined'||!Auth.isLogged){ Toast.info('Inicia sesión para jugar online'); return; }
   document.getElementById('multiOverlay').classList.remove('hidden');
-  this.open=true; this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null;
+  this.open=true; this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null; this._rankRefreshedFor=null;
   this.setMode(this.mode||'normal');
   this.show('rooms');
   this.failCount=0;
@@ -797,7 +797,7 @@ const MultiUI={
  },
  async backToRooms(){
   try{ await API.multiLeave(); }catch(e){}
-  this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null;
+  this.ready=false; this.currentRoom=null; this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null; this._rankRefreshedFor=null;
   const rb=document.getElementById('multiReadyBtn'); if(rb) rb.textContent='✅ ¡LISTO!';
   this.show('rooms');
   this.loadRooms(true);
@@ -943,7 +943,7 @@ const MultiUI={
       else cb.scrollTop=prevTop;
     }
   }
-   if(!match){ MultiArena.leave(); this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null; return; }
+   if(!match){ MultiArena.leave(); this.show('lobby'); this.lastKey=''; this.seenShots={}; this.lastMatchId=null; this.dismissedMatchId=null; this._rankRefreshedFor=null; return; }
    if(match.status==='playing'){
      if(this.lastMatchId!==match.id){ this.lastMatchId=match.id; this.dismissedMatchId=null; this.seenShots={}; }
      this._lastMatch=match; this._me=me;
@@ -979,11 +979,18 @@ const MultiUI={
      if(ai&&!my){ ai.disabled=true; ai.placeholder='⏳ Estás mirando: la próxima partida empieza en el lobby'; }
      else if(my&&lives<=0&&ai){ ai.disabled=true; ai.placeholder='💀 Sin vidas — esperá a tus compañeros…'; }
      else if(ai){ ai.disabled=false; ai.placeholder='Escribe la etiqueta para disparar... (Enter)'; }
-   } else if(match.status==='finished'){
+} else if(match.status==='finished'){
      MultiArena.leave();
-     // El jugador ya пода esta partida ("Volver al lobby"): la tabla no vuelve
+     // El jugador ya poda esta partida ("Volver al lobby"): la tabla no vuelve
      // a aparecer hasta que empiece una partida nueva.
      if(this.dismissedMatchId===match.id){ this.show('lobby'); return; }
+     // Al terminar la tabla: una sola vez por partida se recarga la sesión para
+     // que el RANGO y los RP que se ganaron aparezcan ya actualizados en el
+     // perfil y en la clasificación (antes había que recargar la página).
+     if(this._rankRefreshedFor!==match.id){
+       this._rankRefreshedFor=match.id;
+       try{ if(typeof Auth!=='undefined'&&Auth.restoreSession) await Auth.restoreSession(); }catch(e){}
+     }
      this.show('results');
      // Orden final: gana el que destruyó más naves enemigas; a igual cantidad
      // se rompe con menos errores.

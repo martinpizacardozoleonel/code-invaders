@@ -28,9 +28,11 @@ const Ranked={
    const championClass=u.equippedFrame==='campeon'?' frame-campeon':(u.frames&&u.frames.includes('campeon')?' champion-active':'');
    let posBadge=''; if(isFinished&&res&&res[u.id]){ const p=res[u.id].position; if(p<=3) posBadge=`<span class="ranked-position-badge ranked-pos-${p}">#${p}</span>`; }
    const timeBadge=u.speedrunBest?`<span class="ranked-time">⚡ ${this.formatTime(u.speedrunBest)}</span>`:'';
+   // Rango del ranked: se ve sin abrir el perfil, así se nota al subir o bajar.
+   const rankBadge=u.rank?`<span class="rank-badge ranked-rp-badge" style="--rc:${u.rank.color||'#cd7f32'}" title="${u.rank.next?('Va por '+u.rank.pct+'% hacia '+u.rank.next):'Rango máximo'}">${u.rank.icon||''} ${u.rank.name||''} · ${u.rankPoints||0} RP</span>`:'';
    const onlineDot=`<span class="dot ${u.online?'online':'offline'}" title="${u.online?'En línea':'Desconectado'}"></span>`;
    const nameSt=this.nameStyle(u.nameColor)+API.fontStyle(u.equippedFont)+API.fxStyle(u.equippedFx);
-   return `<div class="ranked-card" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}${championClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot} ${posBadge}</p><p class="ranked-stats">❤️ ${u.solved} niveles · ⭐ ${u.exp||0} EXP · ⏱ ${u.hoursPlayed||0}h ${timeBadge}</p></div><div class="ranked-coins">🪙 ${u.coins||0}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
+   return `<div class="ranked-card" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}${championClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot} ${posBadge}</p><p class="ranked-stats">❤️ ${u.solved} niveles · ⭐ ${u.exp||0} EXP · ⏱ ${u.hoursPlayed||0}h ${timeBadge}</p><p class="ranked-rank-line">${rankBadge}</p></div><div class="ranked-coins">🪙 ${u.coins||0}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
   }).join(''); this.bindCardEvents(grid);
  },
  renderSpeedrun(grid){

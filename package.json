@@ -6,11 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node scripts/smoke-ships.js && node scripts/smoke-laser.js && node scripts/smoke-skins.js && node scripts/smoke-db.js && node scripts/smoke-arena.js && node scripts/smoke-cuentas.js && node scripts/smoke-migracion.js && node scripts/smoke-logros.js",
+    "test": "node scripts/smoke-ships.js && node scripts/smoke-laser.js && node scripts/smoke-skins.js && node scripts/smoke-db.js && node scripts/smoke-arena.js && node scripts/smoke-cuentas.js && node scripts/smoke-migracion.js && node scripts/smoke-logros.js && node scripts/smoke-ranked.js && node scripts/smoke-clanes.js && node scripts/audit-ui.js",
     "test:browser": "node scripts/smoke-browser.js",
     "cuentas": "node scripts/restaurar-cuentas.js",
     "cuentas:sql": "node scripts/restaurar-cuentas.js --sql > restore-accounts.sql",
-    "migrar": "node scripts/migrar.js"
+    "migrar": "node scripts/migrar.js",
+    "test:botones": "node scripts/smoke-botones.js",
+    "test:ui": "node scripts/audit-ui.js && node scripts/smoke-botones.js && node scripts/smoke-browser.js"
   },
   "keywords": [
     "galaga",

@@ -380,7 +380,10 @@ const RANK_TIERS=[
  {tier:'granmaestro',name:'Gran Maestro',divisions:3,color:'#ff1744', icon:'🌟'}
 ];
 const RANK_DIVS=['III','II','I'];
-const RANK_RP_STEP=400;   // RP por división dentro de un rango
+const RANK_RP_STEP=100;   // RP por división dentro de un rango
+// Con 400 RP por división hacían falta ~13 victorias para subir una división y
+// el progreso parecía congelado (con ~30 RP por victoria). Con 100 RP subís una
+// división cada ~3 victorias y se nota.
 const RANKS=[];           // lista plana de los 21 escalones
 RANK_TIERS.forEach((t,ti)=>{
   RANK_DIVS.forEach((d,di)=>{
@@ -412,13 +415,14 @@ const CLAN_EMBLEMS=['🛡️','⚔️','🔥','🐉','👹','🦅','🐺','🦁'
 // RANGOS DE CLAN (propios, distintos de los de Ranked individual)
 // ============================================================
 const CLAN_RANK_TIERS=[
- {tier:'recluta',   name:'Recluta',        divisions:3, step:300, color:'#8a6b3a', icon:'🐣'},
- {tier:'explorador',name:'Explorador',     divisions:3, step:300, color:'#6b8a4a', icon:'🏕️'},
- {tier:'guerrero',  name:'Guerrero',       divisions:3, step:300, color:'#4a6b8a', icon:'⚔️'},
- {tier:'veterano',  name:'Veterano',       divisions:3, step:300, color:'#8a4a2a', icon:'🔥'},
- {tier:'campeon',   name:'Campeón',        divisions:3, step:300, color:'#8a2a4a', icon:'🐉'},
- {tier:'leyenda',   name:'Leyenda',        divisions:3, step:300, color:'#b8860b', icon:'👑'},
- {tier:'dios',      name:'Dios de Guerra', divisions:3, step:300, color:'#ff1744', icon:'🌟'}
+ // Puntos de clan por división. Con 300 no se subía nunca en el día a día.
+{tier:'recluta',   name:'Recluta',        divisions:3, step:100, color:'#8a6b3a', icon:'🐣'},
+ {tier:'explorador',name:'Explorador',     divisions:3, step:100, color:'#6b8a4a', icon:'🏕️'},
+ {tier:'guerrero',  name:'Guerrero',       divisions:3, step:100, color:'#4a6b8a', icon:'⚔️'},
+ {tier:'veterano',  name:'Veterano',       divisions:3, step:100, color:'#8a4a2a', icon:'🔥'},
+ {tier:'campeon',   name:'Campeón',        divisions:3, step:100, color:'#8a2a4a', icon:'🐉'},
+ {tier:'leyenda',   name:'Leyenda',        divisions:3, step:100, color:'#b8860b', icon:'👑'},
+ {tier:'dios',      name:'Dios de Guerra', divisions:3, step:100, color:'#ff1744', icon:'🌟'}
 ];
 const CLAN_RANK_DIVS=['III','II','I'];
 const CLAN_RANKS=[]; // 21 escalones de clan
@@ -584,8 +588,8 @@ app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToke
   await checkAchievements(user);
   await updateUser(user); res.json({progress:user.progress,coins:user.coins,maxLevelReached:ls.reached,levelsCompleted:ls.solved}); }catch(e){ console.error('[progress]',e.message); res.status(500).json({error:'Error al guardar progreso'}); } });
 
-app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
-app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen)})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
+app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen),rankPoints:u.rankPoints||0,rank:(rk=>rk?{name:rk.name,icon:rk.icon,color:rk.color,pct:rk.pct,next:rk.next?rk.next.name:null}:null)(rankFromRP(u.rankPoints||0))}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
+app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen),rankPoints:u.rankPoints||0,rank:(rk=>rk?{name:rk.name,icon:rk.icon,color:rk.color,pct:rk.pct,next:rk.next?rk.next.name:null}:null)(rankFromRP(u.rankPoints||0))})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
 app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } // `_unlocked` se declara arriba para poder devolverlo en el JSON.
   let _unlocked=[];
   if(savedToDb){ try{ _unlocked=(await checkAchievements(user))||[]; }catch(e){ console.error('[speedrun] checkAchievements fail',e.message); } try{ await pushNotification(user.id,'⚡ Nuevo récord Speedrun',`⏱ ${formatSpeedrunMs(t)} — ¡Nuevo mejor tiempo!`,'success'); }catch(e){ console.error('[speedrun] pushNotification fail',e.message); } } console.log(`[speedrun] ${user.username} ${t}ms isNew=${isNewBest} PG=${USE_PG} saved=${savedToDb}`); } else { console.log(`[speedrun] ${user.username} ${t}ms no mejora (best ${user.speedrunBest})`); } return res.json({speedrunBest:user.speedrunBest,isNewBest,savedToDb,unlocked:_unlocked,achievements:user.achievements||[]}); }catch(e){ console.error('[speedrun] error',e && e.stack||e); return res.status(500).json({error:'Error interno al guardar speedrun: '+(e.message||e)}); } });
@@ -1254,10 +1258,15 @@ function tickRoom(r){
   const now=Date.now();
   for(const [id,p] of [...r.lobby]){ if(now-p.lastSeen>45000){ r.lobby.delete(id); if(UserRoom.get(id)===r.id) UserRoom.delete(id); } }
   if(r.match && r.match.status==='finished'){
-    // Nadie está "listo" al terminar: si no, el tick siguiente arrancaba una
+    // Nadie queda "listo" al terminar: si no, el tick siguiente arrancaba una
     // partida nueva sola y los resultados se veían un instante.
-    for(const p of r.lobby.values()) p.ready=false;
-    if(now-r.match.finishedAt>90000){ r.match=null; }
+    // OJO: se hace UNA sola vez por partida. Antes se repetía en cada tick
+    // mientras la partida terminada seguía en la memoria (90 segundos), y eso
+    // borraba el "listo" que el jugador acababa de poner: apretaba "¡LISTO!",
+    // el botón ponía "Cancelar listo" pero el lobby seguía diciendo "esperando"
+    // y no se podía volver a jugar hasta que Passingan los 90s.
+    if(r.matchReadyCleared!==r.match.id){ for(const p of r.lobby.values()) p.ready=false; r.matchReadyCleared=r.match.id; }
+    if(now-r.match.finishedAt>90000){ r.match=null; r.matchReadyCleared=null; }
   }
   if(r.match && r.match.status==='playing'){
     const m=r.match;

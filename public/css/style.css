@@ -1328,6 +1328,8 @@ body.light .ranked-tab.active { background: linear-gradient(135deg,#0288d1,#00ac
 .ranked-info { flex: 1; }
 .ranked-name { font-weight: bold; margin: 0; font-size: 1rem; }
 .ranked-stats { margin: 2px 0 0; font-size: 0.8rem; color: var(--text-dim); }
+.ranked-rank-line{ margin:4px 0 0; }
+.ranked-rp-badge{ font-size:.7rem; padding:2px 8px; }
 .ranked-coins { font-size: 0.85rem; color: var(--gold); font-weight: bold; }
 .ranked-inspect { flex-shrink: 0; }
 
@@ -1626,7 +1628,7 @@ main{ padding:20px 24px 44px; }
 
 .inspect-banner{margin-bottom:14px;height:90px;}
 
-.inspect-fullbanner{position:relative;border-radius:12px;overflow:hidden;padding:18px 16px;background-size:cover!important;background-position:center!important;box-shadow:inset 0 0 0 999px rgba(5,10,20,.55);}
+.inspect-fullbanner{position:relative;border-radius:12px;overflow:hidden;padding:18px 16px;background-size:cover!important;background-position:center!important;box-shadow:inset 0 0 0 999px rgba(5,10,20,.72);}
 .inspect-fullbanner .inspect-detail-label{color:#cbd5e1;}
 
 /* Letras animadas con efectos */
