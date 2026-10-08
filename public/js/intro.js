@@ -186,6 +186,12 @@ const Intro = (() => {
                 <tr><td><span class="intro-tag-img">BTN</span></td><td><code>&lt;button&gt;</code></td><td>Botón cliqueable</td><td><code>&lt;button&gt;Enviar&lt;/button&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">IN</span></td><td><code>&lt;input&gt;</code></td><td>Campo de entrada</td><td><code>&lt;input type="text"&gt;</code></td></tr>
                 <tr><td><span class="intro-tag-img">TAB</span></td><td><code>&lt;table&gt;</code></td><td>Tabla</td><td><code>&lt;table&gt;...&lt;/table&gt;</code></td></tr>
+                <tr><td><span class="intro-tag-img">STR</span></td><td><code>&lt;strong&gt;</code></td><td>Negrita</td><td><code>&lt;strong&gt;negrita&lt;/strong&gt;</code></td></tr>
+                <tr><td><span class="intro-tag-img">EM</span></td><td><code>&lt;em&gt;</code></td><td>Cursiva</td><td><code>&lt;em&gt;cursiva&lt;/em&gt;</code></td></tr>
+                <tr><td><span class="intro-tag-img">BR</span></td><td><code>&lt;br&gt;</code></td><td>Salto de línea</td><td><code>Hola&lt;br&gt;Chau</code></td></tr>
+                <tr><td><span class="intro-tag-img">HR</span></td><td><code>&lt;hr&gt;</code></td><td>Divisor horizontal</td><td><code>&lt;hr&gt;</code></td></tr>
+                <tr><td><span class="intro-tag-img">BQ</span></td><td><code>&lt;blockquote&gt;</code></td><td>Cita</td><td><code>&lt;blockquote&gt;cita&lt;/blockquote&gt;</code></td></tr>
+                <tr><td><span class="intro-tag-img">CD</span></td><td><code>&lt;code&gt;</code></td><td>Fragmento de código</td><td><code>&lt;code&gt;let x=5&lt;/code&gt;</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -200,11 +206,22 @@ const Intro = (() => {
                 <tr><td><span class="intro-tag-img css">.</span></td><td><code>.</code></td><td>Selector por clase</td><td><code>.card { }</code></td></tr>
                 <tr><td><span class="intro-tag-img css">C</span></td><td><code>color</code></td><td>Color de texto</td><td><code>color:red;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">BG</span></td><td><code>background</code></td><td>Fondo</td><td><code>background:#000;</code></td></tr>
-                <tr><td><span class="intro-tag-img css">M</span></td><td><code>margin / padding</code></td><td>Margen ext/int</td><td><code>margin:8px; padding:12px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">M</span></td><td><code>margin</code></td><td>Margen exterior</td><td><code>margin:8px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">PD</span></td><td><code>padding</code></td><td>Margen interior</td><td><code>padding:12px;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">B</span></td><td><code>border</code></td><td>Borde</td><td><code>border:1px solid;</code></td></tr>
-                <tr><td><span class="intro-tag-img css">F</span></td><td><code>display:flex</code></td><td>Activar flexbox</td><td><code>display:flex;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">D</span></td><td><code>display</code></td><td>Tipo de visualización</td><td><code>display:block;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">F</span></td><td><code>display: flex</code></td><td>Activar flexbox</td><td><code>display:flex;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">JC</span></td><td><code>justify-content</code></td><td>Alinear eje principal</td><td><code>justify-content:center;</code></td></tr>
                 <tr><td><span class="intro-tag-img css">AI</span></td><td><code>align-items</code></td><td>Alinear eje cruzado</td><td><code>align-items:center;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">POS</span></td><td><code>position</code></td><td>Posición</td><td><code>position:absolute;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">W</span></td><td><code>width</code></td><td>Ancho</td><td><code>width:200px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">H</span></td><td><code>height</code></td><td>Altura</td><td><code>height:100px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">FS</span></td><td><code>font-size</code></td><td>Tamaño de fuente</td><td><code>font-size:20px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">TA</span></td><td><code>text-align</code></td><td>Alinear texto</td><td><code>text-align:center;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">HOV</span></td><td><code>:hover</code></td><td>Pseudoclase hover</td><td><code>a:hover{color:red}</code></td></tr>
+                <tr><td><span class="intro-tag-img css">BR</span></td><td><code>border-radius</code></td><td>Borde redondeado</td><td><code>border-radius:8px;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">SH</span></td><td><code>box-shadow</code></td><td>Sombra de la caja</td><td><code>box-shadow:0 2px 6px #000;</code></td></tr>
+                <tr><td><span class="intro-tag-img css">TR</span></td><td><code>transition</code></td><td>Transición (animación)</td><td><code>transition:all .3s;</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -221,6 +238,9 @@ const Intro = (() => {
                 <tr><td><span class="intro-tag-img js">if</span></td><td><code>if</code></td><td>Condición</td><td><code>if(x>0){}</code></td></tr>
                 <tr><td><span class="intro-tag-img js">===</span></td><td><code>===</code></td><td>Igualdad estricta</td><td><code>a===b</code></td></tr>
                 <tr><td><span class="intro-tag-img js">push</span></td><td><code>push()</code></td><td>Agregar al final</td><td><code>arr.push(1)</code></td></tr>
+                <tr><td><span class="intro-tag-img js">for</span></td><td><code>for</code></td><td>Bucle for</td><td><code>for(let i=0;i&lt;3;i++){}</code></td></tr>
+                <tr><td><span class="intro-tag-img js">id</span></td><td><code>getElementById()</code></td><td>Obtener por ID</td><td><code>document.getElementById("menu")</code></td></tr>
+                <tr><td><span class="intro-tag-img js">fetch</span></td><td><code>fetch()</code></td><td>Petición HTTP</td><td><code>fetch("/api")</code></td></tr>
               </tbody>
             </table>
           </div>
