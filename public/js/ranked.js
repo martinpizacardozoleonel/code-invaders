@@ -104,7 +104,7 @@ Ranked.inspectUser=async function(userId){
     const created=data.createdAt?new Date(data.createdAt).toLocaleDateString('es-AR'):'Desconocido';
     const speedrunHtml=data.speedrunBest?('<p class="inspect-speedrun">⚡ Speedrun: <strong>'+this.formatTime(data.speedrunBest)+'</strong></p>'):('<p class="inspect-speedrun muted">⚡ Sin speedrun</p>');
     const nameSt=this.nameStyle(data.nameColor)+API.fontStyle(data.equippedFont)+API.fxStyle(data.equippedFx);
-    const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span> '+(data.online?'En línea':'Desconectado');
+    const onlineDot='<span class="dot '+(data.online?'online':'offline')+'"></span><span class="inspect-status">'+(data.online?'En línea':'Desconectado')+'</span>';
     // --- TÍTULO (se muestra arriba del nombre, dentro del primer cuadro) ---
     let titleHtml='';
     if(data.equippedTitle&&data.equippedTitle!=='none'){

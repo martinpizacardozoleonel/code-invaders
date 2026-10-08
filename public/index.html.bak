@@ -1,69 +1,69 @@
-?<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>CODE INVADERS — Galaga de Programación</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>👾</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=39">
+  <title>CODE INVADERS â€” Galaga de ProgramaciÃ³n</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0e1a'/><text x='32' y='44' font-size='40' text-anchor='middle' fill='%2300e5ff'>ðŸ‘¾</text></svg>">
+  <link rel="stylesheet" href="css/style.css?v=37">
 </head>
 <body>
-  <!-- ============ INTRO — TUTORIAL INTERACTIVO ============ -->
-  <div id="introOverlay" class="intro-overlay hidden" role="dialog" aria-modal="true" aria-label="Introducción Code Invaders">
+  <!-- ============ INTRO â€” TUTORIAL INTERACTIVO ============ -->
+  <div id="introOverlay" class="intro-overlay hidden" role="dialog" aria-modal="true" aria-label="IntroducciÃ³n Code Invaders">
     <header class="intro-header">
-      <div class="intro-brand">✦ CODE <span>INVADERS</span></div>
+      <div class="intro-brand">âœ¦ CODE <span>INVADERS</span></div>
       <div class="intro-header-right">
-        <span class="intro-online"><span class="dot"></span> EN LÍNEA</span>
-        <button class="intro-close" id="introClose" aria-label="Cerrar introducción">✕ CERRAR</button>
+        <span class="intro-online"><span class="dot"></span> EN LÃNEA</span>
+        <button class="intro-close" id="introClose" aria-label="Cerrar introducciÃ³n">âœ• CERRAR</button>
       </div>
     </header>
     <div class="intro-panel">
       <div id="introContent"></div>
       <div class="intro-progress"><div class="intro-progress-fill" id="introProgressFill"></div></div>
       <div class="intro-nav">
-        <button id="introPrev" aria-label="Página anterior">‹ ANTERIOR</button>
+        <button id="introPrev" aria-label="PÃ¡gina anterior">â€¹ ANTERIOR</button>
         <div class="intro-dots" id="introDots"></div>
-        <span class="intro-page-label" id="introPageLabel">Página 1 de 6</span>
-        <button id="introNext" aria-label="Página siguiente">SIGUIENTE ›</button>
+        <span class="intro-page-label" id="introPageLabel">PÃ¡gina 1 de 6</span>
+        <button id="introNext" aria-label="PÃ¡gina siguiente">SIGUIENTE â€º</button>
       </div>
-      <button class="intro-skip" id="introSkip">SALTAR INTRODUCCIÓN →</button>
-      <label class="intro-noshow" id="introNoShowWrap"><input type="checkbox" id="introNoShow"><span id="introNoShowLabel">🔒 No volver a mostrar</span></label>
+      <button class="intro-skip" id="introSkip">SALTAR INTRODUCCIÃ“N â†’</button>
+      <label class="intro-noshow" id="introNoShowWrap"><input type="checkbox" id="introNoShow"><span id="introNoShowLabel">ðŸ”’ No volver a mostrar</span></label>
     </div>
   </div>
   <!-- ============ HEADER / NAV ============ -->
   <header class="topbar">
     <div class="logo-wrap" id="logoWrap">
-      <button class="logo logo--alien" id="logoMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menú">
-        <span class="logo-alien" aria-hidden="true">👾</span>
+      <button class="logo logo--alien" id="logoMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menÃº">
+        <span class="logo-alien" aria-hidden="true">ðŸ‘¾</span>
         <span class="logo-ring" aria-hidden="true"></span>
       </button>
       <div class="logo-backdrop hidden" id="logoBackdrop"></div>
       <div class="logo-menu arcade-menu hidden" id="logoMenu" role="menu">
-        <p class="arcade-menu-title"><span class="blink-dot"></span> INSERT COIN · MENÚ</p>
-        <button class="logo-menu-item" id="menuTutorial" role="menuitem"><span class="mi-ico">📖</span><span class="mi-txt">Tutorial</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" id="shopBtn" role="menuitem"><span class="mi-ico">🛒</span><span class="mi-txt">Tienda</span><span class="badge-shop" id="coinVal">0</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" id="menuAchievements" role="menuitem"><span class="mi-ico">🏆</span><span class="mi-txt">Logros</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" id="menuClans" role="menuitem"><span class="mi-ico">🛡️</span><span class="mi-txt">Clanes</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" data-view="docs" role="menuitem"><span class="mi-ico">📚</span><span class="mi-txt">Manual de uso</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" data-view="qr" role="menuitem"><span class="mi-ico">📷</span><span class="mi-txt">QR</span><span class="mi-arrow">▶</span></button>
-        <button class="logo-menu-item" id="menuSettings" role="menuitem"><span class="mi-ico">⚙️</span><span class="mi-txt">Ajustes</span><span class="mi-arrow">▶</span></button>
-        <p class="arcade-menu-foot">👾 CODE INVADERS v2 · ESC para cerrar</p>
+        <p class="arcade-menu-title"><span class="blink-dot"></span> INSERT COIN Â· MENÃš</p>
+        <button class="logo-menu-item" id="menuTutorial" role="menuitem"><span class="mi-ico">ðŸ“–</span><span class="mi-txt">Tutorial</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" id="shopBtn" role="menuitem"><span class="mi-ico">ðŸ›’</span><span class="mi-txt">Tienda</span><span class="badge-shop" id="coinVal">0</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" id="menuAchievements" role="menuitem"><span class="mi-ico">ðŸ†</span><span class="mi-txt">Logros</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" id="menuClans" role="menuitem"><span class="mi-ico">ðŸ›¡ï¸</span><span class="mi-txt">Clanes</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" data-view="docs" role="menuitem"><span class="mi-ico">ðŸ“š</span><span class="mi-txt">Manual de uso</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" data-view="qr" role="menuitem"><span class="mi-ico">ðŸ“·</span><span class="mi-txt">QR</span><span class="mi-arrow">â–¶</span></button>
+        <button class="logo-menu-item" id="menuSettings" role="menuitem"><span class="mi-ico">âš™ï¸</span><span class="mi-txt">Ajustes</span><span class="mi-arrow">â–¶</span></button>
+        <p class="arcade-menu-foot">ðŸ‘¾ CODE INVADERS v2 Â· ESC para cerrar</p>
       </div>
     </div>
     <nav class="nav">
-      <button class="nav-btn active" data-view="game">🎮 Juego</button>
-      <button class="nav-btn" data-view="ranked">🏆 RANKED</button>
-      <button class="nav-btn" data-view="chat">💬 Chat Global</button>
-      <button class="nav-btn" data-view="friends">👥 Amigos</button>
+      <button class="nav-btn active" data-view="game">ðŸŽ® Juego</button>
+      <button class="nav-btn" data-view="ranked">ðŸ† RANKED</button>
+      <button class="nav-btn" data-view="chat">ðŸ’¬ Chat Global</button>
+      <button class="nav-btn" data-view="friends">ðŸ‘¥ Amigos</button>
     </nav>
     <span class="db-badge hidden" id="dbBadge" title="Estado de la base de datos"></span>
     <div class="topbar-right">
       <button class="icon-btn" id="bellBtn" title="Notificaciones">
-        🔔 <span class="badge hidden" id="bellBadge">0</span>
+        ðŸ”” <span class="badge hidden" id="bellBadge">0</span>
       </button>
       <div class="notif-panel hidden" id="notifPanel"></div>
       <div class="user-box" id="userBox">
-        <button class="btn btn-primary btn-sm" id="loginBtn">Iniciar sesión</button>
+        <button class="btn btn-primary btn-sm" id="loginBtn">Iniciar sesiÃ³n</button>
       </div>
     </div>
   </header>
@@ -74,19 +74,19 @@
   <!-- ============ LOGIN / REGISTRO MODAL ============ -->
   <div class="modal-backdrop hidden" id="authModal">
     <div class="modal">
-      <h2 id="authTitle">Iniciar sesión</h2>
+      <h2 id="authTitle">Iniciar sesiÃ³n</h2>
       <div class="tabs">
-        <button class="tab active" data-tab="login">Iniciar sesión</button>
+        <button class="tab active" data-tab="login">Iniciar sesiÃ³n</button>
         <button class="tab" data-tab="register">Registrarse</button>
       </div>
       <form id="authForm">
         <label>Usuario
           <input type="text" id="authUser" required minlength="3" placeholder="ej. coder123">
         </label>
-        <label>Contraseña
+        <label>ContraseÃ±a
           <div class="pass-wrap">
-            <input type="password" id="authPass" required minlength="4" placeholder="••••••">
-            <button type="button" class="pass-toggle" data-target="authPass" aria-label="Mostrar contraseña">👁️</button>
+            <input type="password" id="authPass" required minlength="4" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢">
+            <button type="button" class="pass-toggle" data-target="authPass" aria-label="Mostrar contraseÃ±a">ðŸ‘ï¸</button>
           </div>
         </label>
         <p class="form-error hidden" id="authError"></p>
@@ -98,30 +98,30 @@
 
   <main>
 
-    <!-- ============ SECCIÓN JUEGO ============ -->
+    <!-- ============ SECCIÃ“N JUEGO ============ -->
     <section id="view-game" class="view active">
       <div class="game-wrapper">
         <!-- Canvas -->
         <div class="canvas-wrap">
           <canvas id="gameCanvas" width="700" height="500"></canvas>
-          <div class="speedrun-timer hidden" id="speedrunHud">⏱ 00:00.00</div>
+          <div class="speedrun-timer hidden" id="speedrunHud">â± 00:00.00</div>
           <div class="game-options hidden" id="gameOptions">
-            <button class="exit-btn" id="gameOptionsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Opciones de la partida" title="Opciones (Esc)">☰ OPCIONES</button>
+            <button class="exit-btn" id="gameOptionsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Opciones de la partida" title="Opciones (Esc)">â˜° OPCIONES</button>
             <div class="game-options-menu hidden" id="gameOptionsMenu" role="menu">
-              <button class="game-options-item" id="gameInfoBtn" role="menuitem">ℹ Información de la partida</button>
-              <button class="game-options-item danger" id="gameAbandonBtn" role="menuitem">🚪 Abandonar partida</button>
-              <button class="game-options-item" id="gameBackBtn" role="menuitem">← Volver</button>
+              <button class="game-options-item" id="gameInfoBtn" role="menuitem">â„¹ InformaciÃ³n de la partida</button>
+              <button class="game-options-item danger" id="gameAbandonBtn" role="menuitem">ðŸšª Abandonar partida</button>
+              <button class="game-options-item" id="gameBackBtn" role="menuitem">â† Volver</button>
             </div>
-            <div class="game-info-panel hidden" id="gameInfoPanel" role="dialog" aria-label="Información de la partida">
-              <h3>ℹ PARTIDA</h3>
+            <div class="game-info-panel hidden" id="gameInfoPanel" role="dialog" aria-label="InformaciÃ³n de la partida">
+              <h3>â„¹ PARTIDA</h3>
               <div id="gameInfoBody"></div>
-              <button class="btn btn-primary btn-sm btn-block" id="gameInfoCloseBtn">← Volver</button>
+              <button class="btn btn-primary btn-sm btn-block" id="gameInfoCloseBtn">â† Volver</button>
             </div>
           </div>
           <div class="exit-overlay hidden" id="exitOverlay">
             <div class="exit-card">
-              <h3>¿Salir de la partida?</h3>
-              <p>Perderás el progreso del nivel actual.</p>
+              <h3>Â¿Salir de la partida?</h3>
+              <p>PerderÃ¡s el progreso del nivel actual.</p>
               <div class="exit-actions">
                 <button class="btn btn-ghost btn-sm" id="exitCancel">Seguir jugando</button>
                 <button class="btn btn-primary btn-sm" id="exitConfirm">Salir</button>
@@ -129,29 +129,28 @@
             </div>
           </div>
           <div class="mode-btns" id="modeBtns">
-            <button class="btn-start" id="singlePlayerBtn">👤 UN JUGADOR</button>
-            <button class="btn-start btn-multi-entry" id="multiPlayerBtn">🌐 MULTIJUGADOR</button>
-            <button class="btn-start hidden" id="startBtn">▶ JUGAR</button>
-            <button class="btn-start hidden" id="levelsBtn">🗺️ NIVELES</button>
-            <button class="btn-start btn-speedrun hidden" id="speedrunBtn">⚡ SPEEDRUN</button>
-            <button class="btn-start btn-back hidden" id="modeBackBtn">← VOLVER</button>
+            <button class="btn-start" id="singlePlayerBtn">ðŸ‘¤ UN JUGADOR</button>
+            <button class="btn-start btn-multi-entry" id="multiPlayerBtn">ðŸŒ MULTIJUGADOR</button>
+            <button class="btn-start hidden" id="startBtn">â–¶ JUGAR</button>
+            <button class="btn-start btn-speedrun hidden" id="speedrunBtn">âš¡ SPEEDRUN</button>
+            <button class="btn-start btn-back hidden" id="modeBackBtn">â† VOLVER</button>
           </div>
-          <button class="btn-start hidden" id="retryBtn">↺ REINTENTAR</button>
+          <button class="btn-start hidden" id="retryBtn">â†º REINTENTAR</button>
           <div class="touch-controls" id="touchControls" aria-hidden="true">
             <div class="tc-group">
-              <button class="tc-btn" id="tcLeft" aria-label="Mover izquierda">◀</button>
-              <button class="tc-btn" id="tcRight" aria-label="Mover derecha">▶</button>
+              <button class="tc-btn" id="tcLeft" aria-label="Mover izquierda">â—€</button>
+              <button class="tc-btn" id="tcRight" aria-label="Mover derecha">â–¶</button>
             </div>
             <div class="tc-group">
-              <button class="tc-btn" id="tcFire" aria-label="Disparar">💥</button>
+              <button class="tc-btn" id="tcFire" aria-label="Disparar">ðŸ’¥</button>
             </div>
           </div>
         </div>
 
         <!-- Cartel de pregunta -->
         <div class="q-banner hidden" id="qBanner">
-          <span class="q-banner-label">🎯 DESTRUYE LA NAVE CON:</span>
-          <span class="q-banner-text" id="qBannerText">—</span>
+          <span class="q-banner-label">ðŸŽ¯ DESTRUYE LA NAVE CON:</span>
+          <span class="q-banner-text" id="qBannerText">â€”</span>
         </div>
 
         <!-- HUD debajo del canvas -->
@@ -161,8 +160,8 @@
             <span class="hud-val" id="levelVal">-</span>
           </div>
           <div class="hud-item hud-target-box">
-            <span class="hud-label">DESTRUIR →</span>
-            <span class="hud-val hud-target" id="targetQuestion">—</span>
+            <span class="hud-label">DESTRUIR â†’</span>
+            <span class="hud-val hud-target" id="targetQuestion">â€”</span>
           </div>
         </div>
 
@@ -175,8 +174,8 @@
       <div class="multi-overlay hidden" id="multiOverlay">
         <div class="multi-panel arcade-panel">
           <div class="multi-head">
-            <h2 class="arcade-h1" style="font-size:1.2rem">🌐 MULTIPLAYER ONLINE</h2>
-            <button class="btn btn-ghost btn-sm" id="multiCloseBtn">✕ Cerrar</button>
+            <h2 class="arcade-h1" style="font-size:1.2rem">ðŸŒ MULTIPLAYER ONLINE</h2>
+            <button class="btn btn-ghost btn-sm" id="multiCloseBtn">âœ• Cerrar</button>
           </div>
           <!-- BUSCADOR DE SALAS -->
           <div id="multiRooms" class="lobby-root">
@@ -184,53 +183,53 @@
               <div class="lobby-hero-stars" aria-hidden="true"></div>
               <div class="lobby-hero-top">
                 <div class="lobby-hero-title-wrap">
-                  <p class="lobby-kicker"><span class="blink-dot"></span> INSERT COIN · MULTIPLAYER ONLINE</p>
-                  <h2 class="lobby-hero-title">🌐 SALAS <span>MULTIJUGADOR</span></h2>
-                  <p class="lobby-hero-sub">Creá tu lobby o unite a uno público · escuadrón de 2 a 4 pilotos 👾</p>
+                  <p class="lobby-kicker"><span class="blink-dot"></span> INSERT COIN Â· MULTIPLAYER ONLINE</p>
+                  <h2 class="lobby-hero-title">ðŸŒ SALAS <span>MULTIJUGADOR</span></h2>
+                  <p class="lobby-hero-sub">CreÃ¡ tu lobby o unite a uno pÃºblico Â· escuadrÃ³n de 2 a 4 pilotos ðŸ‘¾</p>
                 </div>
-                <button class="btn btn-ghost btn-sm lobby-back" id="multiRoomsBackBtn">← Atrás</button>
+                <button class="btn btn-ghost btn-sm lobby-back" id="multiRoomsBackBtn">â† AtrÃ¡s</button>
               </div>
               <div class="lobby-hero-feats">
-                <span class="lobby-feat">👥 2-4 JUGADORES</span>
-                <span class="lobby-feat">🌍 PÚBLICA / 🔒 PRIVADA</span>
-                <span class="lobby-feat gold">⚡ NORMAL / SPEEDRUN</span>
+                <span class="lobby-feat">ðŸ‘¥ 2-4 JUGADORES</span>
+                <span class="lobby-feat">ðŸŒ PÃšBLICA / ðŸ”’ PRIVADA</span>
+                <span class="lobby-feat gold">âš¡ NORMAL / SPEEDRUN</span>
               </div>
             </div>
             <div class="lobby-grid">
               <div class="lobby-card lobby-create arcade-panel">
                 <div class="lobby-card-head">
-                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🚀</span> CREAR SALA <span class="lobby-live"><i></i>LIVE</span></h3>
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">ðŸš€</span> CREAR SALA <span class="lobby-live"><i></i>LIVE</span></h3>
                 </div>
-                <label class="lobby-label">NOMBRE DE TU NAVE / ESCUADRÓN</label>
-                <input type="text" id="multiRoomName" class="arcade-input lobby-input" placeholder="Ej. NAVE DE GUSTAVO 👾" maxlength="30" autocomplete="off">
+                <label class="lobby-label">NOMBRE DE TU NAVE / ESCUADRÃ“N</label>
+                <input type="text" id="multiRoomName" class="arcade-input lobby-input" placeholder="Ej. NAVE DE GUSTAVO ðŸ‘¾" maxlength="30" autocomplete="off">
                 <div class="lobby-row-2">
-                  <button class="switch-wrap lobby-switch" id="multiPublicSwitch" role="switch" aria-checked="true" title="Cambiar público/privado"><span class="switch-label" id="multiPublicLabel">🌍 Pública</span><span class="switch on" id="multiPublicTrack"><span class="switch-dot"></span></span></button>
+                  <button class="switch-wrap lobby-switch" id="multiPublicSwitch" role="switch" aria-checked="true" title="Cambiar pÃºblico/privado"><span class="switch-label" id="multiPublicLabel">ðŸŒ PÃºblica</span><span class="switch on" id="multiPublicTrack"><span class="switch-dot"></span></span></button>
                   <div class="lobby-seg" role="tablist" aria-label="Modo de sala">
-                    <button class="lobby-seg-btn active" id="multiCreateNormalBtn">▶ JUGAR</button>
-                    <button class="lobby-seg-btn seg-gold" id="multiCreateSpeedrunBtn">⚡ SPEEDRUN</button>
+                    <button class="lobby-seg-btn active" id="multiCreateNormalBtn">â–¶ JUGAR</button>
+                    <button class="lobby-seg-btn seg-gold" id="multiCreateSpeedrunBtn">âš¡ SPEEDRUN</button>
                   </div>
                 </div>
-                <div class="lobby-info" id="multiPublicHint">🌍 <b>Pública:</b> aparece en el buscador y cualquiera se une con 1 click.</div>
-                <div class="lobby-info dim">🎮 <b>▶ JUGAR</b> = normal · <b>⚡ SPEEDRUN</b> = contrarreloj ⏱</div>
+                <div class="lobby-info" id="multiPublicHint">ðŸŒ <b>PÃºblica:</b> aparece en el buscador y cualquiera se une con 1 click.</div>
+                <div class="lobby-info dim">ðŸŽ® <b>â–¶ JUGAR</b> = normal Â· <b>âš¡ SPEEDRUN</b> = contrarreloj â±</div>
                 <div class="lobby-row-2 lobby-players-row">
-                  <span class="lobby-label" style="margin:0">👥 TRIPULACIÓN</span>
+                  <span class="lobby-label" style="margin:0">ðŸ‘¥ TRIPULACIÃ“N</span>
                   <div class="lobby-count-pick" id="multiMaxPick">
                     <button class="lobby-count-btn" data-max="2"><b>2</b><small>PILOTOS</small></button>
                     <button class="lobby-count-btn" data-max="3"><b>3</b><small>PILOTOS</small></button>
                     <button class="lobby-count-btn active" data-max="4"><b>4</b><small>PILOTOS</small></button>
                   </div>
                 </div>
-                <button class="btn btn-primary lobby-cta" id="multiCreateBtn"><span>➕ CREAR Y ENTRAR</span><small>PRESS START ▶</small></button>
+                <button class="btn btn-primary lobby-cta" id="multiCreateBtn"><span>âž• CREAR Y ENTRAR</span><small>PRESS START â–¶</small></button>
               </div>
               <div class="lobby-side">
                 <div class="lobby-card arcade-panel lobby-join">
-                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🔑</span> UNIRSE CON CÓDIGO</h3>
-                  <p class="lobby-side-sub">¿Sala privada? Pegá el código secreto del creador 👇</p>
-                  <div class="arcade-form-row lobby-join-row"><input type="text" id="multiJoinCode" class="arcade-input lobby-code" placeholder="XK7Q2M" maxlength="10" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiJoinCodeBtn">⚡ Unirse</button></div>
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">ðŸ”‘</span> UNIRSE CON CÃ“DIGO</h3>
+                  <p class="lobby-side-sub">Â¿Sala privada? PegÃ¡ el cÃ³digo secreto del creador ðŸ‘‡</p>
+                  <div class="arcade-form-row lobby-join-row"><input type="text" id="multiJoinCode" class="arcade-input lobby-code" placeholder="XK7Q2M" maxlength="10" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiJoinCodeBtn">âš¡ Unirse</button></div>
                 </div>
                 <div class="lobby-card arcade-panel lobby-search">
-                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🔎</span> BUSCADOR DE LOBBYS <span class="lobby-count-badge" id="lobbyCountBadge">0</span></h3>
-                  <div class="arcade-form-row"><input type="text" id="multiRoomSearch" class="arcade-input" placeholder="🔍 Buscar sala por nombre..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiRoomSearchBtn">Buscar</button></div>
+                  <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">ðŸ”Ž</span> BUSCADOR DE LOBBYS <span class="lobby-count-badge" id="lobbyCountBadge">0</span></h3>
+                  <div class="arcade-form-row"><input type="text" id="multiRoomSearch" class="arcade-input" placeholder="ðŸ” Buscar sala por nombre..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiRoomSearchBtn">Buscar</button></div>
                   <div id="multiRoomsList" class="multi-rooms lobby-rooms"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>ESCANEANDO SECTOR...</p></div></div>
                 </div>
               </div>
@@ -238,94 +237,94 @@
             <!-- ============ RANKED MULTIJUGADOR ============ -->
             <div class="ranked-mp-bar">
               <div class="ranked-mp-info">
-                <span class="ranked-mp-badge" id="rankedMyRankBadge">🥉 Bronce III</span>
+                <span class="ranked-mp-badge" id="rankedMyRankBadge">ðŸ¥‰ Bronce III</span>
                 <span class="ranked-mp-rp" id="rankedMyRp">0 RP</span>
                 <div class="ranked-mp-bar-track"><div class="ranked-mp-bar-fill" id="rankedMyBar"></div></div>
                 <span class="ranked-mp-next" id="rankedMyNext">0 / 400 RP</span>
               </div>
-              <button class="btn btn-gold ranked-mp-btn" id="multiRankedBtn">🏅 JUGAR RANKED</button>
+              <button class="btn btn-gold ranked-mp-btn" id="multiRankedBtn">ðŸ… JUGAR RANKED</button>
             </div>
             <!-- ELEGIR 1v1 / 2v2 -->
             <div id="multiRankedPick" class="hidden ranked-pick">
               <div class="ranked-pick-head">
-                <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">🏅</span> ELEGÍ EL MODO RANKED</h3>
-                <button class="btn btn-ghost btn-sm" id="multiRankedPickClose">✕ Cancelar</button>
+                <h3 class="panel-sec-title lobby-title"><span class="lobby-ico">ðŸ…</span> ELEGÃ EL MODO RANKED</h3>
+                <button class="btn btn-ghost btn-sm" id="multiRankedPickClose">âœ• Cancelar</button>
               </div>
-              <p class="lobby-side-sub">Sólo cuentan los que estén listos. Cuantos másFormato, más RP.</p>
+              <p class="lobby-side-sub">SÃ³lo cuentan los que estÃ©n listos. Cuantos mÃ¡sFormato, mÃ¡s RP.</p>
               <div class="ranked-pick-grid">
                 <button class="ranked-pick-card" data-team="2">
-                  <span class="ranked-pick-icon">⚔️</span>
+                  <span class="ranked-pick-icon">âš”ï¸</span>
                   <b>1v1</b>
-                  <small>2 jugadores · Duelo</small>
+                  <small>2 jugadores Â· Duelo</small>
                   <span class="ranked-pick-rp">+30 RP por victoria</span>
                 </button>
                 <button class="ranked-pick-card" data-team="4">
-                  <span class="ranked-pick-icon">🛡️</span>
+                  <span class="ranked-pick-icon">ðŸ›¡ï¸</span>
                   <b>2v2</b>
-                  <small>4 jugadores · Equipo</small>
+                  <small>4 jugadores Â· Equipo</small>
                   <span class="ranked-pick-rp">+20 RP por victoria</span>
                 </button>
               </div>
               <label class="lobby-label">NOMBRE DE LA SALA RANKED</label>
               <input type="text" id="multiRankedName" class="arcade-input lobby-input" placeholder="Ej. DUELO RANKED" maxlength="30" autocomplete="off">
-              <label class="switch-wrap lobby-switch" id="multiRankedPublicSwitch" role="switch" aria-checked="true"><span class="switch-label" id="multiRankedPublicLabel">🌍 Pública</span><span class="switch on" id="multiRankedPublicTrack"><span class="switch-dot"></span></span></label>
-              <button class="btn btn-primary lobby-cta" id="multiRankedCreateBtn"><span>🏅 CREAR SALA RANKED</span><small>PRESS START ▶</small></button>
+              <label class="switch-wrap lobby-switch" id="multiRankedPublicSwitch" role="switch" aria-checked="true"><span class="switch-label" id="multiRankedPublicLabel">ðŸŒ PÃºblica</span><span class="switch on" id="multiRankedPublicTrack"><span class="switch-dot"></span></span></label>
+              <button class="btn btn-primary lobby-cta" id="multiRankedCreateBtn"><span>ðŸ… CREAR SALA RANKED</span><small>PRESS START â–¶</small></button>
               <div id="multiRankedList" class="multi-rooms lobby-rooms" style="margin-top:12px"></div>
             </div>
           </div>
           <!-- LOBBY DE SALA -->
           <div id="multiLobby" class="hidden">
             <div class="multi-lobby-actions" style="justify-content:space-between">
-              <button class="btn btn-ghost btn-sm" id="multiBackBtn">← Salas</button>
-              <button class="btn btn-ghost btn-sm" id="multiCloseBtn2">✕ Cerrar</button>
+              <button class="btn btn-ghost btn-sm" id="multiBackBtn">â† Salas</button>
+              <button class="btn btn-ghost btn-sm" id="multiCloseBtn2">âœ• Cerrar</button>
             </div>
-            <p class="lead friends-sub" id="multiRoomTitle" style="text-align:center">🚀 LOBBY</p>
+            <p class="lead friends-sub" id="multiRoomTitle" style="text-align:center">ðŸš€ LOBBY</p>
             <div id="multiOwnerBar" class="hidden">
               <div class="multi-create-row">
-                <button class="switch-wrap" id="multiRoomPublicSwitch" role="switch" aria-checked="true" title="Solo el creador puede cambiarlo"><span class="switch-label" id="multiRoomPublicLabel">🌍 Pública</span><span class="switch on" id="multiRoomPublicTrack"><span class="switch-dot"></span></span></button>
+                <button class="switch-wrap" id="multiRoomPublicSwitch" role="switch" aria-checked="true" title="Solo el creador puede cambiarlo"><span class="switch-label" id="multiRoomPublicLabel">ðŸŒ PÃºblica</span><span class="switch on" id="multiRoomPublicTrack"><span class="switch-dot"></span></span></button>
                 <span class="hint">Solo el creador puede cambiarlo</span>
               </div>
               <div id="multiCodeBox" class="hidden">
-                <p class="hint">🔒 Sala privada · Compartí este código (solo vos lo ves):</p>
-                <div class="arcade-form-row"><input type="text" id="multiCodeInput" class="arcade-input" readonly><button class="btn btn-primary btn-sm arcade-btn" id="multiCopyCodeBtn">📋 Copiar</button></div>
+                <p class="hint">ðŸ”’ Sala privada Â· CompartÃ­ este cÃ³digo (solo vos lo ves):</p>
+                <div class="arcade-form-row"><input type="text" id="multiCodeInput" class="arcade-input" readonly><button class="btn btn-primary btn-sm arcade-btn" id="multiCopyCodeBtn">ðŸ“‹ Copiar</button></div>
               </div>
             </div>
             <div class="multi-mode-pick" id="multiModePick">
-              <button class="btn btn-primary multi-mode-btn active" id="multiModeNormalBtn">▶ JUGAR</button>
-              <button class="btn btn-speedrun multi-mode-btn" id="multiModeSpeedrunBtn">⚡ SPEEDRUN</button>
+              <button class="btn btn-primary multi-mode-btn active" id="multiModeNormalBtn">â–¶ JUGAR</button>
+              <button class="btn btn-speedrun multi-mode-btn" id="multiModeSpeedrunBtn">âš¡ SPEEDRUN</button>
             </div>
-            <p class="hint" id="multiModeHint" style="text-align:center">Modo multi: <b>▶ JUGAR</b></p>
+            <p class="hint" id="multiModeHint" style="text-align:center">Modo multi: <b>â–¶ JUGAR</b></p>
             <div class="multi-players" id="multiPlayers"></div>
             <div class="multi-lobby-actions">
-              <button class="btn btn-primary" id="multiReadyBtn">✅ ¡LISTO!</button>
+              <button class="btn btn-primary" id="multiReadyBtn">âœ… Â¡LISTO!</button>
               <button class="btn btn-ghost btn-sm" id="multiLeaveBtn">Salir del lobby</button>
             </div>
-            <h3 class="panel-sec-title"><span>💬</span> CHAT DEL LOBBY</h3>
+            <h3 class="panel-sec-title"><span>ðŸ’¬</span> CHAT DEL LOBBY</h3>
             <div class="chat-messages arcade-chat" id="multiChatBox" style="height:150px"></div>
             <div class="chat-reply-bar hidden" id="multiReplyBar">
-              <span class="chat-reply-bar-label">↩ Respondiendo a <b id="multiReplyText"></b></span>
-              <button class="btn btn-ghost btn-sm" id="multiReplyCancel" title="Cancelar (Esc)">✕</button>
+              <span class="chat-reply-bar-label">â†© Respondiendo a <b id="multiReplyText"></b></span>
+              <button class="btn btn-ghost btn-sm" id="multiReplyCancel" title="Cancelar (Esc)">âœ•</button>
             </div>
             <div class="chat-input-bar arcade-chat-bar"><input type="text" id="multiChatInput" class="arcade-input" placeholder="Escribe... (Enter)" maxlength="300" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="multiChatSend">Enviar</button></div>
           </div>
           <!-- BATALLA -->
           <div id="multiBattle" class="hidden">
-            <div class="multi-battle-top"><div class="multi-wave-banner" id="multiWaveBanner" style="flex:1">HORNADA 1</div><button class="btn btn-ghost btn-sm" id="multiExitBtn" title="Abandonar partida">🚪 Salir</button></div>
+            <div class="multi-battle-top"><div class="multi-wave-banner" id="multiWaveBanner" style="flex:1">HORNADA 1</div><button class="btn btn-ghost btn-sm" id="multiExitBtn" title="Abandonar partida">ðŸšª Salir</button></div>
             <div class="multi-hud" id="multiHud"></div>
             <div class="multi-arena" id="multiArena">
               <canvas id="multiCanvas"></canvas>
               <div class="multi-flash" id="multiFlash"></div>
-              <div class="multi-breach-alert" id="multiBreachAlert">🚨 ¡ROMPIERON LA LÍNEA! −1 VIDA</div>
+              <div class="multi-breach-alert" id="multiBreachAlert">ðŸš¨ Â¡ROMPIERON LA LÃNEA! âˆ’1 VIDA</div>
             </div>
-            <div class="chat-input-bar arcade-chat-bar" style="margin-top:10px"><input type="text" id="multiAnswer" class="arcade-input" placeholder="Escribe la etiqueta para disparar... (Enter)" autocomplete="off" spellcheck="false"><button class="btn btn-primary btn-sm arcade-btn" id="multiAnswerBtn">💥</button></div>
+            <div class="chat-input-bar arcade-chat-bar" style="margin-top:10px"><input type="text" id="multiAnswer" class="arcade-input" placeholder="Escribe la etiqueta para disparar... (Enter)" autocomplete="off" spellcheck="false"><button class="btn btn-primary btn-sm arcade-btn" id="multiAnswerBtn">ðŸ’¥</button></div>
             <p class="hint" id="multiFeedback" style="text-align:center;min-height:20px"></p>
           </div>
           <!-- RESULTADOS -->
           <div id="multiResults" class="hidden">
-            <h3 class="panel-sec-title">🏆 RESULTADOS — gana EXP y monedas</h3>
+            <h3 class="panel-sec-title">ðŸ† RESULTADOS â€” gana EXP y monedas</h3>
             <div id="multiTable"></div>
             <div class="multi-lobby-actions">
-              <button class="btn btn-primary" id="multiStayBtn">🔄 Volver al lobby</button>
+              <button class="btn btn-primary" id="multiStayBtn">ðŸ”„ Volver al lobby</button>
               <button class="btn btn-ghost btn-sm" id="multiQuitBtn">Salir</button>
             </div>
           </div>
@@ -333,181 +332,181 @@
       </div>
     </section>
 
-    <!-- ============ SECCIÓN RANKED ============ -->
+    <!-- ============ SECCIÃ“N RANKED ============ -->
     <section id="view-ranked" class="view">
-      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
-      <h1>🏆 RANKED</h1>
-      <p class="lead">Ranking de jugadores de Code Invaders. ¡Subí de nivel y competí!</p>
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">â† Volver al juego</button>
+      <h1>ðŸ† RANKED</h1>
+      <p class="lead">Ranking de jugadores de Code Invaders. Â¡SubÃ­ de nivel y competÃ­!</p>
       <div class="tournament-banner" id="tournamentBanner"></div>
       <div class="ranked-tabs" id="rankedTabs">
-        <button class="ranked-tab active" data-tab="normal">🏆 Normal</button>
-        <button class="ranked-tab" data-tab="speedrun">⚡ Speedrun</button>
+        <button class="ranked-tab active" data-tab="normal">ðŸ† Normal</button>
+        <button class="ranked-tab" data-tab="speedrun">âš¡ Speedrun</button>
       </div>
       <div class="ranked-grid" id="rankedGrid"></div>
-      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">â† Volver atrÃ¡s</button>
     </section>
 
-    <!-- ============ SECCIÓN CHAT ============ -->
+    <!-- ============ SECCIÃ“N CHAT ============ -->
     <section id="view-chat" class="view friends-view">
-      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">â† Volver al juego</button>
       <div class="friends-head">
-        <h1 class="arcade-h1"><span class="arcade-h1-icon">💬</span> CHAT GLOBAL</h1>
-        <p class="lead friends-sub">Habla con todos los jugadores 👾 Los mensajes se guardan y no se borran al refrescar.</p>
+        <h1 class="arcade-h1"><span class="arcade-h1-icon">ðŸ’¬</span> CHAT GLOBAL</h1>
+        <p class="lead friends-sub">Habla con todos los jugadores ðŸ‘¾ Los mensajes se guardan y no se borran al refrescar.</p>
       </div>
       <div class="chat-card arcade-panel" id="chatCard" style="max-width:760px">
         <div class="chat-bg-picker hidden" id="chatBgPicker" style="display:none !important">
           <input type="file" id="chatBgInput" accept="image/*" class="hidden">
-          <button class="btn btn-ghost btn-sm hidden" id="chatBgUploadBtn">📷 Foto</button>
-          <button class="btn btn-ghost btn-sm hidden" id="chatBgClearBtn">✕ Quitar</button>
+          <button class="btn btn-ghost btn-sm hidden" id="chatBgUploadBtn">ðŸ“· Foto</button>
+          <button class="btn btn-ghost btn-sm hidden" id="chatBgClearBtn">âœ• Quitar</button>
         </div>
         <div class="chat-toolbar">
-          <button class="tool-btn" id="chatPhotoBtn" title="Enviar foto">📷 Foto</button>
-          <button class="tool-btn" id="chatGifBtn" title="Enviar GIF">🎞️ GIF</button>
-          <button class="tool-btn" id="chatStickerBtn" title="Stickers">😎 Sticker</button>
-          <span class="chat-count" id="chatCount">👾 0</span>
+          <button class="tool-btn" id="chatPhotoBtn" title="Enviar foto">ðŸ“· Foto</button>
+          <button class="tool-btn" id="chatGifBtn" title="Enviar GIF">ðŸŽžï¸ GIF</button>
+          <button class="tool-btn" id="chatStickerBtn" title="Stickers">ðŸ˜Ž Sticker</button>
+          <span class="chat-count" id="chatCount">ðŸ‘¾ 0</span>
           <input type="file" id="chatFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" style="display:none">
         </div>
         <div class="chat-media-panel hidden" id="chatGifPanel">
-          <p class="media-title">🎞️ Elige un GIF arcade</p>
+          <p class="media-title">ðŸŽžï¸ Elige un GIF arcade</p>
           <div class="media-grid" id="chatGifGrid"></div>
           <div class="arcade-form-row" style="margin-top:8px"><input type="url" id="chatGifUrl" class="arcade-input" placeholder="...o pega URL de GIF https://"><button class="btn btn-primary btn-sm arcade-btn" id="chatGifSendUrl">Enviar</button></div>
         </div>
         <div class="chat-media-panel hidden" id="chatStickerPanel">
-          <p class="media-title">😎 Toca un sticker para enviar</p>
+          <p class="media-title">ðŸ˜Ž Toca un sticker para enviar</p>
           <div class="media-grid stickers" id="chatStickerGrid"></div>
         </div>
-        <div class="chat-preview hidden" id="chatPreview"><img id="chatPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="chatPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="chatPreviewSend">📤 Enviar foto</button></div></div>
+        <div class="chat-preview hidden" id="chatPreview"><img id="chatPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="chatPreviewCancel">âœ•</button><button class="btn btn-primary btn-sm arcade-btn" id="chatPreviewSend">ðŸ“¤ Enviar foto</button></div></div>
         <div class="chat-messages arcade-chat global" id="chatMessages"><div class="arcade-mini-load"><div class="arcade-spinner small"></div><p>CARGANDO MENSAJES...</p></div></div>
         <div class="chat-reply-bar hidden" id="chatReplyBar">
-          <span class="chat-reply-bar-label">↩ Respondiendo a <b id="chatReplyText"></b></span>
-          <button class="btn btn-ghost btn-sm" id="chatReplyCancel" title="Cancelar (Esc)">✕</button>
+          <span class="chat-reply-bar-label">â†© Respondiendo a <b id="chatReplyText"></b></span>
+          <button class="btn btn-ghost btn-sm" id="chatReplyCancel" title="Cancelar (Esc)">âœ•</button>
         </div>
         <div class="chat-input-bar arcade-chat-bar">
-          <input type="text" id="chatInput" class="arcade-input" placeholder="Escribe un mensaje... (Enter ↵)" maxlength="500" autocomplete="off">
+          <input type="text" id="chatInput" class="arcade-input" placeholder="Escribe un mensaje... (Enter â†µ)" maxlength="500" autocomplete="off">
           <button class="btn btn-primary btn-sm arcade-btn" id="chatSendBtn">Enviar</button>
         </div>
         <p class="hint hidden" id="chatHint"></p>
       </div>
-      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button></div>
+      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">â† Volver atrÃ¡s</button></div>
     </section>
-    <!-- ============ SECCIÓN AMIGOS ============ -->
+    <!-- ============ SECCIÃ“N AMIGOS ============ -->
     <section id="view-friends" class="view friends-view">
-      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">â† Volver al juego</button>
       <div class="friends-head">
-        <h1 class="arcade-h1"><span class="arcade-h1-icon">👥</span> AMIGOS</h1>
-        <p class="lead friends-sub">Añade amigos, acepta solicitudes <span class="mini-badge">🔔 campanita</span> y chatea en privado. <span class="status-pill online"><i class="dot online"></i> en línea</span> <span class="status-pill offline"><i class="dot offline"></i> desconectado</span></p>
+        <h1 class="arcade-h1"><span class="arcade-h1-icon">ðŸ‘¥</span> AMIGOS</h1>
+        <p class="lead friends-sub">AÃ±ade amigos, acepta solicitudes <span class="mini-badge">ðŸ”” campanita</span> y chatea en privado. <span class="status-pill online"><i class="dot online"></i> en lÃ­nea</span> <span class="status-pill offline"><i class="dot offline"></i> desconectado</span></p>
       </div>
       <div class="friends-grid">
         <div class="friends-col arcade-panel">
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>➕</span> AÑADIR AMIGO</h3>
+            <h3 class="panel-sec-title"><span>âž•</span> AÃ‘ADIR AMIGO</h3>
             <div class="arcade-form-row"><input type="text" id="friendAddInput" class="arcade-input" placeholder="Nombre exacto..." maxlength="20" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="friendAddBtn">Enviar</button></div>
           </div>
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>📩</span> SOLICITUDES</h3>
-            <div id="friendReqs" class="friends-stack"><p class="hint empty-hint">📭 Sin solicitudes</p></div>
+            <h3 class="panel-sec-title"><span>ðŸ“©</span> SOLICITUDES</h3>
+            <div id="friendReqs" class="friends-stack"><p class="hint empty-hint">ðŸ“­ Sin solicitudes</p></div>
           </div>
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>📋</span> LISTA</h3>
+            <h3 class="panel-sec-title"><span>ðŸ“‹</span> LISTA</h3>
             <div id="friendsList" class="friends-stack"></div>
           </div>
         </div>
         <div class="friends-col arcade-panel">
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>💬</span> CHAT PRIVADO</h3>
+            <h3 class="panel-sec-title"><span>ðŸ’¬</span> CHAT PRIVADO</h3>
             <select id="privFriendSelect" class="arcade-select"><option value="">-- elige amigo --</option></select>
             <div class="chat-toolbar priv-toolbar">
-              <button class="tool-btn tool-sm" id="privPhotoBtn" title="Enviar foto">📷</button>
-              <button class="tool-btn tool-sm" id="privGifBtn" title="Enviar GIF">🎞️</button>
-              <button class="tool-btn tool-sm" id="privStickerBtn" title="Stickers">😎</button>
+              <button class="tool-btn tool-sm" id="privPhotoBtn" title="Enviar foto">ðŸ“·</button>
+              <button class="tool-btn tool-sm" id="privGifBtn" title="Enviar GIF">ðŸŽžï¸</button>
+              <button class="tool-btn tool-sm" id="privStickerBtn" title="Stickers">ðŸ˜Ž</button>
               <input type="file" id="privFileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
             </div>
             <div class="chat-media-panel hidden" id="privGifPanel">
-              <p class="media-title">🎞️ GIF rápido</p>
+              <p class="media-title">ðŸŽžï¸ GIF rÃ¡pido</p>
               <div class="media-grid" id="privGifGrid"></div>
               <div class="arcade-form-row" style="margin-top:8px"><input type="url" id="privGifUrl" class="arcade-input" placeholder="Pega URL https://...gif"><button class="btn btn-primary btn-sm arcade-btn" id="privGifSendUrl">OK</button></div>
             </div>
             <div class="chat-media-panel hidden" id="privStickerPanel">
-              <p class="media-title">😎 Sticker</p>
+              <p class="media-title">ðŸ˜Ž Sticker</p>
               <div class="media-grid stickers" id="privStickerGrid"></div>
             </div>
-            <div class="chat-preview hidden" id="privPreview"><img id="privPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="privPreviewCancel">✕</button><button class="btn btn-primary btn-sm arcade-btn" id="privPreviewSend">📤</button></div></div>
-            <div class="chat-messages arcade-chat" id="privMessages"><div class="empty-chat"><span class="empty-chat-icon">💬</span><p class="hint">Selecciona un amigo para chatear</p></div></div>
+            <div class="chat-preview hidden" id="privPreview"><img id="privPreviewImg" alt="preview"><div class="chat-preview-actions"><button class="btn btn-ghost btn-sm" id="privPreviewCancel">âœ•</button><button class="btn btn-primary btn-sm arcade-btn" id="privPreviewSend">ðŸ“¤</button></div></div>
+            <div class="chat-messages arcade-chat" id="privMessages"><div class="empty-chat"><span class="empty-chat-icon">ðŸ’¬</span><p class="hint">Selecciona un amigo para chatear</p></div></div>
             <div class="chat-reply-bar hidden" id="privReplyBar">
-              <span class="chat-reply-bar-label">↩ Respondiendo a <b id="privReplyText"></b></span>
-              <button class="btn btn-ghost btn-sm" id="privReplyCancel" title="Cancelar (Esc)">✕</button>
+              <span class="chat-reply-bar-label">â†© Respondiendo a <b id="privReplyText"></b></span>
+              <button class="btn btn-ghost btn-sm" id="privReplyCancel" title="Cancelar (Esc)">âœ•</button>
             </div>
-            <div class="chat-input-bar arcade-chat-bar"><input type="text" id="privInput" class="arcade-input" placeholder="Mensaje privado... (Enter ↵)" maxlength="500" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="privSendBtn">Enviar</button></div>
+            <div class="chat-input-bar arcade-chat-bar"><input type="text" id="privInput" class="arcade-input" placeholder="Mensaje privado... (Enter â†µ)" maxlength="500" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="privSendBtn">Enviar</button></div>
           </div>
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>🎁</span> ENVIAR OBSEQUIO</h3>
+            <h3 class="panel-sec-title"><span>ðŸŽ</span> ENVIAR OBSEQUIO</h3>
             <div id="giftSection" class="gift-box">
               <select id="giftFriendSelect" class="arcade-select"><option value="">-- elige amigo --</option></select>
-              <div class="arcade-form-row gift-row"><input type="number" id="giftAmountInput" class="arcade-input gift-pts" placeholder="Pts 10-5000" min="10" max="5000"><input type="text" id="giftMsgInput" class="arcade-input" placeholder="Mensaje opcional..." maxlength="100" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="giftSendBtn">🎁</button></div>
-              <p class="hint gift-coins" id="giftHint">🪙 Tus puntos: <strong id="giftCoinsDisplay">0</strong></p>
+              <div class="arcade-form-row gift-row"><input type="number" id="giftAmountInput" class="arcade-input gift-pts" placeholder="Pts 10-5000" min="10" max="5000"><input type="text" id="giftMsgInput" class="arcade-input" placeholder="Mensaje opcional..." maxlength="100" autocomplete="off"><button class="btn btn-primary btn-sm arcade-btn" id="giftSendBtn">ðŸŽ</button></div>
+              <p class="hint gift-coins" id="giftHint">ðŸª™ Tus puntos: <strong id="giftCoinsDisplay">0</strong></p>
             </div>
           </div>
           <div class="friends-sec">
-            <h3 class="panel-sec-title"><span>📜</span> HISTORIAL</h3>
-            <div id="giftHistory" class="gift-history"><p class="hint empty-hint">Sin obsequios aún</p></div>
+            <h3 class="panel-sec-title"><span>ðŸ“œ</span> HISTORIAL</h3>
+            <div id="giftHistory" class="gift-history"><p class="hint empty-hint">Sin obsequios aÃºn</p></div>
           </div>
         </div>
       </div>
-      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button></div>
+      <div style="text-align:center"><button class="btn btn-ghost" data-view="game" style="margin-top:18px">â† Volver atrÃ¡s</button></div>
     </section>
 
-    <!-- ============ SECCIÓN QR ============ -->
+    <!-- ============ SECCIÃ“N QR ============ -->
     <section id="view-qr" class="view">
-      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
-      <h1>📷 QR — Code Invaders</h1>
-      <p class="lead">Escaneá el QR con tu celular para jugar al instante en cualquier dispositivo. Todos compiten en el mismo ranked.</p>
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">â† Volver al juego</button>
+      <h1>ðŸ“· QR â€” Code Invaders</h1>
+      <p class="lead">EscaneÃ¡ el QR con tu celular para jugar al instante en cualquier dispositivo. Todos compiten en el mismo ranked.</p>
       <div class="qr-card">
         <div class="qr-img-wrap">
           <img id="qrImg" alt="QR Code Invaders" width="300" height="300">
           <p class="qr-loading" id="qrLoading">Generando QR...</p>
         </div>
         <div class="qr-info">
-          <p class="qr-url" id="qrUrl">—</p>
+          <p class="qr-url" id="qrUrl">â€”</p>
           <div class="qr-actions">
-            <button class="btn btn-primary btn-sm" id="qrCopyBtn">📋 Copiar link</button>
-            <a class="btn btn-ghost btn-sm" id="qrOpenBtn" target="_blank" rel="noopener">🌐 Abrir</a>
-            <button class="btn btn-ghost btn-sm" id="qrShareBtn">📤 Compartir</button>
+            <button class="btn btn-primary btn-sm" id="qrCopyBtn">ðŸ“‹ Copiar link</button>
+            <a class="btn btn-ghost btn-sm" id="qrOpenBtn" target="_blank" rel="noopener">ðŸŒ Abrir</a>
+            <button class="btn btn-ghost btn-sm" id="qrShareBtn">ðŸ“¤ Compartir</button>
           </div>
-          <p class="hint">Tip: proyectá este QR en el pizarrón. Al iniciar sesión aparecen en el RANKED.</p>
+          <p class="hint">Tip: proyectÃ¡ este QR en el pizarrÃ³n. Al iniciar sesiÃ³n aparecen en el RANKED.</p>
         </div>
       </div>
-      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">â† Volver atrÃ¡s</button>
     </section>
 
-    <!-- ============ SECCIÓN MANUAL ============ -->
+    <!-- ============ SECCIÃ“N MANUAL ============ -->
     <section id="view-docs" class="view">
-      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">← Volver al juego</button>
-      <h1>📖 Manual de uso</h1>
-      <p class="lead">Guía completa para jugar a <b>Code Invaders</b>.</p>
+      <button class="btn btn-ghost btn-sm" data-view="game" style="margin-bottom:14px">â† Volver al juego</button>
+      <h1>ðŸ“– Manual de uso</h1>
+      <p class="lead">GuÃ­a completa para jugar a <b>Code Invaders</b>.</p>
       <div class="docs-grid" id="docsGrid"></div>
-      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
+      <button class="btn btn-ghost" data-view="game" style="margin-top:18px">â† Volver atrÃ¡s</button>
     </section>
 
   </main>
 
   <footer>
-    <p>👾 Code Invaders — Proyecto educativo · Aprende programación jugando.</p>
+    <p>ðŸ‘¾ Code Invaders â€” Proyecto educativo Â· Aprende programaciÃ³n jugando.</p>
   </footer>
 
   <div class="modal-backdrop hidden" id="shopModal">
     <div class="modal modal-shop">
       <div class="shop-header">
-        <h2>🛒 Tienda</h2>
-        <button class="btn-close" id="shopClose">✕</button>
+        <h2>ðŸ›’ Tienda</h2>
+        <button class="btn-close" id="shopClose">âœ•</button>
       </div>
-      <p class="shop-balance" id="shopBalance">🪙 0 puntos</p>
+      <p class="shop-balance" id="shopBalance">ðŸª™ 0 puntos</p>
       <div class="shop-tabs" id="shopTabs">
-        <button class="shop-tab active" data-tab="skins">🚀 Naves</button>
-        <button class="shop-tab" data-tab="lasers">⚡ Láseres</button>
-        <button class="shop-tab" data-tab="impacts">💥 Impactos</button>
-        <button class="shop-tab" data-tab="labels">🏷️ Etiquetas</button>
-        <button class="shop-tab" data-tab="titles">👑 Títulos</button>
-        <button class="shop-tab" data-tab="lucky">🎰 Lucky Coders</button>
+        <button class="shop-tab active" data-tab="skins">ðŸš€ Naves</button>
+        <button class="shop-tab" data-tab="lasers">âš¡ LÃ¡seres</button>
+        <button class="shop-tab" data-tab="impacts">ðŸ’¥ Impactos</button>
+        <button class="shop-tab" data-tab="labels">ðŸ·ï¸ Etiquetas</button>
+        <button class="shop-tab" data-tab="titles">ðŸ‘‘ TÃ­tulos</button>
+        <button class="shop-tab" data-tab="lucky">ðŸŽ° Lucky Coders</button>
       </div>
       <div class="shop-grid" id="shopGrid"></div>
       <div class="shop-grid hidden" id="laserGrid"></div>
@@ -517,24 +516,24 @@
       <div id="luckyLayout" class="lucky-layout hidden">
         <div id="luckyWheelWrap" class="galaga-panel">
           <div class="galaga-hud-top"><span class="hud-dot"></span><span>SYS.ONLINE // SECTOR-7</span><span>CREDIT 1000</span></div>
-          <div class="galaga-title">🎰 LUCKY CODERS<small>LUCKY // FUTURE SPIN</small></div>
+          <div class="galaga-title">ðŸŽ° LUCKY CODERS<small>LUCKY // FUTURE SPIN</small></div>
           <div class="galaga-stage">
             <div class="lucky-pointer"></div>
-            <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">🚀<b>SPIN</b></div></div>
+            <div class="lucky-wheel" id="luckyWheel"><div class="lucky-wheel-inner" id="luckyWheelInner"><canvas id="luckyCanvas" width="560" height="560"></canvas></div><div class="lucky-hub" id="luckyHub">ðŸš€<b>SPIN</b></div></div>
             <div class="lucky-leds" id="luckyLeds"></div>
           </div>
           <div id="luckyResult" class="galaga-result hidden"></div>
-          <p class="galaga-sub">◸ GIRA LA RULETA Y GANA RECOMPENSAS ◹</p>
+          <p class="galaga-sub">â—¸ GIRA LA RULETA Y GANA RECOMPENSAS â—¹</p>
           <div class="spin-btns">
-            <button class="btn btn-primary galaga-spin-btn spin-btn" data-count="1" onclick="LuckyRoyale.spin(1)">▶ 1 GIRO — 1.000 PTS</button>
-            <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">★ 5 GIROS — 3.000 PTS</button>
-            <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">👑 10 GIROS — 5.000 PTS</button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn" data-count="1" onclick="LuckyRoyale.spin(1)">â–¶ 1 GIRO â€” 1.000 PTS</button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-best" data-count="5" onclick="LuckyRoyale.spin(5)">â˜… 5 GIROS â€” 3.000 PTS</button>
+            <button class="btn btn-primary galaga-spin-btn spin-btn spin-mega" data-count="10" onclick="LuckyRoyale.spin(10)">ðŸ‘‘ 10 GIROS â€” 5.000 PTS</button>
           </div>
-          <div class="lucky-odds" id="luckyOdds"><p class="hint">🎁 Cargando lo que te puede tocar...</p></div>
+          <div class="lucky-odds" id="luckyOdds"><p class="hint">ðŸŽ Cargando lo que te puede tocar...</p></div>
         </div>
         <div class="lucky-side"><div class="shop-grid" id="luckyGrid"></div></div>
       </div>
-      <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">← Volver atrás</button>
+      <button class="btn btn-ghost btn-block" id="shopBack" style="margin-top:12px">â† Volver atrÃ¡s</button>
     </div>
   </div>
 
@@ -542,12 +541,12 @@
   <div class="modal-backdrop hidden" id="achievementsModal">
     <div class="modal modal-shop">
       <div class="shop-header">
-        <h2>🏆 Logros</h2>
-        <button class="btn-close" id="achievementsClose">✕</button>
+        <h2>ðŸ† Logros</h2>
+        <button class="btn-close" id="achievementsClose">âœ•</button>
       </div>
       <p class="shop-hint">Desbloquea logros especiales y gana recompensas exclusivas.</p>
       <div class="shop-grid" id="achievementsGrid"></div>
-      <button class="btn btn-ghost btn-block" id="achievementsBack" style="margin-top:12px">← Volver atrás</button>
+      <button class="btn btn-ghost btn-block" id="achievementsBack" style="margin-top:12px">â† Volver atrÃ¡s</button>
     </div>
   </div>
 
@@ -555,22 +554,22 @@
   <div class="overlay hidden" id="clansOverlay">
     <div class="card card-lg clans-card">
       <div class="shop-header">
-        <h2>🛡️ CLANES</h2>
-        <button class="btn-close" id="clansClose">✕</button>
+        <h2>ðŸ›¡ï¸ CLANES</h2>
+        <button class="btn-close" id="clansClose">âœ•</button>
       </div>
       <div class="clans-tabs" id="clansTabs">
-        <button class="clans-tab active" data-ctab="mine">🏠 Mi Clan</button>
-        <button class="clans-tab" data-ctab="list">🔎 Lista</button>
-        <button class="clans-tab" data-ctab="rank">🏆 Clasificación</button>
-        <button class="clans-tab" data-ctab="tour">⚔️ Torneo</button>
+        <button class="clans-tab active" data-ctab="mine">ðŸ  Mi Clan</button>
+        <button class="clans-tab" data-ctab="list">ðŸ”Ž Lista</button>
+        <button class="clans-tab" data-ctab="rank">ðŸ† ClasificaciÃ³n</button>
+        <button class="clans-tab" data-ctab="tour">âš”ï¸ Torneo</button>
       </div>
 
       <!-- MI CLAN -->
       <div id="clansPaneMine" class="clans-pane">
         <div id="clanNoClan" class="hidden">
-          <p class="lead muted">Todavía no pertenecés a ningún clan. 🔎 Buscá uno en la pestaña <b>Lista</b> o creá el tuyo.</p>
+          <p class="lead muted">TodavÃ­a no pertenecÃ©s a ningÃºn clan. ðŸ”Ž BuscÃ¡ uno en la pestaÃ±a <b>Lista</b> o creÃ¡ el tuyo.</p>
           <div class="clan-create-box">
-            <h3 class="panel-sec-title">➕ CREAR CLAN</h3>
+            <h3 class="panel-sec-title">âž• CREAR CLAN</h3>
             <p class="clan-cost-hint">Fundar un clan cuesta <b>10.000 pts</b>. Se descuentan de tu saldo.</p>
             <div id="clanCreateCost" class="clan-cost"></div>
             <div class="arcade-form-row"><input type="text" id="clanNameInput" class="arcade-input" placeholder="Nombre del clan (3+)" maxlength="24" autocomplete="off"><input type="text" id="clanTagInput" class="arcade-input" placeholder="TAG" maxlength="4" autocomplete="off"></div>
@@ -578,8 +577,8 @@
               <select id="clanEmblemInput" class="arcade-input"></select>
               <input type="color" id="clanColorInput" class="arcade-input" value="#00e5ff" title="Color del clan">
             </div>
-            <textarea id="clanDescInput" class="arcade-input" rows="2" maxlength="200" placeholder="Descripción (opcional)" style="margin-top:8px;width:100%"></textarea>
-            <button class="btn btn-primary btn-block" id="clanCreateBtn" style="margin-top:8px">🛡️ Fundar clan (-10.000 pts)</button>
+            <textarea id="clanDescInput" class="arcade-input" rows="2" maxlength="200" placeholder="DescripciÃ³n (opcional)" style="margin-top:8px;width:100%"></textarea>
+            <button class="btn btn-primary btn-block" id="clanCreateBtn" style="margin-top:8px">ðŸ›¡ï¸ Fundar clan (-10.000 pts)</button>
           </div>
         </div>
         <div id="clanHasClan" class="hidden">
@@ -587,34 +586,34 @@
           <div id="clanMissionsBox"></div>
           <div class="clan-cols">
             <div class="clan-col">
-              <h4>👥 MIEMBROS <span class="clan-count" id="clanMembersCount">0</span></h4>
+              <h4>ðŸ‘¥ MIEMBROS <span class="clan-count" id="clanMembersCount">0</span></h4>
               <div id="clanMembersList" class="clan-members"></div>
             </div>
             <div class="clan-col">
-              <h4>💬 CHAT DEL CLAN</h4>
+              <h4>ðŸ’¬ CHAT DEL CLAN</h4>
               <div id="clanChatBox" class="clan-chat"></div>
               <div class="arcade-form-row" style="margin-top:6px"><input type="text" id="clanChatInput" class="arcade-input" placeholder="Mensaje al clan..." maxlength="300" autocomplete="off"><button class="btn btn-primary btn-sm" id="clanChatSend">Enviar</button></div>
             </div>
           </div>
-          <button class="btn btn-ghost btn-block" id="clanLeaveBtn" style="margin-top:12px">🚪 Salir del clan</button>
+          <button class="btn btn-ghost btn-block" id="clanLeaveBtn" style="margin-top:12px">ðŸšª Salir del clan</button>
         </div>
       </div>
 
       <!-- LISTA DE CLANES -->
       <div id="clansPaneList" class="clans-pane hidden">
-        <div class="arcade-form-row" style="margin-bottom:10px"><input type="text" id="clanSearchInput" class="arcade-input" placeholder="🔍 Buscar por nombre o TAG..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm" id="clanSearchBtn">Buscar</button></div>
+        <div class="arcade-form-row" style="margin-bottom:10px"><input type="text" id="clanSearchInput" class="arcade-input" placeholder="ðŸ” Buscar por nombre o TAG..." maxlength="30" autocomplete="off"><button class="btn btn-primary btn-sm" id="clanSearchBtn">Buscar</button></div>
         <div id="clansList" class="clans-list"></div>
       </div>
 
-      <!-- CLASIFICACIÓN DE CLANES -->
+      <!-- CLASIFICACIÃ“N DE CLANES -->
       <div id="clansPaneRank" class="clans-pane hidden">
         <div class="clan-rank-head">
-          <p class="lead muted" style="margin:0">🏆 <b>Clasificación general</b> · ordenada por puntos acumulados del clan</p>
+          <p class="lead muted" style="margin:0">ðŸ† <b>ClasificaciÃ³n general</b> Â· ordenada por puntos acumulados del clan</p>
           <select id="clanRankSort" class="arcade-input" style="width:auto;padding:6px 10px">
-            <option value="points">🏅 Puntos</option>
-            <option value="tour">⚔️ Puntos de torneo</option>
-            <option value="members">👥 Miembros</option>
-            <option value="wins">🏆 Victorias</option>
+            <option value="points">ðŸ… Puntos</option>
+            <option value="tour">âš”ï¸ Puntos de torneo</option>
+            <option value="members">ðŸ‘¥ Miembros</option>
+            <option value="wins">ðŸ† Victorias</option>
           </select>
         </div>
         <div id="clanPodium" class="clan-podium"></div>
@@ -628,48 +627,35 @@
         <div id="clanTourBoard" class="clans-list"></div>
       </div>
 
-      <button class="btn btn-ghost btn-block" id="clansBack" style="margin-top:12px">← Volver atrás</button>
+      <button class="btn btn-ghost btn-block" id="clansBack" style="margin-top:12px">â† Volver atrÃ¡s</button>
     </div>
   </div>
 
-  <!-- ============ SELECCIÓN DE NIVELES ============ -->
-  <div class="overlay hidden" id="levelsOverlay">
-    <div class="card card-lg levels-card">
-      <div class="levels-head">
-        <h2>🗺️ SELECCIONAR NIVEL</h2>
-        <button class="btn-close" id="levelsClose">✕</button>
-      </div>
-      <p class="lead muted">Elegí cualquiera de los 7 niveles. Los jefes se desbloquean igual que jugando normal.</p>
-      <div class="levels-grid" id="levelsGrid"></div>
-      <button class="btn btn-ghost btn-block" id="levelsBack" style="margin-top:12px">← Volver atrás</button>
-    </div>
-  </div>
-
-  <!-- ============ LOGRO DESBLOQUEADO (celebración) ============ -->
+  <!-- ============ LOGRO DESBLOQUEADO (celebraciÃ³n) ============ -->
   <div class="ach-pop-overlay hidden" id="achPopOverlay">
     <div class="ach-pop">
       <div class="ach-pop-rays"></div>
-      <div class="ach-pop-icon" id="achPopIcon">🏆</div>
-      <h2 class="ach-pop-title" id="achPopTitle">¡LOGRO DESBLOQUEADO!</h2>
+      <div class="ach-pop-icon" id="achPopIcon">ðŸ†</div>
+      <h2 class="ach-pop-title" id="achPopTitle">Â¡LOGRO DESBLOQUEADO!</h2>
       <p class="ach-pop-name" id="achPopName"></p>
       <p class="ach-pop-desc" id="achPopDesc"></p>
       <p class="ach-pop-reward" id="achPopReward"></p>
-      <button class="btn btn-primary" id="achPopOk">¡Genial!</button>
+      <button class="btn btn-primary" id="achPopOk">Â¡Genial!</button>
     </div>
   </div>
 
   <!-- ============ AJUSTES / PERFIL ============ -->
   <div class="overlay hidden" id="settingsOverlay">
     <div class="card card-lg settings-card">
-      <h2>⚙️ Ajustes</h2>
-      <p class="lead muted" id="settingsGuestNote">🔒 Iniciá sesión o registrate para acceder a los ajustes y guardar tu perfil.</p>
+      <h2>âš™ï¸ Ajustes</h2>
+      <p class="lead muted" id="settingsGuestNote">ðŸ”’ IniciÃ¡ sesiÃ³n o registrate para acceder a los ajustes y guardar tu perfil.</p>
 
       <!-- Tema: siempre visible (invitados pueden cambiarlo) -->
       <div class="setting-item" style="margin-bottom:16px">
         <label>Tema</label>
         <div class="theme-toggle">
-          <button class="theme-btn active" id="themeDarkBtn">🌙 Oscuro</button>
-          <button class="theme-btn" id="themeLightBtn">☀️ Claro</button>
+          <button class="theme-btn active" id="themeDarkBtn">ðŸŒ™ Oscuro</button>
+          <button class="theme-btn" id="themeLightBtn">â˜€ï¸ Claro</button>
         </div>
       </div>
 
@@ -680,37 +666,37 @@
           <input type="text" id="settingsUser" placeholder="Tu usuario" autocomplete="username">
         </div>
         <div class="field-group">
-          <label>Contraseña</label>
+          <label>ContraseÃ±a</label>
           <div class="pass-wrap">
-            <input type="password" id="settingsPass" placeholder="••••••" autocomplete="current-password">
-            <button type="button" class="pass-toggle" data-target="settingsPass" aria-label="Mostrar contraseña">👁️</button>
+            <input type="password" id="settingsPass" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password">
+            <button type="button" class="pass-toggle" data-target="settingsPass" aria-label="Mostrar contraseÃ±a">ðŸ‘ï¸</button>
           </div>
         </div>
         <p class="form-error hidden" id="settingsError"></p>
         <div class="btn-row">
           <button class="btn btn-primary btn-sm" id="settingsLoginBtn">Entrar</button>
           <button class="btn btn-ghost btn-sm" id="settingsRegisterBtn">Registrarme</button>
-          <button class="btn btn-ghost btn-sm hidden" id="settingsLogoutBtn">Cerrar sesión</button>
+          <button class="btn btn-ghost btn-sm hidden" id="settingsLogoutBtn">Cerrar sesiÃ³n</button>
         </div>
       </div>
 
       <!-- Perfil: visible solo para usuarios logueados -->
       <div class="settings-grid" id="settingsLoggedIn">
         <div class="settings-col">
-          <h3>👤 Perfil</h3>
+          <h3>ðŸ‘¤ Perfil</h3>
           <div class="profile-banner" id="profileBanner"><img id="bannerImg" class="hidden" alt="Banner"><video id="bannerVideo" class="hidden" autoplay loop muted playsinline></video><span id="bannerPlaceholder">Tu banner aqui</span></div>
           <div class="profile-head" id="profileHead">
             <div class="avatar-wrap">
               <div class="avatar-frame" id="avatarFrame">
                 <img id="avatarImg" src="" alt="Foto de perfil">
-                <span id="avatarPlaceholder">👾</span>
+                <span id="avatarPlaceholder">ðŸ‘¾</span>
               </div>
             </div>
             <div class="profile-stats">
               <p class="profile-name" id="profileName">Invitado</p>
-              <p class="profile-level" id="profileLevel">Nivel 1 · 0 EXP</p>
-              <p class="profile-hours" id="profileHours">⏱ 0 horas jugadas</p>
-              <p class="profile-coins" id="profileCoins">🪙 0 puntos</p>
+              <p class="profile-level" id="profileLevel">Nivel 1 Â· 0 EXP</p>
+              <p class="profile-hours" id="profileHours">â± 0 horas jugadas</p>
+              <p class="profile-coins" id="profileCoins">ðŸª™ 0 puntos</p>
               <div id="profileRankBox" class="hidden profile-rank-box"></div>
               <div id="profileClanBox" class="hidden profile-clan-box"></div>
               <p class="profile-title" id="profileTitle"></p>
@@ -718,7 +704,7 @@
           </div>
           <div class="setting-item">
             <label>Foto de perfil</label>
-            <button class="btn btn-ghost btn-sm" id="uploadPicBtn">📷 Elegir imagen</button>
+            <button class="btn btn-ghost btn-sm" id="uploadPicBtn">ðŸ“· Elegir imagen</button>
             <input type="file" id="picInput" accept="image/*" class="hidden">
             <p class="hint">La imagen se guarda en tu cuenta.</p>
           </div>
@@ -730,8 +716,8 @@
             </div>
           </div>
           <div class="setting-item">
-            <label>Descripción del perfil</label>
-            <textarea id="profileDescInput" maxlength="200" rows="3" placeholder="Cuéntanos algo sobre ti..." style="width:100%;resize:vertical;font-family:inherit;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);"></textarea>
+            <label>DescripciÃ³n del perfil</label>
+            <textarea id="profileDescInput" maxlength="200" rows="3" placeholder="CuÃ©ntanos algo sobre ti..." style="width:100%;resize:vertical;font-family:inherit;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);"></textarea>
             <div class="btn-row"><span class="hint" id="descCharCount">0/200</span><button class="btn btn-primary btn-sm" id="saveDescBtn">Guardar</button></div>
           </div>
         </div>
@@ -745,12 +731,12 @@
         <div class="frames-grid" id="bannersGrid"></div>
       </div>
       <div class="frames-section" id="framesSection">
-        <h3>🖼️ Marcos de perfil</h3>
-        <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. ¡Se guardan en tu cuenta!</p>
+        <h3>ðŸ–¼ï¸ Marcos de perfil</h3>
+        <p class="hint">Gana EXP y puntos jugando para desbloquear marcos. Â¡Se guardan en tu cuenta!</p>
         <div class="frames-grid" id="framesGrid"></div>
       </div>
       <div class="frames-section" id="nameColorSection">
-        <h3>🎨 Color de nombre</h3>
+        <h3>ðŸŽ¨ Color de nombre</h3>
         <p class="hint">Compra colores con EXP (3000+). Se ve en chat y ranked.</p>
         <div class="frames-grid" id="nameColorsGrid"></div>
       </div>
@@ -765,24 +751,24 @@
         <div class="frames-grid" id="fontsGrid"></div>
       </div>
       <div class="frames-section" id="bubblesSection">
-        <h3>💬 Burbujas de chat</h3>
-        <p class="hint">🎰 Exclusivas de Lucky Coders: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
+        <h3>ðŸ’¬ Burbujas de chat</h3>
+        <p class="hint">ðŸŽ° Exclusivas de Lucky Coders: no se compran, solo se ganan con suerte girando. Al equiparla todos la ven en chat global, privado y multiplayer.</p>
         <div class="frames-grid" id="bubblesGrid"></div>
       </div>
       <div class="frames-section" id="backupSection">
-        <h3>💾 Respaldo de la base de datos</h3>
-        <p class="hint">Solo para el dueño del juego. Descargá un respaldo con todas las cuentas (y subilo de vuelta si se pierde la base). Necesita la clave de admin.</p>
+        <h3>ðŸ’¾ Respaldo de la base de datos</h3>
+        <p class="hint">Solo para el dueÃ±o del juego. DescargÃ¡ un respaldo con todas las cuentas (y subilo de vuelta si se pierde la base). Necesita la clave de admin.</p>
         <input type="password" id="backupKey" placeholder="Clave de admin" autocomplete="off" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a3350;background:#0a0e1a;color:#e6ecff">
         <div class="btn-row" style="margin-top:8px">
-          <button class="btn btn-ghost btn-sm" id="backupExportBtn">⬇️ Descargar respaldo</button>
-          <button class="btn btn-ghost btn-sm" id="backupImportBtn">⬆️ Subir respaldo</button>
+          <button class="btn btn-ghost btn-sm" id="backupExportBtn">â¬‡ï¸ Descargar respaldo</button>
+          <button class="btn btn-ghost btn-sm" id="backupImportBtn">â¬†ï¸ Subir respaldo</button>
           <input type="file" id="backupFile" accept="application/json,.json" hidden>
         </div>
       </div>
       <div class="danger-zone" id="dangerZone">
-        <h3>⚠️ Zona peligrosa</h3>
-        <p class="hint">Borra tu cuenta y desaparecés del ranked. No se puede deshacer.</p>
-        <button class="btn btn-ghost" style="border-color:#ff1744;color:#ff1744" id="deleteAccountBtn">🗑️ Borrar mi cuenta</button>
+        <h3>âš ï¸ Zona peligrosa</h3>
+        <p class="hint">Borra tu cuenta y desaparecÃ©s del ranked. No se puede deshacer.</p>
+        <button class="btn btn-ghost" style="border-color:#ff1744;color:#ff1744" id="deleteAccountBtn">ðŸ—‘ï¸ Borrar mi cuenta</button>
       </div>
       <button class="btn btn-primary" id="settingsCloseBtn">Listo</button>
     </div>
@@ -792,7 +778,7 @@
   <div class="overlay hidden" id="quizOverlay">
     <div class="card card-quiz">
       <div class="quiz-header">
-        <div class="quiz-icon" id="quizIcon">❓</div>
+        <div class="quiz-icon" id="quizIcon">â“</div>
         <h2 id="quizTitle">Pregunta sorpresa</h2>
       </div>
       <p class="quiz-question" id="quizQuestion"></p>
@@ -804,9 +790,9 @@
   <!-- ============ INSPECCIONAR PERFIL ============ -->
   <div class="overlay hidden" id="inspectOverlay">
     <div class="card card-lg inspect-card">
-      <h2 class="inspect-title"><span class="inspect-title-icon">👤</span> PERFIL DE JUGADOR</h2>
+      <h2 class="inspect-title"><span class="inspect-title-icon">ðŸ‘¤</span> PERFIL DE JUGADOR</h2>
       <div class="inspect-content" id="inspectContent"></div>
-      <div class="inspect-footer"><button class="btn btn-primary" id="inspectCloseBtn">✕ Cerrar</button></div>
+      <div class="inspect-footer"><button class="btn btn-primary" id="inspectCloseBtn">âœ• Cerrar</button></div>
     </div>
   </div>
 
@@ -815,11 +801,11 @@
   <script src="js/auth.js?v=3"></script>
   <script src="js/notifications.js?v=2"></script>
   <script src="js/docs.js?v=8"></script>
-    <script src="js/intro.js?v=5"></script>
+    <script src="js/intro.js?v=4"></script>
     <script src="js/ships.js?v=2"></script>
     <script src="js/lasers.js?v=1"></script>
     <script src="js/impacts.js?v=1"></script>
-    <script src="js/game.js?v=33"></script>
+    <script src="js/game.js?v=32"></script>
   <script src="js/profile.js?v=15"></script>
   <script src="js/ranked.js?v=10"></script>
   <script src="js/chat.js?v=7"></script>
@@ -833,7 +819,7 @@
     spinning:false, items:[], ledsTimer:null,
     colors:{common:'#9aa7b8',rare:'#00e5ff',epic:'#8b5cf6',legendary:'#ffd600',mythic:'#ff1744'},
     init(){ this.buildLeds(); this.draw(); this.loadPool(); },
-    iconFor(it){ if(!it) return '💬'; if(it.type==='coins') return (it.amount>=1000?'💰':'🪙'); if(it.type==='exp') return '⚡'; return ({'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'}[it.bubbleId]||'💬'); },
+    iconFor(it){ if(!it) return 'ðŸ’¬'; if(it.type==='coins') return (it.amount>=1000?'ðŸ’°':'ðŸª™'); if(it.type==='exp') return 'âš¡'; return ({'neon_blue':'ðŸ’™','emerald':'ðŸ’š','gold':'ðŸ’›','fire':'ðŸ”¥','galaxy':'ðŸŒŒ','void':'ðŸ•³ï¸','rainbow':'ðŸŒˆ','diamond':'ðŸ’Ž','glitch':'ðŸ‘¾','exclusive_00':'ðŸ‘‘'}[it.bubbleId]||'ðŸ’¬'); },
     labelFor(it){ if(!it) return '?'; if(it.type==='bubble') return (it.bubbleId||'').replace(/_/g,' '); return it.name||'?'; },
     async loadPool(){
       try{
@@ -843,8 +829,8 @@
     },
     renderOdds(){
       const box=document.getElementById('luckyOdds'); if(!box||!this.items.length) return;
-      const RLN={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
-      box.innerHTML='<div class="lucky-odds-title">🎁 LO QUE TE PUEDE TOCAR</div>'+this.items.map(it=>'<div class="lucky-odds-row rw-'+(it.rarity||'common')+'"><span>'+this.iconFor(it)+' '+this.labelFor(it)+'</span><span>◆ '+(RLN[it.rarity]||it.rarity)+' · '+(it.chance!=null?it.chance+'%':'?')+'</span></div>').join('');
+      const RLN={common:'COMÃšN',rare:'RARO',epic:'Ã‰PICO',legendary:'LEGENDARIO',mythic:'MÃTICO'};
+      box.innerHTML='<div class="lucky-odds-title">ðŸŽ LO QUE TE PUEDE TOCAR</div>'+this.items.map(it=>'<div class="lucky-odds-row rw-'+(it.rarity||'common')+'"><span>'+this.iconFor(it)+' '+this.labelFor(it)+'</span><span>â—† '+(RLN[it.rarity]||it.rarity)+' Â· '+(it.chance!=null?it.chance+'%':'?')+'</span></div>').join('');
     },
     landingDeg(idx){
       const n=this.items.length||13, seg=360/n;
@@ -888,7 +874,7 @@
         if(t.length>12) t=t.slice(0,11)+'.';
         ctx.fillText(t,R-18,7);
         ctx.font='18px serif';
-        const em=it.type==='coins'?'💰':it.type==='exp'?'⚡':({'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'}[it.bubbleId]||'💬');
+        const em=it.type==='coins'?'ðŸ’°':it.type==='exp'?'âš¡':({'neon_blue':'ðŸ’™','emerald':'ðŸ’š','gold':'ðŸ’›','fire':'ðŸ”¥','galaxy':'ðŸŒŒ','void':'ðŸ•³ï¸','rainbow':'ðŸŒˆ','diamond':'ðŸ’Ž','glitch':'ðŸ‘¾','exclusive_00':'ðŸ‘‘'}[it.bubbleId]||'ðŸ’¬');
         ctx.fillText(em,R-18,32);
         ctx.restore();
       });
@@ -902,7 +888,7 @@
       const res=document.getElementById('luckyResult');
       if(res) res.classList.add('hidden');
       this.spinning=true;
-      btns.forEach(b=>{ b.disabled=true; if(Number(b.dataset.count)===count) b.innerHTML='◉ TRANSMITIENDO x'+count+'...'; });
+      btns.forEach(b=>{ b.disabled=true; if(Number(b.dataset.count)===count) b.innerHTML='â—‰ TRANSMITIENDO x'+count+'...'; });
       const hub=document.getElementById('luckyHub'); if(hub) hub.classList.add('spinning');
       const panel=document.getElementById('luckyWheelWrap'); if(panel) panel.classList.remove('shake');
       const wheel=document.getElementById('luckyWheel');
@@ -919,7 +905,7 @@
         if(typeof Profile!=='undefined'&&Profile.user){ Profile.user.coins=data.coins; Profile.user.exp=data.exp; Profile.user.chatBubbles=data.chatBubbles; Profile.renderProfile(); if(Profile.loadBubbles) Profile.loadBubbles(); }
         try{ if(typeof Auth!=='undefined'&&Auth.user){ Auth.user.coins=data.coins; Auth.user.exp=data.exp; Auth.user.chatBubbles=data.chatBubbles; if(Auth.saveLocal) Auth.saveLocal(); } }catch(e){}
         if(typeof Game!=='undefined'){ Game.coins=data.coins; }
-        const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='🪙 '+data.coins+' puntos';
+        const bal=document.getElementById('shopBalance'); if(bal) bal.textContent='ðŸª™ '+data.coins+' puntos';
         const cv=document.getElementById('coinVal'); if(cv) cv.textContent=data.coins;
         if(data.pool&&data.pool.length){ self.items=data.pool; self.draw(); self.renderOdds(); }
         let idx=data.pool?(data.pool.findIndex(x=>x.id===data.winId)):self.items.findIndex(x=>x.id===data.winId);
@@ -931,26 +917,26 @@
         let ticks=0; const tickInt=setInterval(()=>{ self.blip(300+ticks*22,.05); if(++ticks>28) clearInterval(tickInt); },150);
         setTimeout(()=>{
           const items=data.items||[data.item];
-          const RLN={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
+          const RLN={common:'COMÃšN',rare:'RARO',epic:'Ã‰PICO',legendary:'LEGENDARIO',mythic:'MÃTICO'};
           const best=data.winId?(items.find(i=>i.id===data.winId)||items[0]):(items.find(i=>i.rarity==='mythic')||items.find(i=>i.rarity==='legendary')||items[0]);
           [880,660,990,1320].forEach((f,i)=>setTimeout(()=>self.blip(f,.12,i>1?'sawtooth':'square'),i*110));
           if(panel){ panel.classList.add('shake'); setTimeout(()=>panel.classList.remove('shake'),500); }
           if(res){
-            const rows=items.map(it=>{ const nm=(it.name||it.bubbleId||'?').replace(/_/g,' '); return '<div class="rw-row rw-'+(it.rarity||'common')+'">🎰 '+nm+' <span>◆ '+(RLN[it.rarity]||it.rarity)+' ◆</span></div>'; }).join('');
+            const rows=items.map(it=>{ const nm=(it.name||it.bubbleId||'?').replace(/_/g,' '); return '<div class="rw-row rw-'+(it.rarity||'common')+'">ðŸŽ° '+nm+' <span>â—† '+(RLN[it.rarity]||it.rarity)+' â—†</span></div>'; }).join('');
             res.className='galaga-result '+(best.rarity||'common');
-            res.innerHTML='🎯 LA FLECHA CAYÓ EN: <b>'+self.iconFor(best)+' '+self.labelFor(best)+'</b><div class="rw-list">'+rows+'</div><div class="rw-where">🪙/⚡ sumados al perfil · 💬 en Ajustes → Burbujas de chat</div>';
+            res.innerHTML='ðŸŽ¯ LA FLECHA CAYÃ“ EN: <b>'+self.iconFor(best)+' '+self.labelFor(best)+'</b><div class="rw-list">'+rows+'</div><div class="rw-where">ðŸª™/âš¡ sumados al perfil Â· ðŸ’¬ en Ajustes â†’ Burbujas de chat</div>';
             res.classList.remove('hidden');
           }
-          Toast.success('🎰 Ganaste x'+items.length+': '+items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '));
+          Toast.success('ðŸŽ° Ganaste x'+items.length+': '+items.map(i=>(i.name||i.bubbleId||'?').replace(/_/g,' ')).join(', '));
           self.resetBtn();
         },5400);
       })();
     },
     resetBtn(){ this.spinning=false; const hub=document.getElementById('luckyHub'); if(hub) hub.classList.remove('spinning');
       document.querySelectorAll('.spin-btn').forEach(b=>{ b.disabled=false; const c=b.dataset.count;
-        if(c==='1') b.innerHTML='▶ 1 GIRO — 1.000 PTS';
-        if(c==='5') b.innerHTML='★ 5 GIROS — 3.000 PTS';
-        if(c==='10') b.innerHTML='👑 10 GIROS — 5.000 PTS'; }); }
+        if(c==='1') b.innerHTML='â–¶ 1 GIRO â€” 1.000 PTS';
+        if(c==='5') b.innerHTML='â˜… 5 GIROS â€” 3.000 PTS';
+        if(c==='10') b.innerHTML='ðŸ‘‘ 10 GIROS â€” 5.000 PTS'; }); }
   };
   document.addEventListener('DOMContentLoaded',()=>{ try{ LuckyRoyale.init(); }catch(e){} });
   </script>

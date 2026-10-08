@@ -33,7 +33,7 @@ const Game = (() => {
   function setGalaxy(g){ galaxy=(Number(g)===2?2:1); document.body.classList.toggle('galaxy2',galaxy===2); }
   function gal(){ return GALAXIES[galaxy]||GALAXIES[1]; }
   let canvas,ctx,W,H;
-  let inputEl,fireBtnEl,startBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
+  let inputEl,fireBtnEl,startBtnEl,levelsBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
   let gameOptsBtnEl,gameOptsMenuEl,gameInfoBtnEl,gameAbandonBtnEl,gameBackBtnEl,gameInfoPanelEl,gameInfoBodyEl,gameInfoCloseBtnEl;
   let qBannerEl,qBannerTextEl;
   let state='title';
@@ -121,6 +121,7 @@ const Game = (() => {
     inputEl=document.getElementById('answerInput');
     this.toggleLeaderboard=function(){ const lb=document.querySelector('.leaderboard'); if(lb) lb.classList.toggle('hidden', !isLogged()); };
     startBtnEl=document.getElementById('startBtn');
+    levelsBtnEl=document.getElementById('levelsBtn');
     fireBtnEl=document.getElementById('fireBtn');
     speedrunBtnEl=document.getElementById('speedrunBtn');
     multiBtnEl=document.getElementById('multiBtn');
@@ -263,6 +264,7 @@ const Game = (() => {
     document.body.addEventListener('click',unlockAudio);
     document.addEventListener('keydown',unlockAudio);
     initShopUI();
+    bindLevelsUI();
     showBtns();
     this.toggleLeaderboard();
     requestAnimationFrame(loop);
@@ -519,22 +521,23 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
     if(singlePlayerBtnEl) singlePlayerBtnEl.classList.remove('hidden');
     if(multiPlayerBtnEl) multiPlayerBtnEl.classList.remove('hidden');
     if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden');
-    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function showSingleModes(){
     if(startBtnEl){
       startBtnEl.textContent='▶ JUGAR';
       startBtnEl.classList.remove('hidden');
     }
     if(speedrunBtnEl) speedrunBtnEl.classList.remove('hidden');
+    if(levelsBtnEl) levelsBtnEl.classList.remove('hidden');
     if(modeBackBtnEl) modeBackBtnEl.classList.remove('hidden');
     if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden');
     if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden');
-    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); updateExitBtn(); }
+    if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); updateExitBtn(); }
   function openMultiEntry(){
     if(typeof MultiUI!=='undefined'&&MultiUI.openLobby) MultiUI.openLobby();
   }
   function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
+  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
   function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
   if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
   let sIdx=0;
@@ -1418,6 +1421,46 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     updateExitBtn();
     const coinEl=document.getElementById('coinVal'); if(coinEl) coinEl.textContent=coins;
   }
+  /* ================= SELECTOR DE NIVELES ================= */
+  const LEVEL_ICONS={1:'📄',2:'🎨',3:'⚡',4:'👑',5:'👑',6:'🤖',7:'🌌'};
+  function escLv(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function openLevels(){
+    const ov=document.getElementById('levelsOverlay');
+    const grid=document.getElementById('levelsGrid');
+    if(!ov||!grid) return;
+    const done=((window.Auth&&Auth.progress)||[]).filter(p=>p&&p.solved).map(p=>p.level);
+    grid.innerHTML=LEVELS.map((lv,i)=>{
+      const solved=done.indexOf(lv.id)>=0;
+      const kind=lv.isJsBoss?'jefe-js':(lv.isCssBoss?'jefe-css':(lv.isBoss?'jefe':'normal'));
+      return '<button class="lv-card lv-'+kind+(solved?' solved':'')+'" data-lv="'+i+'">'
+        +'<span class="lv-icon">'+(LEVEL_ICONS[lv.id]||'🚀')+'</span>'
+        +'<b class="lv-title">'+escLv(lv.title)+'</b>'
+        +'<small class="lv-num">Nivel '+lv.id+(lv.galaxy===2?' · Galaxia 2':'')+'</small>'
+        +(solved?'<span class="lv-done">✓ Completado</span>':(lv.isBoss?'<span class="lv-boss">JEFE</span>':''))
+        +'</button>';
+    }).join('');
+    grid.querySelectorAll('[data-lv]').forEach(b=>b.addEventListener('click',()=>{
+      const i=Number(b.dataset.lv);
+      ov.classList.add('hidden');
+      speedrun=false; speedrunFinished=false; speedrunTime=0;
+      if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+      hideBtns();
+      startLevel(i);
+      enterMobileFS();
+    }));
+    ov.classList.remove('hidden');
+  }
+  function bindLevelsUI(){
+    const btn=document.getElementById('levelsBtn');
+    const ov=document.getElementById('levelsOverlay');
+    const close=document.getElementById('levelsClose');
+    const back=document.getElementById('levelsBack');
+    if(btn) btn.addEventListener('click',()=>openLevels());
+    if(close) close.addEventListener('click',()=>ov&&ov.classList.add('hidden'));
+    if(back) back.addEventListener('click',()=>ov&&ov.classList.add('hidden'));
+    if(ov) ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.add('hidden'); });
+  }
+
   function initShopUI(){
     const btn=document.getElementById('shopBtn'); const modal=document.getElementById('shopModal');
     // Los catálogos (nombres y precios) vienen del servidor, así que no hay dos

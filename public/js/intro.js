@@ -98,7 +98,7 @@ const Intro = (() => {
           <div class="intro-step"><span class="intro-step-num">2</span><h4>ESCRIBE</h4><p>Abajo escribe la etiqueta exacta.</p></div>
           <div class="intro-step"><span class="intro-step-num">3</span><h4>DISPARA</h4><p>ENTER y tu laser destruye TODAS con esa respuesta.</p></div>
         </div>
-        <div class="intro-highlight arcade-blink"><span class="intro-highlight-icon">💡</span><strong>EJEMPLO EXTRA:</strong> Si hay 3 naves que dicen "Enlace" y escribís <code>&lt;a&gt;</code>, ¡las 3 explotan a la vez!</div>
+        <div class="intro-highlight arcade-blink"><span class="intro-highlight-icon">💡</span><span class="intro-highlight-text"><strong>EJEMPLO EXTRA:</strong> Si hay 3 naves que dicen "Enlace" y escribís <code>&lt;a&gt;</code>, ¡las 3 explotan a la vez!</span></div>
         <div class="intro-examples">
           <div class="intro-ex"><span class="intro-ex-q">Botón</span><span class="intro-ex-a">&lt;button&gt;</span></div>
           <div class="intro-ex"><span class="intro-ex-q">Selector ID</span><span class="intro-ex-a">#</span></div>
