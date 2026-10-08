@@ -33,7 +33,24 @@ const LABEL_SKINS=[
   { id:'oro',       name:'👑 Dorada',   price:25000, bg:'rgba(40,26,0,.9)',   border:'#ffd600', color:'#ffe082', stroke:'#3a2600', glow:'#ffd600', font:'Georgia, serif', weight:700 },
   { id:'hacker',    name:'💻 Hacker',   price:40000, bg:'#04120a',            border:'#00ff66', color:'#00ff66', stroke:'#00220f', glow:'#00ff66', font:'"Courier New", monospace' },
   { id:'arcoiris',  name:'🌈 Arcoíris', price:60000, bg:'rgba(10,0,25,.88)',  border:'#e040fb', color:'#ff80ab', stroke:'#1a0033', glow:'#e040fb', hue:1 },
-  { id:'infernol',  name:'🔥 Infernal', price:90000, bg:'rgba(45,10,0,.9)',   border:'#ff6d00', color:'#ffca28', stroke:'#2b0600', glow:'#ff6d00', anim:1, hue:1 }
+  { id:'infernol',  name:'🔥 Infernal', price:90000, bg:'rgba(45,10,0,.9)',   border:'#ff6d00', color:'#ffca28', stroke:'#2b0600', glow:'#ff6d00', anim:1, hue:1 },
+  // ── Etiquetas con movimiento (fx). El efecto se aplica a la caja: la
+  // orbita, la sacude, la inclina, la hace rebotar, etc.
+  { id:'orbita',   name:'🪐 Órbita',      price:14000, bg:'rgba(10,20,40,.86)', border:'#64ffda', color:'#b2dfdb', stroke:'#00201c', glow:'#64ffda', fx:'orbita' },
+  { id:'temblor',  name:'📳 Temblor',     price:18000, bg:'rgba(40,0,20,.86)',  border:'#ff4081', color:'#f8bbd0', stroke:'#2b0014', glow:'#ff4081', fx:'temblor' },
+  { id:'inclinar', name:'📐 Inclinada',   price:21000, bg:'rgba(20,10,45,.88)', border:'#b388ff', color:'#e1bee7', stroke:'#14062e', glow:'#b388ff', fx:'inclinar' },
+  { id:'rebote',   name:'⛹️ Rebote',      price:24000, bg:'rgba(0,30,25,.88)',  border:'#69f0ae', color:'#c8f7dc', stroke:'#00221b', glow:'#69f0ae', fx:'rebote' },
+  { id:'latido',   name:'💓 Latido',     price:28000, bg:'rgba(45,0,20,.9)',   border:'#ff5252', color:'#ffcdd2', stroke:'#2b0009', glow:'#ff5252', fx:'latido', anim:1 },
+  { id:'flotar',   name:'🫧 Flotante',   price:32000, bg:'rgba(0,25,45,.86)',  border:'#4dd0e1', color:'#e0f7fa', stroke:'#001f2b', glow:'#4dd0e1', fx:'flotar' },
+  { id:'girar',    name:'🌀 Giratoria',  price:38000, bg:'rgba(15,5,35,.88)',  border:'#e040fb', color:'#f3e5f5', stroke:'#0e0026', glow:'#e040fb', fx:'girar' },
+  { id:'electrica', name:'⚡ Eléctrica',  price:45000,  bg:'rgba(35,35,0,.86)',  border:'#ffea00', color:'#fff9c4', stroke:'#1f1f00', glow:'#ffea00', fx:'electrica', anim:1 },
+  { id:'espejo',   name:'🪞 Espejo',     price:52000, bg:'rgba(5,5,25,.88)',  border:'#82b1ff', color:'#e8eaf6', stroke:'#000a1f', glow:'#82b1ff', fx:'espejo' },
+  { id:'pulso',    name:'💠 Pulso',      price:60000, bg:'rgba(0,40,45,.86)',  border:'#26e5f2', color:'#c7f9ff', stroke:'#00232b', glow:'#26e5f2', fx:'pulso', anim:1, hue:1 },
+  { id:'deslizar', name:'🎯 Deslizante', price:70000, bg:'rgba(30,15,0,.88)',  border:'#ffab40', color:'#ffe0b2', stroke:'#1f0d00', glow:'#ffab40', fx:'deslizar' },
+  { id:'glitch',   name:'📺 Glitch',     price:85000, bg:'#0d0000',           border:'#ff0033', color:'#ff4d6d', stroke:'#000000', glow:'#ff0033', font:'"Courier New", monospace', fx:'glitch' },
+  { id:'matrix',   name:'💚 Matrix',     price:100000,bg:'#001100',           border:'#00ff66', color:'#00ff66', stroke:'#000000', glow:'#00ff66', font:'"Courier New", monospace', fx:'matrix', anim:1 },
+  { id:'supernova',name:'💥 Supernova',  price:125000,bg:'rgba(45,0,0,.86)',   border:'#ff6d00', color:'#fff3e0', stroke:'#2b0000', glow:'#ff6d00', fx:'supernova', anim:1, hue:1 },
+  { id:'nexus',    name:'🌌 Nexus',      price:160000,bg:'rgba(8,0,25,.9)',    border:'#7c4dff', color:'#d1c4e9', stroke:'#060019', glow:'#7c4dff', fx:'nexus', anim:1, hue:1 }
 ];
 const labelSkinById=id=>LABEL_SKINS.find(s=>s.id===id)||LABEL_SKINS[0];
 // La skin equipada. Se escribe con EnemyShips.setLabelSkin() desde la tienda y
@@ -264,7 +281,6 @@ const EnemyShips=(()=>{
     const label=String(text==null?'':text).trim()||'?';
     const base=opt.fontSize||11;
     let fs=base;
-    ctx.save();
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const family=S.font||'"Segoe UI", system-ui, -apple-system, sans-serif';
     const setFont=()=>{ ctx.font=(S.weight||800)+' '+fs+'px '+family; };
@@ -308,8 +324,39 @@ const EnemyShips=(()=>{
     const boxH=lines.length*lineH+padY*2;
     const boxY=y+(opt.dy||0);
 
+    // ── Efecto de movimiento de la skin ──────────────────────────────────
+    // Se aplica una transformación a la caja antes de dibujarla. Cada efecto
+    // devuelve el desplazamiento (dx,dy) y la rotación (rot) en ese instante,
+    // para que sea el mismo cuadro el que se mueve y no un temblor falso.
+    let ox=0, oy=0, rot=0, sc=1, alpha=1;
+    const fx=S.fx;
+    if(fx){
+      switch(fx){
+        case 'orbita':   ox=Math.cos(t*1.8)*fs*0.55; oy=Math.sin(t*2.4)*fs*0.5; rot=Math.sin(t*1.8)*0.14; break;
+        case 'temblor':  ox=(Math.random()-.5)*fs*0.5; oy=(Math.random()-.5)*fs*0.4; rot=(Math.random()-.5)*0.09; break;
+        case 'inclinar': rot=Math.sin(t*1.6)*0.42; break;
+        case 'rebote':   oy=-Math.abs(Math.sin(t*3.2))*fs*0.85; sc=1+Math.abs(Math.sin(t*3.2))*0.1; break;
+        case 'latido':   sc=1+Math.abs(Math.sin(t*3.4))*0.16; rot=Math.sin(t*1.7)*0.05; break;
+        case 'flotar':   oy=Math.sin(t*1.5)*fs*0.7; rot=Math.sin(t*1.1)*0.07; break;
+        case 'girar':    rot=Math.sin(t*1.3)*0.55; sc=1+Math.sin(t*2.6)*0.08; break;
+        case 'electrica':ox=(Math.random()<.12?(Math.random()-.5)*fs*2.2:0); rot=(Math.random()<.08?(Math.random()-.5)*0.2:0); break;
+        case 'espejo':   sc=Math.abs(Math.cos(t*1.4))||0.05; rot=0; break;
+        case 'pulso':    sc=1+Math.abs(Math.sin(t*2.2))*0.22; break;
+        case 'deslizar': ox=Math.sin(t*1.9)*maxW*0.16; rot=Math.sin(t*1.9)*0.1; break;
+        case 'glitch':   ox=((t*13)%1<.5?1:-1)*fs*0.4*(Math.random()<.2?1:0); sc=1; break;
+        case 'matrix':   for(let i=0;i<3;i++) oy+=Math.sin(t*6+i*2)*0.5; break;
+        case 'supernova':sc=1+Math.abs(Math.sin(t*1.8))*0.35; rot=Math.sin(t*1.8)*0.12; break;
+        case 'nexus':    rot=Math.sin(t*0.9)*0.3; sc=1+Math.sin(t*1.7)*0.12; ox=Math.cos(t*0.9)*fs*0.35; oy=Math.sin(t*1.2)*fs*0.35; break;
+      }
+    }
+
     // Caja
-    const bx=x-boxW/2, by=boxY-boxH/2, r=Math.max(3,Math.round(fs*.35));
+    ctx.save();
+    ctx.translate(x+ox, boxY+oy);
+    if(rot) ctx.rotate(rot);
+    if(sc!==1) ctx.scale(sc,sc);
+    if(alpha!==1) ctx.globalAlpha=alpha;
+    const bx=-boxW/2, by=-boxH/2, r=Math.max(3,Math.round(fs*.35));
     ctx.beginPath();
     ctx.moveTo(bx+r,by); ctx.lineTo(bx+boxW-r,by);
     ctx.quadraticCurveTo(bx+boxW,by,bx+boxW,by+r);
@@ -337,12 +384,34 @@ const EnemyShips=(()=>{
     ctx.strokeStyle=opt.stroke||S.stroke||'rgba(0,0,0,.9)';
     ctx.lineWidth=Math.max(2,fs*.22);
     ctx.lineJoin='round';
-    const y0=boxY-((lines.length-1)*lineH)/2;
+    const y0=-((lines.length-1)*lineH)/2;
     lines.forEach((l,i)=>{
       const ly=y0+i*lineH;
-      ctx.strokeText(l,x,ly);
-      ctx.fillText(l,x,ly);
+      ctx.strokeText(l,0,ly);
+      ctx.fillText(l,0,ly);
     });
+    // Glitch: copia desplazada en rojo y cian por encima del texto real.
+    if(fx==='glitch'){
+      ctx.globalCompositeOperation='lighter';
+      ctx.fillStyle='rgba(255,0,51,.55)'; ctx.strokeStyle='rgba(255,0,51,.5)';
+      const go=((t*11)%1)*fs*0.7-fs*0.35;
+      lines.forEach((l,i)=>{ const ly=y0+i*lineH; ctx.strokeText(l,go,ly); ctx.fillText(l,go,ly); });
+      ctx.fillStyle='rgba(0,229,255,.55)'; ctx.strokeStyle='rgba(0,229,255,.5)';
+      lines.forEach((l,i)=>{ const ly=y0+i*lineH; ctx.strokeText(l,-go,ly); ctx.fillText(l,-go,ly); });
+      ctx.globalCompositeOperation='source-over';
+    }
+    // Matrix: caracteres que caen debajo de la caja.
+    if(fx==='matrix'){
+      ctx.font='700 '+(fs*0.72)+'px "Courier New", monospace';
+      ctx.fillStyle='rgba(0,255,102,.75)';
+      const chars='01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ01アイウエオカキクケコサシスセソ';
+      const nw=maxW;
+      for(let i=0;i<6;i++){
+        const px=-nw/2+((t*60+i*17)%nw);
+        const py=boxH/2+((t*70+i*23)%(fs*3));
+        ctx.fillText(chars[Math.floor(Math.random()*chars.length)],px,py);
+      }
+    }
     ctx.restore();
     return {w:boxW,h:boxH};
   }

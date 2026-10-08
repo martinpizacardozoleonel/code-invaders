@@ -157,6 +157,13 @@ body > main:has(#view-game.active) {
 .shop-card h4 { font-size:0.95rem; color:#fff; margin:0; }
 .shop-price { font-size:0.85rem; color:var(--gold); font-weight:700; }
 .shop-badge { font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:999px; }
+/* ── Tienda · Naves ─────────────────────────────────────────────────────── */
+/* Cada tarjeta muestra la nave real dibujándose en un canvas, con la misma
+   silueta y la misma llama que se ven al jugar. Abajo, el nombre del efecto
+   de disparo de esa skin. */
+.shop-preview-ship{ width:120px; height:96px; flex-direction:column; gap:0; position:relative; overflow:hidden; }
+.shop-preview-ship .ship-preview-cv{ width:120px; height:96px; display:block; }
+.shop-preview-ship .ship-shot-tag{ font-size:.58rem; font-weight:800; letter-spacing:.4px; opacity:.85; text-transform:uppercase; margin-top:-2px; }
 /* ── Tienda · Láseres ──────────────────────────────────────────────────── */
 /* La vista previa es un canvas que se anima solo (ver renderLasers en
    game.js), así que acá sólo va el marco y el brillo con el color del láser. */

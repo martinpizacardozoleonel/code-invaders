@@ -281,7 +281,76 @@ async function deleteChatByUser(userId){ if(USE_PG) await pool.query('DELETE FRO
 function hashPassword(password,salt){ return crypto.scryptSync(password,salt,64).toString('hex'); }
 function createToken(){ return crypto.randomBytes(32).toString('hex'); }
 async function findUserByToken(req){ const token=(req.headers.authorization||'').replace('Bearer ',''); if(!token) return null; const session=await findSession(token); if(!session) return null; return await getUserById(session.userId); }
-const SKINS=[ { id:'default', name:'DEV Cyan', price:0, body:'#00e5ff', glow:'#00e5ff' }, { id:'crimson', name:'Crimson Fury', price:120, body:'#ff1744', glow:'#ff5252' }, { id:'gold', name:'Golden Nova', price:200, body:'#ffd600', glow:'#ffea00' }, { id:'neon', name:'Neon Viper', price:300, body:'#00e676', glow:'#69f0ae' }, { id:'violet', name:'Violet Storm', price:350, body:'#7c4dff', glow:'#b388ff' }, { id:'pixel', name:'Pixel Phantom', price:500, body:'#ff6d00', glow:'#ff9e00' },{ id:'ocean', name:'Oceano', price:600, body:'#2196f3', glow:'#82b4ff' },{ id:'rosa', name:'Rosa Neon', price:750, body:'#ff4081', glow:'#ff8a80' },{ id:'lima', name:'Lima Acida', price:850, body:'#c6ff00', glow:'#eaff8a' },{ id:'ghost', name:'Fantasma', price:950, body:'#eceff1', glow:'#ffffff' },{ id:'camo', name:'Camuflaje', price:1000, body:'#7c9a3f', glow:'#b2d67c' },{ id:'magma', name:'Magma', price:1200, body:'#ff3d00', glow:'#ff8a65' },{ id:'ice', name:'Hielo', price:1350, body:'#80d8ff', glow:'#e1f5fe' },{ id:'nebula', name:'Nebulosa', price:1500, body:'#e040fb', glow:'#ea80fc' },{ id:'solar', name:'Solar', price:1650, body:'#fff176', glow:'#ffd600' },{ id:'platinum', name:'Platino', price:1800, body:'#cfd8dc', glow:'#ffffff' },{ id:'obsidian', name:'Obsidiana', price:2100, body:'#1a1a2e', glow:'#ff1744' },{ id:'diamond', name:'Diamante', price:2500, body:'#b3ffff', glow:'#ffffff' }, { id:'tournament_silver', name:'🥈 Silver Ranked', price:0, body:'#c0c0c0', glow:'#e0e0e0', exclusive:true } ];
+const SKINS=[
+ { id:'default', name:'DEV Cyan', price:0, body:'#00e5ff', glow:'#00e5ff' },
+ { id:'crimson', name:'Crimson Fury', price:120, body:'#ff1744', glow:'#ff5252' },
+ { id:'gold', name:'Golden Nova', price:200, body:'#ffd600', glow:'#ffea00' },
+ { id:'neon', name:'Neon Viper', price:300, body:'#00e676', glow:'#69f0ae' },
+ { id:'violet', name:'Violet Storm', price:350, body:'#7c4dff', glow:'#b388ff' },
+ { id:'pixel', name:'Pixel Phantom', price:500, body:'#ff6d00', glow:'#ff9e00' },
+ { id:'ocean', name:'Oceano', price:600, body:'#2196f3', glow:'#82b4ff' },
+ { id:'rosa', name:'Rosa Neon', price:750, body:'#ff4081', glow:'#ff8a80' },
+ { id:'lima', name:'Lima Acida', price:850, body:'#c6ff00', glow:'#eaff8a' },
+ { id:'ghost', name:'Fantasma', price:950, body:'#eceff1', glow:'#ffffff' },
+ { id:'camo', name:'Camuflaje', price:1000, body:'#7c9a3f', glow:'#b2d67c' },
+ { id:'magma', name:'Magma', price:1200, body:'#ff3d00', glow:'#ff8a65' },
+ { id:'ice', name:'Hielo', price:1350, body:'#80d8ff', glow:'#e1f5fe' },
+ { id:'nebula', name:'Nebulosa', price:1500, body:'#e040fb', glow:'#ea80fc' },
+ { id:'solar', name:'Solar', price:1650, body:'#fff176', glow:'#ffd600' },
+ { id:'platinum', name:'Platino', price:1800, body:'#cfd8dc', glow:'#ffffff' },
+ { id:'obsidian', name:'Obsidiana', price:2100, body:'#1a1a2e', glow:'#ff1744' },
+ { id:'diamond', name:'Diamante', price:2500, body:'#b3ffff', glow:'#ffffff' },
+ // ── Naves nuevas: cada una con silueta y efecto de disparo propios ──────
+ { id:'retro_wing', name:'🕹️ Retro Wing', price:2800, body:'#ff5252', glow:'#ff1744' },
+ { id:'turbo_delta', name:'⚡ Turbo Delta', price:3100, body:'#40c4ff', glow:'#00b0ff' },
+ { id:'bubble_drone', name:'🫧 Bubble Drone', price:3300, body:'#4dd0e1', glow:'#26c6da' },
+ { id:'toon_mummy', name:'🧟 Toon Mummy', price:3500, body:'#c5e1a5', glow:'#8bc34a' },
+ { id:'spider_mech', name:'🕷️ Spider Mech', price:3700, body:'#616161', glow:'#9e9e9e' },
+ { id:'crystal_ship', name:'💎 Crystal Ship', price:3900, body:'#18ffff', glow:'#00e5ff' },
+ { id:'bee_sting', name:'🐝 Bee Sting', price:4100, body:'#ffca28', glow:'#ffab00' },
+ { id:'loco_train', name:'🚂 Loco Train', price:4300, body:'#795548', glow:'#d7ccc8' },
+ { id:'rocket_sonic', name:'🚀 Sonic Rocket', price:4500, body:'#e53935', glow:'#ff1744' },
+ { id:'deep_space', name:'🌌 Deep Space', price:4700, body:'#311b92', glow:'#651fff' },
+ { id:'toxic_wasp', name:'☢️ Toxic Wasp', price:4900, body:'#aeea00', glow:'#76ff03' },
+ { id:'stealth_jet', name:'🕶️ Stealth Jet', price:5100, body:'#263238', glow:'#00bcd4' },
+ { id:'alien_ufo', name:'🛸 Alien UFO', price:5300, body:'#00bfa5', glow:'#00e5ff' },
+ { id:'pumpkin_jet', name:'🎃 Pumpkin Jet', price:5500, body:'#ff6f00', glow:'#ff9100' },
+ { id:'lava_dragon', name:'🐉 Lava Dragon', price:5800, body:'#bf360c', glow:'#ff3d00' },
+ { id:'frost_wolf', name:'🐺 Frost Wolf', price:6000, body:'#81d4fa', glow:'#4fc3f7' },
+ { id:'cyber_ronin', name:'🥷 Cyber Ronin', price:6300, body:'#d32f2f', glow:'#ff1744' },
+ { id:'galaxy_wing', name:'🌠 Galaxy Wing', price:6600, body:'#5e35b1', glow:'#7c4dff' },
+ { id:'toxic_dron', name:'🛸 Toxic Dron', price:6900, body:'#558b2f', glow:'#7cb342' },
+ { id:'plasma_jet', name:'⚛️ Plasma Jet', price:7200, body:'#00bcd4', glow:'#00e5ff' },
+ { id:'magma_horn', name:'🌋 Magma Horn', price:7500, body:'#e64a19', glow:'#ff3d00' },
+ { id:'phantom_wing', name:'👻 Phantom Wing', price:7800, body:'#b0bec5', glow:'#ffffff' },
+ { id:'quantum_node', name:'🔮 Quantum Node', price:8200, body:'#7b1fa2', glow:'#e040fb' },
+ { id:'solar_flare', name:'☀️ Solar Flare', price:8600, body:'#ffab00', glow:'#ffd600' },
+ { id:'blood_hunter', name:'🩸 Blood Hunter', price:9000, body:'#8e0000', glow:'#ff1744' },
+ { id:'ocean_depth', name:'🌊 Ocean Depth', price:9400, body:'#01579b', glow:'#0288d1' },
+ { id:'toon_ghost', name:'👻 Toon Ghost', price:9800, body:'#eeeeee', glow:'#b0bec5' },
+ { id:'carnival_jet', name:'🎪 Carnival Jet', price:10200, body:'#e91e63', glow:'#ff4081' },
+ { id:'steel_titan', name:'🤖 Steel Titan', price:10800, body:'#546e7a', glow:'#78909c' },
+ { id:'neon_racer', name:'🏎️ Neon Racer', price:11500, body:'#ff2e63', glow:'#ff1744' },
+ { id:'sakura_dron', name:'🌸 Sakura Dron', price:12200, body:'#f8bbd0', glow:'#ff80ab' },
+ { id:'obsidian_beast', name:'🐲 Obsidian Beast', price:13000, body:'#3a0ca3', glow:'#f72585' },
+ { id:'pixel_warrior', name:'🕹️ Pixel Warrior', price:13800, body:'#00bcd4', glow:'#00e5ff' },
+ { id:'cyber_punk', name:'🎸 Cyber Punk', price:14600, body:'#d81b60', glow:'#ff2e63' },
+ { id:'supernova', name:'💥 Supernova', price:15500, body:'#ff1744', glow:'#ff5252' },
+ { id:'void_rider', name:'🕳️ Void Rider', price:16500, body:'#120458', glow:'#7c4dff' },
+ { id:'neon_arcade', name:'🕹️ Neon Arcade', price:17500, body:'#00e676', glow:'#00ff9d' },
+ { id:'astro_wing', name:'🌌 Astro Wing', price:18600, body:'#283593', glow:'#3f51b5' },
+ { id:'holy_rhomb', name:'💎 Holy Rhomb', price:19800, body:'#fff9c4', glow:'#ffeb3b' },
+ { id:'chaos_dron', name:'🌀 Chaos Dron', price:21000, body:'#6a1b9a', glow:'#9c27b0' },
+ { id:'iron_beast', name:'🦾 Iron Beast', price:22500, body:'#37474f', glow:'#546e7a' },
+ { id:'lava_jet', name:'🌋 Lava Jet', price:24000, body:'#bf360c', glow:'#ff5722' },
+ { id:'cyber_laser', name:'🔫 Cyber Laser', price:25500, body:'#1a237e', glow:'#00e5ff' },
+ { id:'golden_phoenix', name:'🔥 Golden Phoenix', price:27500, body:'#ffab00', glow:'#ffd600' },
+ { id:'plasma_nova', name:'⚡ Plasma Nova', price:30000, body:'#e100ff', glow:'#ff00ff' },
+ { id:'quantum_jet', name:'⚛️ Quantum Jet', price:33000, body:'#00b0ff', glow:'#00e5ff' },
+ { id:'time_warp', name:'⏳ Time Warp', price:36000, body:'#311b92', glow:'#7c4dff' },
+ { id:'infinite_beast', name:'♾️ Infinite Beast', price:40000, body:'#000000', glow:'#00ff9d' },
+ { id:'tournament_silver', name:'🥈 Silver Ranked', price:0, body:'#c0c0c0', glow:'#e0e0e0', exclusive:true }
+];
 // Láseres: el disparo del jugador. Los que tienen "anim" se mueven de verdad
 // (en la tienda se ven con la misma animación que en el juego).
 //   kind  cómo se dibuja en el canvas:
@@ -332,7 +401,24 @@ const LABEL_SKINS=[
   { id:'oro',       name:'👑 Dorada',   price:25000, bg:'rgba(40,26,0,.9)',   border:'#ffd600', color:'#ffe082', stroke:'#3a2600', glow:'#ffd600', font:'Georgia, serif', weight:700 },
   { id:'hacker',    name:'💻 Hacker',   price:40000, bg:'#04120a',            border:'#00ff66', color:'#00ff66', stroke:'#00220f', glow:'#00ff66', font:'"Courier New", monospace' },
   { id:'arcoiris',  name:'🌈 Arcoíris', price:60000, bg:'rgba(10,0,25,.88)',  border:'#e040fb', color:'#ff80ab', stroke:'#1a0033', glow:'#e040fb', hue:1 },
-  { id:'infernol',  name:'🔥 Infernal', price:90000, bg:'rgba(45,10,0,.9)',   border:'#ff6d00', color:'#ffca28', stroke:'#2b0600', glow:'#ff6d00', anim:1, hue:1 }
+  { id:'infernol',  name:'🔥 Infernal', price:90000, bg:'rgba(45,10,0,.9)',   border:'#ff6d00', color:'#ffca28', stroke:'#2b0600', glow:'#ff6d00', anim:1, hue:1 },
+  // ── Etiquetas con movimiento: el campo "fx" decide cómo se mueve la caja
+  //    (orbita, temblor, inclinación, rebote, latido, giro, glitch, matrix…).
+  { id:'orbita',    name:'🪐 Órbita',      price:14000,  bg:'rgba(10,20,40,.86)', border:'#64ffda', color:'#b2dfdb', stroke:'#00201c', glow:'#64ffda', fx:'orbita' },
+  { id:'temblor',   name:'📳 Temblor',     price:18000,  bg:'rgba(40,0,20,.86)',  border:'#ff4081', color:'#f8bbd0', stroke:'#2b0014', glow:'#ff4081', fx:'temblor' },
+  { id:'inclinar',  name:'📐 Inclinada',   price:21000,  bg:'rgba(20,10,45,.88)', border:'#b388ff', color:'#e1bee7', stroke:'#14062e', glow:'#b388ff', fx:'inclinar' },
+  { id:'rebote',    name:'⛹️ Rebote',      price:24000,  bg:'rgba(0,30,25,.88)',  border:'#69f0ae', color:'#c8f7dc', stroke:'#00221b', glow:'#69f0ae', fx:'rebote' },
+  { id:'latido',    name:'💓 Latido',     price:28000,  bg:'rgba(45,0,20,.9)',   border:'#ff5252', color:'#ffcdd2', stroke:'#2b0009', glow:'#ff5252', fx:'latido', anim:1 },
+  { id:'flotar',    name:'🫧 Flotante',   price:32000,  bg:'rgba(0,25,45,.86)',  border:'#4dd0e1', color:'#e0f7fa', stroke:'#001f2b', glow:'#4dd0e1', fx:'flotar' },
+  { id:'girar',     name:'🌀 Giratoria',  price:38000,  bg:'rgba(15,5,35,.88)',  border:'#e040fb', color:'#f3e5f5', stroke:'#0e0026', glow:'#e040fb', fx:'girar' },
+  { id:'electrica', name:'⚡ Eléctrica',  price:45000,  bg:'rgba(35,35,0,.86)',  border:'#ffea00', color:'#fff9c4', stroke:'#1f1f00', glow:'#ffea00', fx:'electrica', anim:1 },
+  { id:'espejo',    name:'🪞 Espejo',     price:52000,  bg:'rgba(5,5,25,.88)',   border:'#82b1ff', color:'#e8eaf6', stroke:'#000a1f', glow:'#82b1ff', fx:'espejo' },
+  { id:'pulso',     name:'💠 Pulso',      price:60000,  bg:'rgba(0,40,45,.86)',  border:'#26e5f2', color:'#c7f9ff', stroke:'#00232b', glow:'#26e5f2', fx:'pulso', anim:1, hue:1 },
+  { id:'deslizar',  name:'🎯 Deslizante', price:70000,  bg:'rgba(30,15,0,.88)',  border:'#ffab40', color:'#ffe0b2', stroke:'#1f0d00', glow:'#ffab40', fx:'deslizar' },
+  { id:'glitch',    name:'📺 Glitch',     price:85000,  bg:'#0d0000',           border:'#ff0033', color:'#ff4d6d', stroke:'#000000', glow:'#ff0033', font:'"Courier New", monospace', fx:'glitch' },
+  { id:'matrix',    name:'💚 Matrix',     price:100000, bg:'#001100',           border:'#00ff66', color:'#00ff66', stroke:'#000000', glow:'#00ff66', font:'"Courier New", monospace', fx:'matrix', anim:1 },
+  { id:'supernova', name:'💥 Supernova',  price:125000, bg:'rgba(45,0,0,.86)',   border:'#ff6d00', color:'#fff3e0', stroke:'#2b0000', glow:'#ff6d00', fx:'supernova', anim:1, hue:1 },
+  { id:'nexus',     name:'🌌 Nexus',      price:160000, bg:'rgba(8,0,25,.9)',    border:'#7c4dff', color:'#d1c4e9', stroke:'#060019', glow:'#7c4dff', fx:'nexus', anim:1, hue:1 }
 ];
 const FRAMES=[ { id:'none',    name:'Sin marco',       price:0 }, { id:'bronce',  name:'Marco Bronce',    price:200 }, { id:'plata',   name:'Marco Plata',     price:400 }, { id:'oro',     name:'Marco Oro',       price:700 }, { id:'neon',    name:'Marco Neón',      price:1000 }, { id:'diamante',name:'Marco Diamante',  price:1500 }, { id:'campeon', name:'🏆 Marco Campeón (Animado)', price:0, animated:true, exclusive:true }, { id:'inferno', name:'🔥 Marco Inferno (GIF)', price:20000, animated:true }, { id:'galaxy', name:'🌌 Marco Galaxia (GIF)', price:25000, animated:true }, { id:'glitch', name:'👾 Marco Glitch (GIF)', price:30000, animated:true }, { id:'void', name:'🕳️ Marco Vacío (GIF)', price:35000, animated:true }, { id:'dragon', name:'🐉 Marco Dragón (Épico)', price:50000, animated:true }, { id:'leyenda', name:'💎 Marco Leyenda (TRYHARD)', price:75000, animated:true }, { id:'universo', name:'🌌 Marco Universo (LOGRO)', price:0, animated:true, exclusive:true } ];
 const NAME_COLORS=[ {id:'white',name:'Blanco',color:'#ffffff',price:3000},{id:'cyan',name:'Cyan',color:'#00e5ff',price:3000},{id:'gold',name:'Dorado',color:'#ffd600',price:3500},{id:'pink',name:'Rosa',color:'#ff4081',price:3000},{id:'green',name:'Verde',color:'#00e676',price:3000},{id:'violet',name:'Violeta',color:'#7c4dff',price:3500},{id:'red',name:'Rojo',color:'#ff1744',price:4000},{id:'rainbow',name:'🌈 Arcoíris',color:'rainbow',price:5000} ];

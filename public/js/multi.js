@@ -1,4 +1,4 @@
-const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},{id:'crimson',body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},{id:'gold',body:'#ffd600',accent:'#fff176',glow:'#ffea00'},{id:'neon',body:'#00e676',accent:'#69f0ae',glow:'#00e676'},{id:'violet',body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},{id:'pixel',body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'},{id:'tournament_silver',body:'#c0c0c0',accent:'#e0e0e0',glow:'#e0e0e0'}];
+const MultiSkins=(typeof SKIN_DATA!=='undefined')?SKIN_DATA:[];
 
 // ══ ARENA MULTIJUGADOR ═══════════════════════════════════════════════════
 // Una sola pantalla. Cada jugador ocupa una franja vertical con su nave al
@@ -293,39 +293,54 @@ const MultiSkins=[{id:'default',body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
   }
   function drawPlayer(p,count,t){
     const g=playerGeom(p,count);
-    const bob=Math.sin(t/320+p.lane)*5;
     const sk=MultiSkins.find(s=>s.id===p.skin)||MultiSkins[0];
-    const y=g.y+bob, s=Math.min(30,g.L.w*.22);
-    // El que se fue de la sala en mitad de la partida deja su lugar marcado.
-    const out=p.aliveNow===false;
+    const spin=sk&&sk.spin?sk.spin:'no';
+    let tilt=0;
+    if(spin==='medio') tilt=Math.sin(t/620+p.lane)*0.06;
+    else if(spin==='rapido') tilt=Math.sin(t/340+p.lane)*0.11;
+    const bob=Math.sin(t/320+p.lane)*5;
+    const s=Math.min(30,g.L.w*.22);
     ctx.save();
-    ctx.globalAlpha=out?.35:1;
-    ctx.shadowColor=sk.glow; ctx.shadowBlur=out?0:18;
-    ctx.fillStyle=sk.body; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1.4;
-    ctx.beginPath();
-    ctx.moveTo(g.x,y-s*1.1); ctx.lineTo(g.x-s,y+s*.8); ctx.lineTo(g.x-s*.35,y+s*.45);
-    ctx.lineTo(g.x,y+s*.72); ctx.lineTo(g.x+s*.35,y+s*.45); ctx.lineTo(g.x+s,y+s*.8);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.translate(g.x,g.y+bob);
+    ctx.rotate(tilt);
+    ctx.scale(s/30,s/30);
+    // Silueta de la skin (misma que en el juego de un jugador)
+    ctx.shadowColor=sk?sk.glow:'#00e5ff'; ctx.shadowBlur=16;
+    ctx.fillStyle=sk?sk.body:'#00e5ff'; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1.4;
+    if(typeof Hulls!=='undefined'){ Hulls.drawStroked(ctx,(sk&&sk.hull)||'arrow',sk?sk.body:'#00e5ff','rgba(255,255,255,.9)',1.4); }
+    else { ctx.beginPath(); ctx.moveTo(0,-33); ctx.lineTo(-30,24); ctx.lineTo(-10,15); ctx.lineTo(0,24); ctx.lineTo(10,15); ctx.lineTo(30,24); ctx.closePath(); ctx.fill(); ctx.stroke(); }
     ctx.shadowBlur=0;
-    ctx.fillStyle=sk.accent; ctx.beginPath(); ctx.arc(g.x,y-s*.16,s*.22,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ff6d00'; ctx.beginPath();
-    ctx.moveTo(g.x-s*.28,y+s*.62); ctx.lineTo(g.x,y+s*1.05); ctx.lineTo(g.x+s*.28,y+s*.62); ctx.closePath(); ctx.fill();
-    if(out){
-      ctx.font=Math.round(s*1.1)+'px system-ui,sans-serif'; ctx.textAlign='center';
-      ctx.fillText('💥',g.x,y);
+    ctx.globalAlpha=.3; ctx.fillStyle=sk?sk.accent:'#80d8ff';
+    ctx.beginPath(); ctx.moveTo(0,-24); ctx.lineTo(-5,-2); ctx.lineTo(0,6); ctx.lineTo(5,-2); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle=sk?sk.accent:'#80d8ff'; ctx.beginPath(); ctx.arc(0,-6,4.4,0,Math.PI*2); ctx.fill();
+    // Llama del motor, con la forma de la skin
+    const fl=(sk&&sk.flame)||'normal';
+    const fw=fl==='largo'?8:(fl==='triple'?7:6);
+    const flen=(10+Math.abs(Math.sin(t/120+p.lane))*5)*(fl==='largo'?1.9:(fl==='triple'?1.25:1));
+    ctx.fillStyle=(sk&&sk.fire)||'#ff6d00';
+    ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.moveTo(-fw,20); ctx.lineTo(0,20+flen); ctx.lineTo(fw,20); ctx.closePath(); ctx.fill();
+    if(fl==='doble'||fl==='triple'){
+      const n=fl==='triple'?3:2;
+      for(let i=0;i<n;i++){
+        const ox=(i-(n-1)/2)*7, l2=flen*(0.55+Math.abs(Math.sin(t/150+i+p.lane))*0.4);
+        ctx.beginPath(); ctx.moveTo(ox-4,20); ctx.lineTo(ox,20+l2); ctx.lineTo(ox+4,20); ctx.closePath(); ctx.fill();
+      }
     }
-    // separadores de franja
-    ctx.shadowBlur=0;
-    const lives=Math.max(0,p.lives==null?2:p.lives);
+    ctx.restore();
+    // Nombres y vidas van sueltos, sin rotar, para que se lean siempre.
+    ctx.save();
     ctx.textAlign='center';
     ctx.fillStyle= p.userId===me?'#00e5ff':(p.nameColor||'#ffffff');
     ctx.font=(p.userId===me?'800 ':'700 ')+'12px system-ui,sans-serif';
-    ctx.fillText(p.username+(p.userId===me?' (TÚ)':'')+(out?' (salió)':''),g.x,y+s*1.5);
+    ctx.fillText(p.username+(p.userId===me?' (TÚ)':''),g.x,g.y+bob+s*1.5);
+    const lives=Math.max(0,p.lives==null?2:p.lives);
     ctx.fillStyle= lives>0?'#ff4d6d':'#555';
     ctx.font='15px system-ui,sans-serif';
-    ctx.fillText('♥'.repeat(lives)+'♡'.repeat(Math.max(0,2-lives)),g.x,y+s*1.5+16);
+    ctx.fillText('♥'.repeat(lives)+'♡'.repeat(Math.max(0,2-lives)),g.x,g.y+bob+s*1.5+16);
     ctx.fillStyle='#9fb3c8'; ctx.font='600 10px system-ui,sans-serif';
-    ctx.fillText('💥'+p.kills+'  🔥'+p.streak,g.x,y-s*1.5-4);
+    ctx.fillText('💥'+p.kills+'  🔥'+p.streak,g.x,g.y+bob-s*1.5-4);
     ctx.restore();
   }
   function drawLanes(count,t){
@@ -854,10 +869,12 @@ const MultiUI={
  catColor(c){ return c==='HTML'?'#ff7043':(c==='CSS'?'#40c4ff':'#ffd600'); },
  skinById(id){ return MultiSkins.find(s=>s.id===id)||MultiSkins[0]; },
  shipHtml(skinId, alive){
-  if(!alive) return '<div class="multi-ship dead">💥</div>';
-  const sk=this.skinById(skinId||'default');
-  return '<div class="multi-ship alive" title="'+this.esc(skinId||'default')+'"><svg width="44" height="38" viewBox="-22 -22 44 44" style="filter:drop-shadow(0 0 8px '+sk.glow+')"><path d="M0,-22 L-20,18 L-7,10 L0,16 L7,10 L20,18 Z" fill="'+sk.body+'" stroke="rgba(255,255,255,.85)" stroke-width="1.2"/><circle cx="0" cy="-4" r="4.5" fill="'+sk.accent+'" stroke="#fff" stroke-width=".8"/><path d="M-6,14 L0,22 L6,14 Z" fill="#ff6d00" opacity=".95"/></svg></div>';
- },
+   if(!alive) return '<div class="multi-ship dead">💥</div>';
+   const sk=this.skinById(skinId||'default');
+   const hull=(sk&&sk.hull)||'arrow';
+   const path=(typeof Hulls!=='undefined')?Hulls.svgPath(hull):'M0,-22 L-20,18 L-7,10 L0,16 L7,10 L20,18 Z';
+   return '<div class="multi-ship alive" title="'+this.esc(skinId||'default')+'"><svg width="44" height="38" viewBox="-32 -32 64 64" style="filter:drop-shadow(0 0 8px '+(sk?sk.glow:'#00e5ff')+')"><path d="'+path+'" fill="'+(sk?sk.body:'#00e5ff')+'" stroke="rgba(255,255,255,.85)" stroke-width="1.2"/><circle cx="0" cy="-5" r="4.5" fill="'+(sk?sk.accent:'#80d8ff')+'" stroke="#fff" stroke-width=".8"/><path d="M-6,14 L0,22 L6,14 Z" fill="'+(sk&&sk.fire?sk.fire:'#ff6d00')+'" opacity=".95"/></svg></div>';
+  },
  picFetching:{},
  picHtml(p){
   if(p.profilePic) this.picCache[p.userId]=p.profilePic;

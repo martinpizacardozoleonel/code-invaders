@@ -1,13 +1,8 @@
 const Game = (() => {
-  const SKINS=[
-    {id:'default',name:'DEV Cyan',price:0,body:'#00e5ff',accent:'#80d8ff',glow:'#00e5ff'},
-    {id:'crimson',name:'Crimson Fury',price:120,body:'#ff1744',accent:'#ff8a80',glow:'#ff5252'},
-    {id:'gold',name:'Golden Nova',price:200,body:'#ffd600',accent:'#fff176',glow:'#ffea00'},
-    {id:'neon',name:'Neon Viper',price:300,body:'#00e676',accent:'#69f0ae',glow:'#00e676'},
-    {id:'violet',name:'Violet Storm',price:350,body:'#7c4dff',accent:'#b388ff',glow:'#7c4dff'},
-    {id:'pixel',name:'Pixel Phantom',price:500,body:'#ff6d00',accent:'#ffab40',glow:'#ff6d00'},{id:'ocean',name:'Oceano',price:600,body:'#2196f3',accent:'#82b4ff',glow:'#2196f3'},{id:'rosa',name:'Rosa Neon',price:750,body:'#ff4081',accent:'#ff8a80',glow:'#ff4081'},{id:'lima',name:'Lima Acida',price:850,body:'#c6ff00',accent:'#eaff8a',glow:'#c6ff00'},{id:'ghost',name:'Fantasma',price:950,body:'#eceff1',accent:'#ffffff',glow:'#eceff1'},{id:'camo',name:'Camuflaje',price:1000,body:'#7c9a3f',accent:'#b2d67c',glow:'#7c9a3f'},{id:'magma',name:'Magma',price:1200,body:'#ff3d00',accent:'#ff8a65',glow:'#ff3d00'},{id:'ice',name:'Hielo',price:1350,body:'#80d8ff',accent:'#e1f5fe',glow:'#80d8ff'},{id:'nebula',name:'Nebulosa',price:1500,body:'#e040fb',accent:'#ea80fc',glow:'#e040fb'},{id:'solar',name:'Solar',price:1650,body:'#fff176',accent:'#fff9c4',glow:'#ffd600'},{id:'platinum',name:'Platino',price:1800,body:'#cfd8dc',accent:'#ffffff',glow:'#cfd8dc'},{id:'obsidian',name:'Obsidiana',price:2100,body:'#1a1a2e',accent:'#5c6bc0',glow:'#ff1744'},{id:'diamond',name:'Diamante',price:2500,body:'#b3ffff',accent:'#ffffff',glow:'#b3ffff'}
-  ];
-  function skinById(id){ return SKINS.find(s=>s.id===id)||SKINS[0]; }
+  // El catálogo de naves vive en skins-data.js para que la tienda, el juego,
+  // el multijugador y el modo offline usen siempre la misma lista.
+  const SKINS=(typeof SKIN_DATA!=='undefined')?SKIN_DATA:[];
+  function skinById(id){ return (typeof skinDataById==='function')?skinDataById(id):(SKINS[0]||null); }
   const LEVELS=[
     {id:1,title:'HTML Básico',questions:[{q:'Encabezado grande',a:'<h1>'},{q:'Párrafo',a:'<p>'},{q:'Enlace',a:'<a>'},{q:'Imagen',a:'<img>'},{q:'Lista desordenada',a:'<ul>'},{q:'División',a:'<div>'},{q:'Elemento en línea',a:'<span>'},{q:'Botón',a:'<button>'},{q:'Campo de entrada',a:'<input>'},{q:'Tabla',a:'<table>'}],enemySpeed:0.5,spawnInterval:90,enemyHealth:1},
     {id:2,title:'CSS Básico',questions:[{q:'Margen exterior',a:'margin'},{q:'Color de texto',a:'color'},{q:'Borde',a:'border'},{q:'Posición',a:'position'},{q:'Selector por clase',a:'.'},{q:'Selector por ID',a:'#'},{q:'Tamaño de fuente',a:'font-size'},{q:'Alinear texto',a:'text-align'},{q:'Pseudoclase hover',a:':hover'},{q:'Activar flexbox',a:'display: flex'}],enemySpeed:0.7,spawnInterval:75,enemyHealth:1},
@@ -620,7 +615,7 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
   // El disparo lleva el láser que el jugador tiene equipado y el reloj del
   // disparo, para que la animación vaya por donde va la bala y no con el
   // reloj de la pantalla.
-  function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15,fx:equippedLaser,born:frameCount}); }
+  function makeLaser(x1,y1,x2,y2,color){ lasers.push({x1,y1,x2,y2,color,life:15,fx:equippedLaser,born:frameCount}); addShipShotFx(x1,y1,skinById(equipped)); }
   // Chispas sueltas de siempre. Cuando la nave desaparece de verdad (big) se
 // agrega además el impacto de la skin comprada, con el radio "r" (que se
 // agranda con la nave que acaba de morir). Con el impacto "normal" no se agrega
@@ -1240,13 +1235,80 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   // Las estrellas se congelan cuando el jefe abre el portal (el espacio "se
   // detiene") y el color depende de la galaxia en la que estemos.
   function drawStars(){ for(const s of titleStars){ if(!jsBossFreeze){ s.y+=s.speed; if(s.y>H){ s.y=0; s.x=Math.random()*W; } } ctx.fillStyle=`rgba(${gal().star},${0.3+Math.sin(frameCount*0.02+s.x)*0.2})`; ctx.fillRect(s.x,s.y,s.size,s.size); } }
+  // Efectos de disparo de la nave equipped: quedan flotando en la puntería un
+  // instante y se desvanecen, así se ve de qué skin venís.
+  const shotFx=[];
+  function addShipShotFx(x,y,sk){
+    shotFx.push({ x, y, t:0, sk, id:sk.shot||'pulso' });
+    if(shotFx.length>24) shotFx.splice(0,shotFx.length-24);
+  }
+  function drawShipShotFx(){
+    for(let i=shotFx.length-1;i>=0;i--){
+      const f=shotFx[i]; f.t+=0.055;
+      if(f.t>=1){ shotFx.splice(i,1); continue; }
+      const def=(typeof SHOT_FX!=='undefined')?SHOT_FX[f.id]:null;
+      ctx.save(); ctx.translate(f.x,f.y-22); ctx.globalAlpha=Math.max(0,1-f.t);
+      ctx.strokeStyle=f.sk.glow; ctx.fillStyle=f.sk.glow; ctx.shadowColor=f.sk.glow; ctx.shadowBlur=10;
+      if(def&&def.draw) def.draw(ctx,26,f.t);
+      ctx.restore();
+    }
+  }
+  // Llama del motor: la forma y el aleteo dependen de la skin.
+  function drawShipFlame(sk,t){
+    const fl=sk.flame||'normal';
+    const w=fl==='largo'?8:(fl==='triple'?7:6);
+    const base=10+Math.abs(Math.sin(t*0.34))*5;
+    const len=base*(fl==='largo'?1.9:(fl==='triple'?1.25:1));
+    ctx.save();
+    ctx.fillStyle=sk.fire||'#ff6d00';
+    ctx.shadowColor=sk.fire||'#ff6d00'; ctx.shadowBlur=9;
+    ctx.beginPath(); ctx.moveTo(-w,0); ctx.lineTo(0,len); ctx.lineTo(w,0); ctx.closePath(); ctx.fill();
+    if(fl==='doble'||fl==='triple'){
+      const n=fl==='triple'?3:2;
+      for(let i=0;i<n;i++){
+        const ox=(i-(n-1)/2)*7, l2=len*(0.55+Math.abs(Math.sin(t*0.42+i))*0.4);
+        ctx.beginPath(); ctx.moveTo(ox-4,0); ctx.lineTo(ox,l2); ctx.lineTo(ox+4,0); ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.globalAlpha=.65; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.moveTo(-w*.4,0); ctx.lineTo(0,len*.55); ctx.lineTo(w*.4,0); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
   function drawPlayer(){
-    const {x,y}=player; const sk=skinById(equipped); ctx.save(); if(player.flash>0&&player.flash%4<2) ctx.globalAlpha=0.4;
-    ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
-    ctx.beginPath(); ctx.moveTo(x,y-22); ctx.lineTo(x-20,y+18); ctx.lineTo(x-7,y+10); ctx.lineTo(x,y+16); ctx.lineTo(x+7,y+10); ctx.lineTo(x+20,y+18); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle=sk.accent; ctx.beginPath(); ctx.arc(x,y-4,5,0,Math.PI*2); ctx.fill();
-    const glow=8+Math.sin(frameCount*0.3)*4; ctx.fillStyle='#ff6d00'; ctx.beginPath(); ctx.moveTo(x-6,y+14); ctx.lineTo(x,y+14+glow); ctx.lineTo(x+6,y+14); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.fillText('DEV',x,y+2); ctx.restore();
+    const {x,y}=player; const sk=skinById(equipped); if(!sk) return;
+    const t=frameCount/60;
+    const spin=sk.spin||'no';
+    // Aleteo: las naves "medias" y "rápidas" se inclinan apenas, como si
+    // flotaran. Se hace con el balanceo del casco, sin mover la posición.
+    let tilt=0;
+    if(spin==='medio') tilt=Math.sin(t*1.6)*0.05;
+    else if(spin==='rapido') tilt=Math.sin(t*3.1)*0.09;
+    const py=y+Math.sin(t*2.4)*(spin==='no'?0:2.5);
+    ctx.save();
+    if(player.flash>0&&player.flash%4<2) ctx.globalAlpha=0.4;
+    ctx.translate(x,py);
+    if(tilt) ctx.rotate(tilt);
+    // Resplandor del casco
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=13;
+    ctx.fillStyle=sk.body;
+    if(typeof Hulls!=='undefined'){ Hulls.drawStroked(ctx, sk.hull||'arrow', sk.body, 'rgba(255,255,255,.85)', 1.2); }
+    else { ctx.beginPath(); ctx.moveTo(0,-22); ctx.lineTo(-20,18); ctx.lineTo(-7,10); ctx.lineTo(0,16); ctx.lineTo(7,10); ctx.lineTo(20,18); ctx.closePath(); ctx.fill(); }
+    ctx.shadowBlur=0;
+    // Franja de luz en el lomo, para que no sea un bloque plano
+    ctx.globalAlpha=(ctx.globalAlpha===1?.28:.2);
+    ctx.fillStyle=sk.accent;
+    ctx.beginPath(); ctx.moveTo(0,-24); ctx.lineTo(-5,-2); ctx.lineTo(0,6); ctx.lineTo(5,-2); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    // Cabina
+    ctx.fillStyle=sk.accent; ctx.beginPath(); ctx.arc(0,-5,4.6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1; ctx.stroke();
+    // Llama del motor
+    drawShipFlame(sk,t);
+    // Insignia
+    ctx.fillStyle='rgba(255,255,255,.95)'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText('DEV',0,1);
+    ctx.restore();
+    drawShipShotFx();
   }
   function drawEnemies(){
     for(const e of enemies){
@@ -1601,6 +1663,59 @@ function paintLabelPreviews(){
   if(typeof EnemyShips==='undefined') return;
   paintPreviews('label','data-labelskin',(ctx,cv,id,t)=>EnemyShips.drawLabel(ctx,'Párrafo',cv.width/2,cv.height/2,cv.width-6,{fontSize:12,t:t,skin:id}));
 }
+// Vista previa de la nave: la misma silueta Hulls con la misma llama y el
+// mismo aleteo que en el juego, girando despacio para que se vea la forma.
+function paintSkinPreviews(){
+  if(typeof Hulls==='undefined') return;
+  paintPreviews('skin','data-skin',(ctx,cv,id,t)=>{
+    const sk=skinById(id); if(!sk) return;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.save();
+    ctx.translate(cv.width/2,cv.height/2);
+    const sc=Math.min(1.05,(cv.height-12)/62);
+    ctx.scale(sc,sc);
+    const spin=sk.spin||'no';
+    let tilt=0;
+    if(spin==='medio') tilt=Math.sin(t*1.6)*0.05;
+    else if(spin==='rapido') tilt=Math.sin(t*3.1)*0.09;
+    ctx.rotate(tilt);
+    ctx.translate(0,-3);
+    // llama
+    const fl=sk.flame||'normal';
+    const fw=fl==='largo'?8:(fl==='triple'?7:6);
+    const len=(10+Math.abs(Math.sin(t*0.34))*5)*(fl==='largo'?1.9:(fl==='triple'?1.25:1));
+    ctx.fillStyle=sk.fire||'#ff6d00'; ctx.shadowColor=sk.fire||'#ff6d00'; ctx.shadowBlur=9;
+    ctx.beginPath(); ctx.moveTo(-fw,20); ctx.lineTo(0,20+len); ctx.lineTo(fw,20); ctx.closePath(); ctx.fill();
+    if(fl==='doble'||fl==='triple'){
+      const n=fl==='triple'?3:2;
+      for(let i=0;i<n;i++){
+        const ox=(i-(n-1)/2)*7, l2=len*(0.55+Math.abs(Math.sin(t*0.42+i))*0.4);
+        ctx.beginPath(); ctx.moveTo(ox-4,20); ctx.lineTo(ox,20+l2); ctx.lineTo(ox+4,20); ctx.closePath(); ctx.fill();
+      }
+    }
+    // casco
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=13; ctx.fillStyle=sk.body;
+    Hulls.drawStroked(ctx,sk.hull||'arrow',sk.body,'rgba(255,255,255,.85)',1.2);
+    ctx.shadowBlur=0;
+    ctx.globalAlpha=.3; ctx.fillStyle=sk.accent;
+    ctx.beginPath(); ctx.moveTo(0,-24); ctx.lineTo(-5,-2); ctx.lineTo(0,6); ctx.lineTo(5,-2); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    // cabina + insignia
+    ctx.fillStyle=sk.accent; ctx.beginPath(); ctx.arc(0,-5,4.6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.95)'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.fillText('DEV',0,1);
+    ctx.restore();
+    // aro del color del disparo de esta skin
+    const def=(typeof SHOT_FX!=='undefined')?SHOT_FX[sk.shot||'pulso']:null;
+    if(def&&def.draw){
+      ctx.save(); ctx.translate(cv.width/2,cv.height/2); ctx.globalAlpha=.85;
+      ctx.strokeStyle=sk.glow; ctx.fillStyle=sk.glow; ctx.shadowColor=sk.glow; ctx.shadowBlur=8;
+      const k=(t*0.7)%1; ctx.globalAlpha=Math.max(0,.55-k);
+      def.draw(ctx,20,k);
+      ctx.restore();
+    }
+  });
+}
 // Cuando la tienda se cierra no hace falta seguir animando nada.
 function stopAllPreviews(){ for(const k in previewBufs) stopPreviews(k); }
   function renderLasers(){
@@ -1777,8 +1892,14 @@ paintLabelPreviews();
       if(eq) action='<span class="shop-badge equipped">✓ Equipado</span>';
       else if(owned) action=`<button class="btn btn-ghost btn-sm" data-equip="${s.id}">Equipar</button>`;
       else action=`<button class="btn btn-primary btn-sm" data-buy="${s.id}" ${coins < s.price ? 'disabled' : ''}>Comprar ${s.price} 🪙</button>`;
-      return `<div class="shop-card ${eq?'shop-equipped':''}" style="border-top-color:${s.body}"><div class="shop-preview" style="background:${s.body}22; border-color:${s.body}55"><div class="shop-ship" style="color:${s.body}; text-shadow:0 0 10px ${s.glow}">◆</div></div><h4>${s.name}</h4><p class="shop-price">${s.price===0?'Gratis':s.price+' 🪙'}</p>${action}</div>`;
+      // Canvas animado con la nave real, en vez del rombo de texto de antes.
+      return `<div class="shop-card ${eq?'shop-equipped':''}" style="border-top-color:${s.body}">`
+        + `<div class="shop-preview shop-preview-ship" style="background:${s.body}22; border-color:${s.body}55">`
+        + `<canvas class="ship-preview-cv" width="120" height="96" data-skin="${s.id}"></canvas>`
+        + `<span class="ship-shot-tag" style="color:${s.glow}">💥 ${s.shot||'pulso'}</span>`
+        + `</div><h4>${s.name}</h4><p class="shop-price">${s.price===0?'Gratis':s.price+' 🪙'}</p>${action}</div>`;
     }).join('');
+    paintSkinPreviews();
     grid.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.dataset.buy; b.disabled=true; b.textContent='...'; try{ const r=await API.buySkin(id); coins=r.coins; ownedSkins=r.skins; saveShopLocal(); renderShop(); updateHUD(); Toast.success('¡Comprado!'); }catch(e){ Toast.error(e.message); b.disabled=false; b.textContent='Comprar'; } }));
     grid.querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.dataset.equip; try{ const r=await API.equipSkin(id); equipped=r.equipped; saveShopLocal(); renderShop(); Toast.success('Skin equipada'); }catch(e){ Toast.error(e.message); } }));
   }
