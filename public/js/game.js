@@ -644,7 +644,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     shootCooldown=15; bossBullets--;
     makeLaser(player.x,player.y-22,bossX,bossY,'#ff0');
     bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion');
-    if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,58); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); if(level < LEVELS.length-1){ state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500); } else { state='bossWin'; showRetryBtn(); saveProgress(true); } }
+    if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,58); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); onBossDefeated(); }
     updateHUD(); return true;
   }
   function damagePlayer(){
@@ -789,11 +789,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     }
     if(bossHP<=0){
       explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100);
-      if(level < LEVELS.length-1){
-        state='levelcomplete'; saveProgress(true); setTimeout(()=>startLevel(level+1),1500);
-      } else {
-        state='bossWin'; showRetryBtn(); saveProgress(true);
-      }
+      onBossDefeated();
     }
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life--; if(p.life<=0) particles.splice(i,1); }
     for(let i=lasers.length-1;i>=0;i--){ lasers[i].life--; if(lasers[i].life<=0) lasers.splice(i,1); }
@@ -1058,18 +1054,25 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     else ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (balas: '+bossBullets+')',CW/2,H-15);
   }
 
+  // Un jefe derrotado solo cierra el juego si era el último nivel. En cualquier
+  // otro caso (Jefe Final, Jefe CSS, Jefe JavaScript) hay que encadenar al
+  // siguiente nivel: antes esa comprobación faltaba en la ruta de responder y
+  // el juego se terminaba de forma prematura al vencer al Jefe CSS.
+  function onBossDefeated(){
+    if(level < LEVELS.length-1){
+      state='levelcomplete'; if(inputEl) inputEl.disabled=true; saveProgress(true);
+      setTimeout(()=>startLevel(level+1),1500);
+    } else {
+      state='bossWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); saveProgress(true);
+    }
+  }
   function checkBossDefeat(){
     if(!levelData||!levelData.isBoss) return;
     if(enemies.length&&enemies[0].health<=0){
       explode(enemies[0].x,enemies[0].y,'#ff0',40,true,78);
       enemies=[]; currentEnemy=null;
       addCoins(100);
-      if(level < LEVELS.length-1){
-        state='levelcomplete'; if(inputEl) inputEl.disabled=true; saveProgress(true);
-        setTimeout(()=>startLevel(level+1),1800);
-      } else {
-        state='bossWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); saveProgress(true);
-      }
+      onBossDefeated();
     }
   }
   // Diseño de nave que corresponde al nivel en curso: uno distinto para cada
@@ -1130,7 +1133,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         if(enemies.length < before){ score+=15; addCoins(5); scorePop=12; playSound('explosion'); showCssBubble(CSS_HIT_MSGS[Math.floor(Math.random()*CSS_HIT_MSGS.length)],70); }
         if(enemies.length===0){
           bossHP-=2; if(bossHP<0) bossHP=0; explode(bossX,bossY,'#0f0',10); showCssBubble(CSS_KILL_MSGS[Math.floor(Math.random()*CSS_KILL_MSGS.length)],90); playSound('explosion');
-          if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); state='bossWin'; showRetryBtn(); saveProgress(true); }
+          if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); onBossDefeated(); }
           else { cssBossSpawnTimer=60; }
         }
       } else {
