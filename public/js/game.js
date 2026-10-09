@@ -28,11 +28,39 @@ const Game = (() => {
   function setGalaxy(g){ galaxy=(Number(g)===2?2:1); document.body.classList.toggle('galaxy2',galaxy===2); }
   function gal(){ return GALAXIES[galaxy]||GALAXIES[1]; }
   let canvas,ctx,W,H;
-  let inputEl,fireBtnEl,startBtnEl,levelsBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl;
+  let inputEl,fireBtnEl,startBtnEl,levelsBtnEl,retryBtnEl,speedrunBtnEl,multiBtnEl,singlePlayerBtnEl,multiPlayerBtnEl,modeBackBtnEl,speedrunHudEl,exitBtnEl,exitOverlayEl,exitCancelEl,exitConfirmEl,endlessBtnEl,dailyBtnEl,dodgeEntryBtnEl;
   let gameOptsBtnEl,gameOptsMenuEl,gameInfoBtnEl,gameAbandonBtnEl,gameBackBtnEl,gameInfoPanelEl,gameInfoBodyEl,gameInfoCloseBtnEl;
-  let qBannerEl,qBannerTextEl;
+  let qBannerEl,qBannerTextEl,dailyHudEl;
   let state='title';
   let score=0,lives=2,level=0;
+  /* ================= DIFICULTAD ================= */
+  // Multiplica lo que el nivel ya trae (velocidad, cadencia, vida de las
+  // naves) y ajusta las vidas y el puntaje. La preferencia se guarda por
+  // usuario en el navegador y NO se manda al ranking: el tablero de siempre
+  // queda comparable porque todos juegan con el mismo multiplicador.
+  const DIFFICULTIES=[
+    { id:'facil',    label:'🟢 Fácil',    lives:4, speed:0.75, mult:0.8, color:'#43a047' },
+    { id:'normal',   label:'🔵 Normal',   lives:2, speed:1.00, mult:1.0, color:'#2196f3' },
+    { id:'dificil',  label:'🟡 Difícil',  lives:2, speed:1.30, mult:1.5, color:'#fdd835' },
+    { id:'insano',   label:'🟠 Insano',   lives:1, speed:1.60, mult:2.0, color:'#ff9800' },
+    { id:'infierno', label:'🔴 Infierno', lives:1, speed:2.00, mult:3.0, color:'#f44336' }
+  ];
+  const DEFAULT_DIFFICULTY='normal';
+  let difficulty=DEFAULT_DIFFICULTY;
+  function diff(){ return DIFFICULTIES.find(d=>d.id===difficulty)||DIFFICULTIES[1]; }
+  function loadDifficulty(){
+    try{ const v=store().getItem(diffStoreKey()); if(v&&DIFFICULTIES.some(d=>d.id===v)) difficulty=v; }catch(e){}
+  }
+  function saveDifficulty(){
+    try{ store().setItem(diffStoreKey(), difficulty); }catch(e){}
+  }
+  function diffStoreKey(){ return (isLogged()?`ci_${uid()}_`:'ci_guest_')+'difficulty'; }
+  // El multiplicador de puntaje se redondea siempre hacia arriba para que la
+  // dificultad fácil nunca pague 0 por un acierto.
+  function diffPoints(n){ return Math.max(1,Math.round(n*diff().mult)); }
+  // La penalización por error también escala, pero al revés: en la dificultad
+  // más dura cada fallo cuesta más.
+  function diffPenalty(n){ return Math.max(1,Math.round(n*diff().mult)); }
   let coins=0,ownedSkins=['default'],equipped='default';
   let ownedLasers=['default'],equippedLaser='default';
   let ownedImpacts=['default'],equippedImpact='default';
@@ -51,6 +79,7 @@ const Game = (() => {
   let slowTimer=0,fastTimer=0;
   let speedrun=false,speedrunFinished=false;
   let speedrunStart=0,speedrunTime=0,speedrunBest=null;
+  
   let formationOffset=0,formationDrift=0,formationDir=1;
   let formationCountdown=0,formationSway=0.8,formationAdvance=0.2;
   const FORMATION_COUNTDOWN_FRAMES=20*60;
@@ -113,6 +142,7 @@ const Game = (() => {
   function init(){
     canvas=document.getElementById('gameCanvas'); if(!canvas) return;
     canvas.width=CW; canvas.height=CH; ctx=canvas.getContext('2d'); W=CW; H=CH;
+    loadDifficulty();
     inputEl=document.getElementById('answerInput');
     this.toggleLeaderboard=function(){ const lb=document.querySelector('.leaderboard'); if(lb) lb.classList.toggle('hidden', !isLogged()); };
     startBtnEl=document.getElementById('startBtn');
@@ -123,7 +153,11 @@ const Game = (() => {
     singlePlayerBtnEl=document.getElementById('singlePlayerBtn');
     multiPlayerBtnEl=document.getElementById('multiPlayerBtn');
     modeBackBtnEl=document.getElementById('modeBackBtn');
+    endlessBtnEl=document.getElementById('endlessBtn');
+    dailyBtnEl=document.getElementById('dailyBtn');
+    dodgeEntryBtnEl=document.getElementById('dodgeEntryBtn');
     speedrunHudEl=document.getElementById('speedrunHud');
+    dailyHudEl=document.getElementById('dailyHud');
     exitBtnEl=document.getElementById('gameOptions');
     exitOverlayEl=document.getElementById('exitOverlay');
     exitCancelEl=document.getElementById('exitCancel');
@@ -201,6 +235,14 @@ const Game = (() => {
     if(singlePlayerBtnEl) singlePlayerBtnEl.addEventListener('click', ()=>{ showSingleModes(); });
     if(multiPlayerBtnEl) multiPlayerBtnEl.addEventListener('click', ()=>{ openMultiEntry(); });
     if(modeBackBtnEl) modeBackBtnEl.addEventListener('click', ()=>{ showBtns(); });
+    // El juego de esquiva vive en /dodge-game/ (otra página con su propio
+    // canvas). Antes no había forma de llegar: solo escribiendo la URL.
+    if(dodgeEntryBtnEl) dodgeEntryBtnEl.addEventListener('click', ()=>{
+      if(typeof Toast!=='undefined') Toast.info('🛡️ Abriendo Esquiva Académica…');
+      window.open('/dodge-game/','_blank','noopener');
+    });
+    if(endlessBtnEl) endlessBtnEl.addEventListener('click', ()=>{ hideBtns(); startEndless(); });
+    if(dailyBtnEl) dailyBtnEl.addEventListener('click', ()=>{ hideBtns(); openDailyChallenge(); });
     if(retryBtnEl) retryBtnEl.addEventListener('click', ()=>{ hideBtns(); speedrun?startSpeedrun():startNormal(); });
     if(gameOptsBtnEl) gameOptsBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); toggleGameMenu(); });
     if(gameInfoBtnEl) gameInfoBtnEl.addEventListener('click', (e)=>{ e.stopPropagation(); openGameInfo(); });
@@ -411,6 +453,9 @@ document.addEventListener('DOMContentLoaded',bindAchievementPop);
   }
   function refreshSession(){
     migrateIfNeeded();
+    // La preferencia de dificultad está guardada con prefijo por usuario, así
+    // que al cambiar de cuenta hay que volver a leerla con la nueva clave.
+    loadDifficulty();
     if(isLogged()){
       coins=0; ownedSkins=['default']; equipped='default'; ownedLasers=['default']; equippedLaser='default';
 ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default']; equippedLabelSkin='default'; ownedTitles=['none']; equippedTitle='none';
@@ -489,6 +534,10 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
   });
   function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable); }
   function isInGame(){ return state==='playing'||state==='intro'||state==='levelcomplete'||state==='bossquiz'||state==='portal'; }
+  // Los modos especiales (infinito y reto diario) se apagan al salir de la
+  // partida, igual que el speedrun: si no, la oleada siguiente o el resultado
+  // del reto quedarían armedos para cuando vuelvas a jugar.
+  function clearSpecialModes(){ endless=false; endlessSent=false; daily=null; dailySent=false; if(dailyHudEl) dailyHudEl.classList.add('hidden'); }
   function updateExitBtn(){ if(!exitBtnEl) return; if(isInGame()) exitBtnEl.classList.remove('hidden'); else { exitBtnEl.classList.add('hidden'); hideGameMenu(); } if(exitOverlayEl && !isInGame()) exitOverlayEl.classList.add('hidden'); }
   function gameMenuOpen(){ return !!((gameOptsMenuEl&&!gameOptsMenuEl.classList.contains('hidden'))||(gameInfoPanelEl&&!gameInfoPanelEl.classList.contains('hidden'))); }
   function hideGameMenu(){ if(gameOptsMenuEl) gameOptsMenuEl.classList.add('hidden'); if(gameInfoPanelEl) gameInfoPanelEl.classList.add('hidden'); if(gameOptsBtnEl) gameOptsBtnEl.setAttribute('aria-expanded','false'); }
@@ -504,18 +553,36 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
     else if(levelData){ foes=(enemies.length+questionsLeft.length)+' naves'; }
     let t='—';
     if(speedrun){ try{ t=formatTime(speedrunFinished?speedrunTime:(performance.now()-speedrunStart)); }catch(e){} }
-    const rows=[['🎮 Modo',mode],['🌌 Galaxia',gal().label],['🗺 Nivel',lvl],['⭐ Puntos',String(score)],['🪙 Monedas',String(coins)],['❤ Vidas',String(Math.max(lives,0))],['👾 Enemigos',foes],['🔥 Racha',String(comboCount)],['⏱ Tiempo',t]];
+    const rows=[['🎮 Modo',mode],['🎚️ Dificultad',diff().label],['🌌 Galaxia',gal().label],['🗺 Nivel',lvl],['⭐ Puntos',String(score)],['🪙 Monedas',String(coins)],['❤ Vidas',String(Math.max(lives,0))],['👾 Enemigos',foes],['🔥 Racha',String(comboCount)],['⏱ Tiempo',t]];
     gameInfoBodyEl.innerHTML=rows.map(r=>'<div class="game-info-row"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
   }
   function showExitConfirm(){ if(!isInGame()||!exitOverlayEl) return; exitOverlayEl.classList.remove('hidden'); if(inputEl) inputEl.blur(); }
   function hideExitConfirm(){ if(exitOverlayEl) exitOverlayEl.classList.add('hidden'); if(isInGame() && inputEl){ inputEl.focus(); } }
-  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; speedrun=false; speedrunFinished=false; jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; setGalaxy(1); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
+  function doExit(){ hideExitConfirm(); exitMobileFS(); state='title'; bossDodge=false; bossQuizActive=false; clearSpecialModes(); speedrun=false; speedrunFinished=false; jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; setGalaxy(1); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); levelData=null; enemies=[]; currentEnemy=null; particles=[]; lasers=[]; impacts=[]; bossTags=[]; bossItems=[]; if(inputEl){ inputEl.value=''; inputEl.disabled=false; inputEl.blur(); } updateHUD(); updateExitBtn(); showBtns(); if(typeof saveProgress==='function') saveProgress(false); }
+  // Botones de modo extra. Cada uno se muestra solo cuando su modo está
+  // implementado, para no dejar botones en el menú que no hacen nada.
+  const EXTRA_MODES=[
+    {key:'dodge',  el:()=>dodgeEntryBtnEl},
+    {key:'endless',el:()=>endlessBtnEl},
+    {key:'daily',  el:()=>dailyBtnEl}
+  ];
+  // endless y daily ya están implementados: markExtraReady los habilita.
+  const EXTRA_READY={ dodge:true, endless:true, daily:true };
+  function hideExtraModes(){ EXTRA_MODES.forEach(m=>{ const e=m.el(); if(e) e.classList.add('hidden'); }); }
+  function showExtraModes(){
+    EXTRA_MODES.forEach(m=>{
+      const e=m.el();
+      if(e) e.classList.toggle('hidden',!EXTRA_READY[m.key]);
+    });
+  }
+  function markExtraReady(key){ EXTRA_READY[key]=true; }
   function showBtns(){
     if(startBtnEl) startBtnEl.classList.add('hidden');
     if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden');
     if(singlePlayerBtnEl) singlePlayerBtnEl.classList.remove('hidden');
     if(multiPlayerBtnEl) multiPlayerBtnEl.classList.remove('hidden');
     if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden');
+    showExtraModes();
     if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
   function showSingleModes(){
     if(startBtnEl){
@@ -527,22 +594,194 @@ ownedImpacts=['default']; equippedImpact='default'; ownedLabelSkins=['default'];
     if(modeBackBtnEl) modeBackBtnEl.classList.remove('hidden');
     if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden');
     if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden');
+    showExtraModes();
     if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); updateExitBtn(); }
   function openMultiEntry(){
     if(typeof MultiUI!=='undefined'&&MultiUI.openLobby) MultiUI.openLobby();
   }
-  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
-  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
-  function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; 
-  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=2;
+  /* ================= MODO INFINITO (Fase 2) =================
+     Sobrevives X segundos: llega la oleada N, la destruís, y la siguiente cae
+     más rápido y trae más naves. Cuando una nave toca el fondo perdés 1 vida.
+     No se avanza de nivel: es un bucle de oleadas sin fin.
+     Las oleadas se arman con buildFormation() y el mismo pool de preguntas del
+     juego, así que el motor de juego no cambia: sólo cambia quién arma la
+     formación y con qué velocidad. */
+  let endless=false, endlessWave=0, endlessKills=0, endlessStart=0, endlessMs=0, endlessSent=false;
+  const ENDLESS_BASE_SPEED=0.5, ENDLESS_SPEED_PER_WAVE=0.055, ENDLESS_SPEED_MAX=2.6;
+  const ENDLESS_COUNT_BASE=20*60, ENDLESS_COUNT_PER_WAVE=3*60, ENDLESS_COUNT_MIN=6*60;
+  const ENDLESS_SHIPS_MIN=6, ENDLESS_SHIPS_MAX=13;
+  function endlessSpeedFor(w){ return Math.min(ENDLESS_SPEED_MAX, ENDLESS_BASE_SPEED+(w-1)*ENDLESS_SPEED_PER_WAVE); }
+  function endlessCountdownFor(w){ return Math.max(ENDLESS_COUNT_MIN, ENDLESS_COUNT_BASE-(w-1)*ENDLESS_COUNT_PER_WAVE); }
+  function endlessShipsFor(w){ return Math.min(ENDLESS_SHIPS_MAX, ENDLESS_SHIPS_MIN+Math.floor((w-1)/2)); }
+  function startEndless(){
+    speedrun=false; speedrunFinished=false; speedrunTime=0;
+    if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+    score=0; lives=diff().lives;
+    endless=true; endlessWave=0; endlessKills=0; endlessMs=0; endlessSent=false;
+    endlessStart=performance.now();
+    setGalaxy(1); jsBoss=false; cssBoss=false; bossDodge=false; jsBossPhase=0; jsBossPortal=null;
+    // La primera oleada sale ya armada: no hay "preparando nivel 1".
+    startEndlessWave();
+    enterMobileFS();
+  }
+  function startEndlessWave(){
+    endlessWave++;
+    // La oleada se arma con las preguntas de un nivel normal, mezcladas, para
+    // que salgan HTML, CSS y JS como en el modo de un jugador.
+    const pools=[0,1,2].map(i=>(LEVELS[i]&&LEVELS[i].questions)||[]).filter(q=>q.length);
+    const all=[]; pools.forEach((p,pi)=>p.forEach(q=>all.push({q:q.q,a:q.a,cat:['HTML','CSS','JS'][pi]})));
+    for(let i=all.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=all[i]; all[i]=all[j]; all[j]=t; }
+    const take=endlessShipsFor(endlessWave);
+    level=lvlLevelFor(endlessWave);
+    levelData={ id:levelData?levelData.id:1, title:'Oleada '+endlessWave, galaxy:1, questions:all.slice(0,take), enemySpeed:endlessSpeedFor(endlessWave), spawnInterval:60, enemyHealth:1, endless:true };
+    questionsLeft=levelData.questions.map(q=>({...q}));
+    enemies=[]; currentEnemy=null; particles=[]; lasers=[]; frameCount=0; shootCooldown=0;
+    comboCount=0; comboTimer=0; comboPop=0; slowTimer=0; fastTimer=0;
+    player.speed=player.baseSpeed; state='intro'; levelPause=endlessWave===1?60:30;
+    if(inputEl){ inputEl.value=''; inputEl.disabled=true; }
+    updateHUD();
+  }
+  // Cada 5 oleadas el nivel del que se toman las preguntas sube uno, para que
+  // la mezcla siga enrichment vez: primero HTML, después CSS, después JS.
+  function lvlLevelFor(w){ return Math.min(2,Math.floor((w-1)/5)); }
+  function checkEndlessWaveClear(){
+    if(!endless||state!=='playing') return;
+    // La oleada está limpia cuando no queda ninguna nave: en infinito no hay
+    // "nivel completado", se encadena directo con la siguiente.
+    if(enemies.length===0&&questionsLeft.length===0){
+      const next=endlessWave+1;
+      showToast('🌊 Oleada '+endlessWave+' superada · oleada '+next);
+      startEndlessWave();
+    }
+  }
+  function pushEndless(){
+    if(endlessSent||typeof API==='undefined'||typeof API.saveEndless!=='function') return;
+    if(!isLogged()){
+      try{ if(typeof Toast!=='undefined') Toast.info('♾️ Iniciá sesión para guardar tu récord en el ranking'); }catch(e){}
+      return;
+    }
+    endlessSent=true;
+    API.saveEndless(endlessMs,endlessWave).then(r=>{
+      if(!r) return;
+      if(r.isNewBest) showToast('♾️ ¡Nuevo récord! '+Math.round(endlessMs/1000)+'s · oleada '+r.endlessBestWave);
+      if(Array.isArray(r.unlocked)&&r.unlocked.length) showAchievementPop(r.unlocked);
+      if(typeof Ranked!=='undefined'&&Ranked.loadRanking) try{ Ranked.loadRanking(); }catch(e){}
+    }).catch(e=>{ console.error('[pushEndless]',e&&e.message); endlessSent=false; });
+  }
+  /* ================= RETO DIARIO (Fase 3) =================
+     Dos retos por día (Fácil y Difícil). Las preguntas las elige el servidor con
+     una semilla del día, así que todos juegan exactamente lo mismo sin que
+     haya que guardarlas. */
+  let daily=null, dailyIndex=0, dailySolved=0, dailyStart=0, dailySent=false;
+  async function openDailyChallenge(){
+    if(typeof Toast!=='undefined') Toast.info('📅 Cargando el reto del día…');
+    try{
+      const d=await API.getDaily();
+      renderDailyOverlay(d);
+    }catch(e){
+      console.error('[daily] no se pudo cargar',e&&e.message);
+      if(typeof Toast!=='undefined') Toast.error('No se pudo cargar el reto diario');
+      showBtns();
+    }
+  }
+  function renderDailyOverlay(d){
+    let ov=document.getElementById('dailyOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='dailyOverlay'; ov.className='overlay hidden';
+      document.body.appendChild(ov);
+    }
+    const mine={}; (d.mine||[]).forEach(m=>{ mine[m.mode]=m; });
+    const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const cards=(d.challenges||[]).map(ch=>{
+      const done=mine[ch.id];
+      const bloqueado=!!done;
+      return '<div class="daily-card'+(bloqueado?' done':'')+'">'
+        +'<h3>'+esc(ch.label)+'</h3>'
+        +'<p class="daily-meta">'+ch.count+' preguntas · ~'+(ch.count*8)+'s</p>'
+        +(bloqueado
+          ? '<p class="daily-done">✅ Ya lo jugaste: '+done.solved+'/'+done.total+'</p><button class="btn btn-ghost btn-block" disabled>Hecho por hoy</button>'
+          : '<ul class="daily-qs">'+ch.questions.map(q=>'<li><code>'+esc(q.q)+'</code> → <b>'+esc(q.a)+'</b></li>').join('')+'</ul><button class="btn btn-primary btn-block" data-daily-start="'+ch.id+'">Jugar</button>')
+        +'</div>';
+    }).join('');
+    const streak=d.streak||0;
+    ov.innerHTML='<div class="card card-lg daily-card-wrap"><div class="levels-head"><h2>📅 RETO DIARIO</h2><button class="btn-close" id="dailyClose">✕</button></div>'
+      +'<p class="lead muted">Día '+esc(d.day)+' (UTC). Todos los jugadores reciben las mismas preguntas.</p>'
+      +'<div class="daily-streak"><b>🔥 Racha: '+streak+' día(s)</b>'
+      +'<small>'+(streak>0?'Último día: '+esc(d.lastPlayed||'-'):'Jugá hoy para arrancar la racha')
+      +' · Próximo premio: '+esc((d.nextReward&&d.nextReward.label)||'-')+'</small></div>'
+      +'<div class="daily-cards">'+cards+'</div>'
+      +'<div class="daily-streak-table">'+((d.streakTable||[]).map(r=>'<span class="daily-sr'+(streak>=r.days?' hit':'')+'">Día '+r.days+': '+esc(r.label)+'</span>').join(''))+'</div>'
+      +'<button class="btn btn-ghost btn-block" id="dailyBack" style="margin-top:12px">← Volver</button></div>';
+    ov.classList.remove('hidden');
+    const close=()=>{ ov.classList.add('hidden'); };
+    const cb=ov.querySelector('#dailyClose'); if(cb) cb.addEventListener('click',close);
+    const bk=ov.querySelector('#dailyBack'); if(bk) bk.addEventListener('click',()=>{ close(); showBtns(); });
+    ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+    ov.querySelectorAll('[data-daily-start]').forEach(b=>b.addEventListener('click',()=>{
+      const id=b.dataset.dailyStart;
+      const ch=(d.challenges||[]).find(c=>c.id===id);
+      if(!ch) return;
+      close();
+      startDailyChallenge(ch);
+    }));
+  }
+  function startDailyChallenge(ch){
+    speedrun=false; endless=false; speedrunFinished=false; speedrunTime=0;
+    if(speedrunHudEl) speedrunHudEl.classList.add('hidden');
+    score=0; lives=diff().lives;
+    daily=ch; dailyIndex=0; dailySolved=0; dailySent=false; dailyStart=performance.now();
+    setGalaxy(1); jsBoss=false; cssBoss=false; bossDodge=false; jsBossPhase=0; jsBossPortal=null;
+    // El reto diario es un nivel: el pool de preguntas ya viene elegido por el
+    // servidor, así que se arma la formación con eso y se juega normal.
+    const take=Math.min(ch.questions.length,8);
+    levelData={ id:0, title:ch.label, galaxy:1, questions:ch.questions.slice(0,take), enemySpeed:ch.id==='hard'?0.85:0.55, spawnInterval:70, enemyHealth:1, daily:true };
+    level=0;
+    questionsLeft=levelData.questions.map(q=>({...q}));
+    enemies=[]; currentEnemy=null; particles=[]; lasers=[]; frameCount=0; shootCooldown=0;
+    comboCount=0; comboTimer=0; comboPop=0; slowTimer=0; fastTimer=0;
+    player.speed=player.baseSpeed; state='intro'; levelPause=70;
+    if(inputEl){ inputEl.value=''; inputEl.disabled=true; }
+    if(dailyHudEl){ dailyHudEl.textContent='📅 '+ch.label+' — '+ch.count+' preguntas'; dailyHudEl.classList.remove('hidden'); }
+    updateHUD();
+    enterMobileFS();
+  }
+  async function finishDaily(){
+    if(dailySent||!daily) return;
+    dailySent=true;
+    const ms=Math.round(performance.now()-dailyStart);
+    try{
+      const r=await API.submitDaily(daily.id,dailySolved,daily.count,ms);
+      if(r&&r.alreadyPlayed){ if(typeof Toast!=='undefined') Toast.info('Ya lo habías jugado hoy: '+r.solved+'/'+r.total); return; }
+      if(r&&typeof Toast!=='undefined') Toast.success('📅 '+(r.reward||'Reto completado')+' · racha '+r.streak+' día(s)');
+      if(r&&Array.isArray(r.unlocked)&&r.unlocked.length) showAchievementPop(r.unlocked);
+    }catch(e){
+      console.error('[daily] no se pudo guardar',e&&e.message);
+      if(typeof Toast!=='undefined') Toast.error('No se pudo guardar el reto diario');
+    }
+  }
+  function showRetryBtn(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); hideExtraModes(); if(multiBtnEl) multiBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.remove('hidden'); if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); updateExitBtn(); }
+  function hideBtns(){ if(startBtnEl) startBtnEl.classList.add('hidden'); if(retryBtnEl) retryBtnEl.classList.add('hidden'); if(levelsBtnEl) levelsBtnEl.classList.add('hidden'); if(speedrunBtnEl) speedrunBtnEl.classList.add('hidden'); if(singlePlayerBtnEl) singlePlayerBtnEl.classList.add('hidden'); if(multiPlayerBtnEl) multiPlayerBtnEl.classList.add('hidden'); if(modeBackBtnEl) modeBackBtnEl.classList.add('hidden'); hideExtraModes(); if(multiBtnEl) multiBtnEl.classList.add('hidden'); updateExitBtn(); }
+  function startNormal(){ speedrun=false; speedrunFinished=false; speedrunTime=0; clearSpecialModes(); 
+  if(speedrunHudEl) speedrunHudEl.classList.add('hidden'); score=0; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; jsBossBullets=0; jsBossShake=0; jsBossFreeze=0; if(isLogged()){ try{ const v=localStorage.getItem(`ci_${uid()}_coins`); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } else { try{ const v=sessionStorage.getItem('ci_guest_coins'); coins=v?parseInt(v)||0:0; }catch(e){ coins=0; } } lives=diff().lives;
   let sIdx=0;
   startLevel(sIdx); enterMobileFS(); }
-  function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; speedrunStart=performance.now(); 
-  score=0; lives=2; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); enterMobileFS(); }
+  function startSpeedrun(){ speedrun=true; speedrunFinished=false; speedrunTime=0; clearSpecialModes(); speedrunStart=performance.now(); 
+  score=0; lives=diff().lives; setGalaxy(1); jsBoss=false; jsBossPhase=0; jsBossPortal=null; startLevel(0); if(speedrunHudEl) speedrunHudEl.classList.remove('hidden'); updateSpeedrunHud(); enterMobileFS(); }
   function startLevel(lvl){
     level=lvl; const base=LEVELS[level];
-    if(speedrun && level===0){ levelData={...base,title:base.title+' ⚡ SPEEDRUN',enemySpeed:1.45,spawnInterval:45,enemyHealth:1}; }
-    else levelData=base;
+    // La dificultad se aplica acá, con el mismo patrón que ya usaba el
+    // speedrun: se copia el nivel y se ajustan velocidad, cadencia y vida de
+    // las naves. LEVELS no se toca, así el nivel original sigue sirviendo para
+    // el ranking y para los modos que no eligen dificultad.
+    const d=diff();
+    let tuned;
+    if(speedrun && level===0) tuned={...base,title:base.title+' ⚡ SPEEDRUN',enemySpeed:1.45,spawnInterval:45,enemyHealth:1};
+    else if(d.speed!==1) tuned={...base,enemySpeed:base.enemySpeed*d.speed,spawnInterval:Math.max(10,Math.round(base.spawnInterval/d.speed))};
+    else tuned=base;
+    // En los jefes la dificultad hace doble trabajo: más vida para el jefe y,
+    // en Insano/Infierno, menos vidas para el jugador (ya viene de diff().lives).
+    if(tuned.isBoss) tuned={...tuned,bossHealth:Math.max(1,Math.round((base.bossHealth||10)*d.speed))};
+    levelData=tuned;
     questionsLeft=levelData.questions.map(q=>({...q}));
     bossPool=levelData.questions.map(q=>({...q}));
     enemies=[]; currentEnemy=null; particles=[]; lasers=[]; frameCount=0; shootCooldown=0;
@@ -638,7 +877,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     if(shootCooldown>0 || bossBullets<=0) return false;
     shootCooldown=15; bossBullets--;
     makeLaser(player.x,player.y-22,bossX,bossY,'#ff0');
-    bossHP--; bossDodgeScore+=15; addCoins(5); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion');
+    bossHP--; bossDodgeScore+=diffPoints(15); addCoins(diffPoints(5)); if(typeof Profile!=='undefined') Profile.addExp(10,0); scorePop=12; playSound('explosion');
     if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,58); bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); onBossDefeated(); }
     updateHUD(); return true;
   }
@@ -648,6 +887,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     explode(player.x,player.y,'#f44',12); playSound('hit');
     if(lives<=0){
       state='gameover'; if(typeof Profile!=='undefined') Profile.addExp(10*level,10*level); if(inputEl) inputEl.disabled=true;
+      if(endless&&!endlessSent){ endlessMs=performance.now()-endlessStart; pushEndless(); showBtns(); }
       if(speedrun&&!speedrunFinished){ speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; try{ if(!speedrunBest||speedrunTime<speedrunBest){ const st=store(); const pref=isLogged()?`ci_${uid()}_`:`ci_guest_`; st.setItem(pref+'speedrun_best', String(speedrunTime)); speedrunBest=speedrunTime; } }catch(e){} pushSpeedrun(speedrunTime); }
       showBtns();
       saveProgress(false);
@@ -657,11 +897,20 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   function checkLevelComplete(){
     if(levelData && levelData.isBoss) return;
     if(enemies.length===0&&questionsLeft.length===0&&state==='playing'){
+      // En infinito y en el reto diario no hay "nivel completado": cada oleada
+      // superada encadena con la siguiente, y al reto se manda el resultado.
+      if(endless){ checkEndlessWaveClear(); return; }
+      if(daily){ dailySolved=daily.count; state='dailyWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); finishDaily(); return; }
       if(speedrun){ speedrunTime=performance.now()-speedrunStart; speedrunFinished=true; try{ if(!speedrunBest||speedrunTime<speedrunBest){ const st=store(); const pref=isLogged()?`ci_${uid()}_`:`ci_guest_`; st.setItem(pref+'speedrun_best', String(speedrunTime)); speedrunBest=speedrunTime; } }catch(e){} pushSpeedrun(speedrunTime); state='speedrunWin'; if(inputEl) inputEl.disabled=true; showRetryBtn(); saveProgress(true); return; }
-      const earned=10*(level+1);
+      const earned=diffPoints(10*(level+1));
       addCoins(earned);
       state='levelcomplete'; if(inputEl) inputEl.disabled=true; saveProgress(true);
-      if(level<LEVELS.length-1){ setTimeout(()=>startLevel(level+1),2000); } else { state='win'; if(typeof Profile!=='undefined') Profile.addExp(100,100); showRetryBtn(); }
+      // El último nivel (galaxia 2) NO es un jefe, así que la rama 'bossWin' de
+      // onBossDefeated era inalcanzable y la pantalla de "salvaste la galaxia"
+      // no se veía nunca. Ahora ganar el último nivel pasa por el mismo cierre,
+      // que ya sabe si lo que se venció fue un jefe o el nivel final.
+      if(level<LEVELS.length-1){ setTimeout(()=>startLevel(level+1),2000); }
+      else { if(typeof Profile!=='undefined') Profile.addExp(100,100); onBossDefeated(); }
     }
   }
   function updateBossDodge(){
@@ -877,7 +1126,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
       }
     } else {
       makeLaser(player.x,player.y-22,player.x+(Math.random()-0.5)*80,0,'#f66'); explode(player.x,player.y-30,'#f66',6);
-      score=Math.max(0,score-3); coins=Math.max(0,coins-1); saveShopLocal(); scorePop=-8;
+      score=Math.max(0,score-diffPenalty(3)); coins=Math.max(0,coins-diffPenalty(1)); saveShopLocal(); scorePop=-8;
       showJsBubble(JS_FAIL_MSGS[Math.floor(Math.random()*JS_FAIL_MSGS.length)],80);
       damagePlayer();
     }
@@ -1049,10 +1298,10 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     else ctx.fillText('⬅ ➡ Mover  |  SPACE Disparar (balas: '+bossBullets+')',CW/2,H-15);
   }
 
-  // Un jefe derrotado solo cierra el juego si era el último nivel. En cualquier
-  // otro caso (Jefe Final, Jefe CSS, Jefe JavaScript) hay que encadenar al
-  // siguiente nivel: antes esa comprobación faltaba en la ruta de responder y
-  // el juego se terminaba de forma prematura al vencer al Jefe CSS.
+  // Cierre de partida tras vencer al último jefe (o al último nivel, que no es
+  // jefe). Antes esta función sólo se llamaba desde las rutas de jefe, y como el
+  // nivel 7 no lo es, la pantalla final nunca se veía. checkLevelComplete
+  // ahora la llama también al ganar el último nivel.
   function onBossDefeated(){
     if(level < LEVELS.length-1){
       state='levelcomplete'; if(inputEl) inputEl.disabled=true; saveProgress(true);
@@ -1088,17 +1337,22 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     const lvl=level+1;
     const isRealAttempt=countAttempt!==false&&!solved;
     const earned = solved ? (levelData&&levelData.isBoss?100:10*lvl) : 0;
+    // La dificultad y el "sin perder vidas" van al servidor sólo para los
+    // logros: el ranking mira solved/reached/attempts, así el tablero sigue
+    // siendo comparable entre quien juega en Normal y quien no.
+    const hardest=difficulty;
+    const flawless=solved&&lives>=diff().lives;
     if(Auth && Auth.progress){
       try{
         let e=Auth.progress.find(p=>Number(p.level)===lvl);
         if(!e){ e={level:lvl,attempts:0,solved:false,solvedAt:null}; Auth.progress.push(e); }
         if(isRealAttempt) e.attempts=(Number(e.attempts)||0)+1;
         if(solved&&!e.solved){ e.solved=true; e.solvedAt=new Date().toISOString(); }
-        if(typeof Auth.maxLevelReached!=='number'||Auth.maxLevelReached<lvl) Auth.maxLevelReached=lvl;
+        if(solved&&flawless) e.flawless=true;
         if(isLogged()) localStorage.setItem('ci_'+uid()+'_progress', JSON.stringify(Auth.progress));
       }catch(err){}
     }
-    if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged) API.saveProgress(lvl,isRealAttempt?1:0,solved,earned).catch(()=>{});
+    if(typeof API!=='undefined'&&typeof Auth!=='undefined'&&Auth.isLogged) API.saveProgress(lvl,isRealAttempt?1:0,solved,earned,solved?hardest:'',solved?!!flawless:false).catch(()=>{});
     else if(earned) saveShopLocal();
   }
   function fireAnswer(){
@@ -1125,7 +1379,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         for(const e of matching){ makeLaser(player.x,player.y-22,e.x,e.y,'#0f0'); explode(e.x,e.y,'#0f0',15,true,28); e.health=0; }
         const before=enemies.length;
         enemies=enemies.filter(e=>e.health>0);
-        if(enemies.length < before){ score+=15; addCoins(5); scorePop=12; playSound('explosion'); showCssBubble(CSS_HIT_MSGS[Math.floor(Math.random()*CSS_HIT_MSGS.length)],70); }
+        if(enemies.length < before){ score+=diffPoints(15); addCoins(diffPoints(5)); scorePop=12; playSound('explosion'); showCssBubble(CSS_HIT_MSGS[Math.floor(Math.random()*CSS_HIT_MSGS.length)],70); }
         if(enemies.length===0){
           bossHP-=2; if(bossHP<0) bossHP=0; explode(bossX,bossY,'#0f0',10); showCssBubble(CSS_KILL_MSGS[Math.floor(Math.random()*CSS_KILL_MSGS.length)],90); playSound('explosion');
           if(bossHP<=0){ explode(bossX,bossY,'#ff0',40,true,78); cssBoss=false; bossDodge=false; addCoins(100); if(typeof Profile!=='undefined') Profile.addExp(100,100); onBossDefeated(); }
@@ -1133,7 +1387,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         }
       } else {
         makeLaser(player.x,player.y-22,player.x+(Math.random()-0.5)*80,0,'#f66'); explode(player.x,player.y-30,'#f66',6);
-        score=Math.max(0,score-3); coins=Math.max(0,coins-1); saveShopLocal(); scorePop=-8;
+        score=Math.max(0,score-diffPenalty(3)); coins=Math.max(0,coins-diffPenalty(1)); saveShopLocal(); scorePop=-8;
         showCssBubble(CSS_FAIL_MSGS[Math.floor(Math.random()*CSS_FAIL_MSGS.length)],80);
         damagePlayer();
       }
@@ -1144,12 +1398,12 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
       if(!boss) return;
       if(boss.answer.toLowerCase()===typed.toLowerCase()){
         makeLaser(player.x,player.y-22,boss.x,boss.y,'#0f0'); explode(boss.x,boss.y,'#0f0',18);
-        boss.health--; boss.flash=14; score+=15; addCoins(5); scorePop=12; playSound('explosion');
+        boss.health--; boss.flash=14; score+=diffPoints(15); addCoins(diffPoints(5)); scorePop=12; playSound('explosion');
         nextBossQuestion();
         checkBossDefeat();
       } else {
         makeLaser(player.x,player.y-22,player.x+(Math.random()-0.5)*80,0,'#f66'); explode(player.x,player.y-30,'#f66',6);
-        score=Math.max(0,score-3); coins=Math.max(0,coins-1); saveShopLocal(); scorePop=-8;
+        score=Math.max(0,score-diffPenalty(3)); coins=Math.max(0,coins-diffPenalty(1)); saveShopLocal(); scorePop=-8;
         damagePlayer();
         if(state==='playing') nextBossQuestion();
       }
@@ -1163,14 +1417,14 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
         enemies=enemies.filter(e=>e.health>0);
         if(currentEnemy&&currentEnemy.health<=0) currentEnemy=null;
         const prevCombo=comboCount; comboCount+=destroyed; comboTimer=1800; slowTimer=180; fastTimer=0; comboPop=24;
-        const pts=destroyed*10*(level+1); score+=pts; addCoins(pts); if(typeof Profile!=='undefined') Profile.addExp(10*destroyed,0); if(comboCount>=3) { const b=destroyed*comboCount*2; score+=b; addCoins(b); }
+        const pts=diffPoints(destroyed*10*(level+1)); score+=pts; addCoins(pts); if(typeof Profile!=='undefined') Profile.addExp(10*destroyed,0); if(comboCount>=3) { const b=diffPoints(destroyed*comboCount*2); score+=b; addCoins(b); }
         scorePop=12; playSound('explosion');
         if(comboCount>=3&&Math.floor(comboCount/3)>Math.floor(prevCombo/3)) playSound('combo');
         if(speedrun&&enemies.length>0&&destroyed>0&&Math.random()<0.5){ const idx=Math.floor(Math.random()*enemies.length); enemies[idx].baseX+=(Math.random()-0.5)*30; enemies[idx].wobbleAmp+=0.6; }
       }
     } else {
       makeLaser(player.x,player.y-22,player.x+(Math.random()-0.5)*80,0,'#f66'); explode(player.x,player.y-30,'#f66',5);
-      score=Math.max(0,score-3); coins=Math.max(0,coins-1); saveShopLocal(); scorePop=-8;
+      score=Math.max(0,score-diffPenalty(3)); coins=Math.max(0,coins-diffPenalty(1)); saveShopLocal(); scorePop=-8;
       if(formationCountdown>0) formationCountdown=Math.max(0,formationCountdown-2*60);
       comboCount=0; comboTimer=0; fastTimer=60; slowTimer=0; comboPop=0; playSound('hit');
     }
@@ -1188,7 +1442,8 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     if(state==='title' && playSecAcc>0 && typeof Profile!=='undefined' && Profile.flushTime){ Profile.addPlaytime(playSecAcc); Profile.flushTime(true); playSecAcc=0; }
     if(exitOverlayEl && !exitOverlayEl.classList.contains('hidden')) return;
     if(speedrun&&!speedrunFinished&&(state==='playing'||state==='intro')) updateSpeedrunHud();
-    if(state==='title'||state==='gameover'||state==='win'||state==='speedrunWin'||state==='bossWin') return;
+    if(endless&&(state==='playing'||state==='intro')){ endlessMs=performance.now()-endlessStart; }
+    if(state==='title'||state==='gameover'||state==='speedrunWin'||state==='bossWin'||state==='dailyWin') return;
     if(state==='portal'){ portalFade++; if(portalFade>120){ setGalaxy(2); startLevel(level+1); } return; }
     if(state==='intro'){ levelPause--; if(levelPause<=0){ state='playing'; if(bossDodge||jsBoss){ } else buildFormation(); if(inputEl){ inputEl.disabled=false; inputEl.focus(); } } return; }
     if(state==='levelcomplete') return;
@@ -1231,7 +1486,7 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     drawFrame();
     ctx.restore();
   }
-  function drawFrame(){ drawStars(); if(state==='title'){ drawTitle(); return; } if(state==='portal'){ drawPortalTravel(); return; } if(state==='intro'){ drawIntro(); return; } if(jsBoss&&state==='playing'){ drawJsBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(cssBoss&&state==='playing'){ drawCssBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(bossDodge&&(state==='playing'||state==='bossquiz')){ drawPlayer(); drawBossDodge(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='win') drawWin(); if(state==='speedrunWin') drawSpeedrunWin(); if(state==='bossWin') drawBossWin(); if(state==='levelcomplete') drawLevelComplete(); }
+  function drawFrame(){ drawStars(); if(state==='title'){ drawTitle(); return; } if(state==='portal'){ drawPortalTravel(); return; } if(state==='intro'){ drawIntro(); return; } if(jsBoss&&state==='playing'){ drawJsBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(cssBoss&&state==='playing'){ drawCssBoss(); drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } if(bossDodge&&(state==='playing'||state==='bossquiz')){ drawPlayer(); drawBossDodge(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='bossWin') drawBossWin(); return; } drawEnemies(); drawPlayer(); drawLasers(); drawParticles(); drawHUDCanvas(); if(state==='gameover') drawGameOver(); if(state==='speedrunWin') drawSpeedrunWin(); if(state==='bossWin') drawBossWin(); if(state==='dailyWin') drawDailyWin(); if(state==='levelcomplete') drawLevelComplete(); }
   // Las estrellas se congelan cuando el jefe abre el portal (el espacio "se
   // detiene") y el color depende de la galaxia en la que estemos.
   function drawStars(){ for(const s of titleStars){ if(!jsBossFreeze){ s.y+=s.speed; if(s.y>H){ s.y=0; s.x=Math.random()*W; } } ctx.fillStyle=`rgba(${gal().star},${0.3+Math.sin(frameCount*0.02+s.x)*0.2})`; ctx.fillRect(s.x,s.y,s.size,s.size); } }
@@ -1354,7 +1609,12 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     const pop=scorePop>0; ctx.fillStyle='#ffd600'; ctx.shadowColor='#ffd600'; ctx.shadowBlur=pop?18:8; ctx.font=(pop?'bold 24px':'bold 18px')+' monospace'; ctx.fillText('★ '+score,12,36); ctx.shadowBlur=0; if(scorePop<0){ ctx.fillStyle='#f66'; ctx.fillText('-'+Math.min(3,score),12,52); }
     ctx.fillStyle='#7a8a9a'; ctx.font='bold 9px monospace'; ctx.textAlign='left'; ctx.fillText('🪙 '+coins,12,52);
     ctx.textAlign='right'; ctx.fillStyle='#7a8a9a'; ctx.font='bold 10px monospace'; ctx.fillText('VIDAS',W-12,16);
-    const hs=16,gap=21,n=Math.min(Math.max(lives,0),2); ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=8; ctx.fillStyle='#ff1744'; for(let i=0;i<n;i++){ const hx=W-12-hs/2-(n-1-i)*gap; drawHeart(hx,20,hs); } ctx.restore();
+    // Fácil da 4 vidas, así que el tope de corazones sube de 2 a 4 y se achican un
+    // poco para que no se salgan de la esquina.
+    const hs=(diff().lives>2?13:16), gap=(diff().lives>2?17:21), n=Math.min(Math.max(lives,0),diff().lives); ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=8; ctx.fillStyle='#ff1744'; for(let i=0;i<n;i++){ const hx=W-12-hs/2-(n-1-i)*gap; drawHeart(hx,20,hs); } ctx.restore();
+    // La dificultad activa se muestra arriba de los corazones para que en
+    // Infierno nadie piense que es el mismo juego que en Normal.
+    if(levelData){ ctx.fillStyle=diff().color; ctx.font='bold 9px monospace'; ctx.textAlign='right'; ctx.fillText(diff().label,W-12,40); }
     if(levelData&&levelData.isJsBoss){
       if(jsBossPortal){ ctx.fillStyle='#ffb3ec'; ctx.font='bold 14px monospace'; ctx.textAlign='center'; ctx.fillText('🌀 ¡EL PORTAL ESTÁ ABIERTO! Ponete abajo para entrar',W/2,44); }
       else {
@@ -1426,13 +1686,6 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Nivel: '+(levelData?levelData.id:'-'),W/2,H/2+8);
     if(speedrun){ ctx.fillStyle='#ffd600'; ctx.font='400 8px "Press Start 2P", monospace'; ctx.fillText('Tiempo: '+formatTime(speedrunTime),W/2,H/2+30); if(speedrunBest){ ctx.fillStyle='#aaa'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Mejor: '+formatTime(speedrunBest),W/2,H/2+44); } }
   }
-  function drawWin(){
-    const pulse=Math.sin(frameCount*0.12)*0.07+1;
-    ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(0,0,W,H);
-    ctx.save(); ctx.translate(W/2,H/2-38); ctx.scale(pulse,pulse); ctx.fillStyle='#0f0'; ctx.shadowColor='#0f0'; ctx.shadowBlur=10; ctx.font='400 15px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡VICTORIA!',0,0); ctx.restore();
-    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Completaste todos los niveles',W/2,H/2-6);
-    ctx.fillStyle='#fff'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntuacion final: '+score+'  monedas '+coins,W/2,H/2+18);
-  }
   function drawSpeedrunWin(){
     const pulse=Math.sin(frameCount*0.14)*0.06+1;
     ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
@@ -1442,11 +1695,22 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
     ctx.fillStyle=isRecord?'#0f0':'#aaa'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText(bestTxt,W/2,H/2+10);
     ctx.fillStyle='#8af'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Nivel 1 completado  Puntos: '+score,W/2,H/2+30);
   }
+  function drawDailyWin(){
+    const pulse=Math.sin(frameCount*0.14)*0.07+1;
+    ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(W/2,H/2-52); ctx.scale(pulse,pulse); ctx.fillStyle='#00e5ff'; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=12; ctx.font='400 12px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡RETO DIARIO LISTO!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='400 9px "Press Start 2P", monospace'; ctx.fillText((daily?daily.label:'📅 Reto diario')+'  ·  '+dailySolved+'/'+(daily?daily.count:dailySolved),W/2,H/2-16);
+    ctx.fillStyle='#ffd600'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntos: '+score+'  monedas '+coins,W/2,H/2+8);
+    ctx.fillStyle='#8af'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Mañana hay retos nuevos',W/2,H/2+28);
+  }
+  // El modo infinito no tiene pantalla de victoria: se acaba al perder, y el
+  // cartel de GAME OVER ya muestra el récord. Sólo se agrega la oleada.
   function drawBossWin(){
+    const wasBoss=levelData&&levelData.isBoss;
     const pulse=Math.sin(frameCount*0.13)*0.08+1;
     ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,W,H);
-    ctx.save(); ctx.translate(W/2,H/2-48); ctx.scale(pulse,pulse); ctx.fillStyle='#ab47bc'; ctx.shadowColor='#ab47bc'; ctx.shadowBlur=12; ctx.font='400 13px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText('¡JEFE VENCIDO!',0,0); ctx.restore();
-    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 8px "Press Start 2P", monospace'; ctx.fillText('¡Has salvado la galaxia!',W/2,H/2-14);
+    ctx.save(); ctx.translate(W/2,H/2-48); ctx.scale(pulse,pulse); ctx.fillStyle='#ab47bc'; ctx.shadowColor='#ab47bc'; ctx.shadowBlur=12; ctx.font='400 13px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.fillText(wasBoss?'¡JEFE VENCIDO!':'¡VICTORIA!',0,0); ctx.restore();
+    ctx.shadowBlur=0; ctx.fillStyle='#ffd600'; ctx.font='400 8px "Press Start 2P", monospace'; ctx.fillText(wasBoss?'¡Has salvado la galaxia!':'Completaste todos los niveles',W/2,H/2-14);
     ctx.fillStyle='#fff'; ctx.font='400 7px "Press Start 2P", monospace'; ctx.fillText('Puntuacion final: '+score+'  monedas '+coins,W/2,H/2+12);
     ctx.fillStyle='#ce93d8'; ctx.font='400 6px "Press Start 2P", monospace'; ctx.fillText('Bonus +100 puntos',W/2,H/2+30);
   }
@@ -1492,7 +1756,12 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
   function openLevels(){
     const ov=document.getElementById('levelsOverlay');
     const grid=document.getElementById('levelsGrid');
+    const diffBox=document.getElementById('difficultyBox');
     if(!ov||!grid) return;
+    // El selector de dificultad vive adentro del overlay de niveles: es el
+    // único lugar donde ya se está eligiendo cómo se juega, así que la
+    // elección queda a la vista y no escondida en ajustes.
+    if(diffBox) diffBox.innerHTML=renderDifficultyPicker();
     const done=((window.Auth&&Auth.progress)||[]).filter(p=>p&&p.solved).map(p=>p.level);
     grid.innerHTML=LEVELS.map((lv,i)=>{
       const solved=done.indexOf(lv.id)>=0;
@@ -1513,7 +1782,46 @@ function explode(x,y,color,count,big,r){ for(let i=0;i<count;i++){ const a=Math.
       startLevel(i);
       enterMobileFS();
     }));
+    bindDifficultyPicker();
     ov.classList.remove('hidden');
+  }
+  // ── Selector de dificultad ───────────────────────────────────────────────
+  function renderDifficultyPicker(){
+    return '<div class="diff-picker" role="radiogroup" aria-label="Dificultad">'
+      + DIFFICULTIES.map(d=>'<button type="button" class="diff-btn'+(d.id===difficulty?' active':'')+'" data-diff="'+d.id+'" role="radio" aria-checked="'+(d.id===difficulty)+'" style="--diff:'+d.color+'">'
+        + '<b>'+d.label+'</b>'
+        + '<small>'+d.lives+' '+(d.lives===1?'vida':'vidas')+' · vel ×'+d.speed.toFixed(2).replace(/0$/,'')+' · pts ×'+d.mult+'</small>'
+        + '</button>').join('')
+      + '<p class="diff-note" id="diffNote"></p>'
+      + '</div>';
+  }
+  function updateDiffNote(){
+    const n=document.getElementById('diffNote');
+    if(!n) return;
+    const d=diff();
+    n.textContent = d.id==='normal' ? 'Los puntos de esta partida no cuentan para el ranking: el tablero usa siempre la dificultad Normal.'
+      : '⚠ Pagás '+(d.mult>1?'más':'menos')+' puntos por acierto. El ranking siempre registra la dificultad Normal, así que este modo no altera el tablero.';
+  }
+  function bindDifficultyPicker(){
+    const box=document.getElementById('difficultyBox');
+    if(!box) return;
+    updateDiffNote();
+    box.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',()=>{
+      const id=b.dataset.diff;
+      if(!DIFFICULTIES.some(d=>d.id===id)) return;
+      difficulty=id; saveDifficulty();
+      box.querySelectorAll('[data-diff]').forEach(x=>{
+        const on=x.dataset.diff===id;
+        x.classList.toggle('active',on);
+        x.setAttribute('aria-checked',on?'true':'false');
+      });
+      updateDiffNote();
+      // Las vidas se aplican al instante si la partida ya arrancó, para que
+      // cambiar la dificultad a mitad de camino no deje al jugador con las
+      // vidas del nivel anterior.
+      if(isInGame()) lives=diff().lives;
+      updateHUD();
+    }));
   }
   function bindLevelsUI(){
     const btn=document.getElementById('levelsBtn');

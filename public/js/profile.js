@@ -1,4 +1,4 @@
-const Profile = {
+﻿const Profile = {
   token: null,
   user: null,
   expLevel: 1,
@@ -13,7 +13,7 @@ const Profile = {
     { id: 'bronce', name: 'Bronce', price: 200 },
     { id: 'plata', name: 'Plata', price: 400 },
     { id: 'oro', name: 'Oro', price: 700 },
-    { id: 'neon', name: 'Neón', price: 1000 },
+    { id: 'neon', name: 'NeÃ³n', price: 1000 },
     { id: 'diamante', name: 'Diamante', price: 1500 }
   ],
 
@@ -181,7 +181,7 @@ const Profile = {
   async savePicture(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3500000) { if (typeof Toast !== 'undefined') Toast.error('Imagen muy grande (máx 3.5MB)'); return; }
+    if (file.size > 3500000) { if (typeof Toast !== 'undefined') Toast.error('Imagen muy grande (mÃ¡x 3.5MB)'); return; }
     const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
     const reader = new FileReader();
     reader.onload = async () => {
@@ -227,7 +227,7 @@ const Profile = {
 
   async deleteAccount(){
     if(!this.isLogged()) return;
-    if(!confirm('¿Borrar tu cuenta? Desaparecés del ranked y se pierde todo. No se puede deshacer.')) return;
+    if(!confirm('Â¿Borrar tu cuenta? DesaparecÃ©s del ranked y se pierde todo. No se puede deshacer.')) return;
     const btn=document.getElementById('deleteAccountBtn');
     if(btn) btn.disabled=true;
     try{
@@ -267,7 +267,7 @@ const Profile = {
       try {
         await this.api('/api/settings', { method: 'PUT', body: JSON.stringify({ description: desc }) });
         if (this.user) this.user.description = desc;
-        Toast.success('Descripción guardada');
+        Toast.success('DescripciÃ³n guardada');
       } catch (e) { Toast.error('Error al guardar'); }
     }
   },
@@ -324,7 +324,7 @@ const Profile = {
       if(this.user) this.user.equippedBubble=d.equippedBubble;
       try{ if(typeof Auth!=='undefined'&&Auth.user) Auth.user.equippedBubble=d.equippedBubble; }catch(e){}
       this.renderBubbles();
-      if(typeof Toast!=='undefined') Toast.success('💬 Burbuja equipada');
+      if(typeof Toast!=='undefined') Toast.success('ðŸ’¬ Burbuja equipada');
     }catch(e){ if(typeof Toast!=='undefined') Toast.error(e.message); }
   },
   renderBubbles(){
@@ -333,11 +333,11 @@ const Profile = {
     if(!list.length){ g.innerHTML='<p class="hint">Gira la ruleta Lucky Coders para ganar burbujas.</p>'; return; }
     g.innerHTML=list.map(x=>{
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
-      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado ✓</button>';
+      if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado âœ“</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm bu-equip" data-bu="'+x.id+'">Equipar</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>🎰 Solo ruleta · suerte</button>';
-      const prev=x.id==='none'?'Sin burbuja':'Hola, este es tu chat 👾';
-      const tags=(x.exclusive?'<span class="mini-badge">🎰 Exclusiva ruleta</span>':'')+(x.gif?'<span class="mini-badge">🎞️ GIF</span>':'');
+      else btn='<button class="btn btn-ghost btn-sm" disabled>ðŸŽ° Solo ruleta Â· suerte</button>';
+      const prev=x.id==='none'?'Sin burbuja':'Hola, este es tu chat ðŸ‘¾';
+      const tags=(x.exclusive?'<span class="mini-badge">ðŸŽ° Exclusiva ruleta</span>':'')+(x.gif?'<span class="mini-badge">ðŸŽžï¸ GIF</span>':'');
       return '<div class="frame-card"><div class="chat-bubble-wrap bubble-'+x.id+'"><span>'+prev+'</span></div><p>'+x.name+'</p><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">'+tags+'</div>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.bu-equip').forEach(b=>b.addEventListener('click',()=>this.equipBubble(b.dataset.bu)));
@@ -439,8 +439,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm b-equip" data-b="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm b-buy" data-b="'+x.id+'">ðŸª™ Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>ðŸ”’ '+x.price+' pts</button>';
       const anim=x.animated?' banner-leyenda':'';
       return '<div class="frame-card"><div class="banner-preview'+anim+'" style="background:'+x.grad+';border-color:'+x.border+'"></div><p>'+x.name+'</p>'+btn+'</div>';
     }).join('');
@@ -477,8 +477,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm f-equip" data-f="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm f-buy" data-f="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm f-buy" data-f="'+x.id+'">ðŸª™ Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>ðŸ”’ '+x.price+' pts</button>';
       return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#0a0e1a;'+x.css+'"><span>Aa</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.f-buy').forEach(b=>b.addEventListener('click',()=>this.buyFont(b.dataset.f)));
@@ -542,8 +542,8 @@ const Profile = {
       const has=owned.includes(x.id); const act=x.id===cur; let btn='';
       if(act) btn='<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if(has) btn='<button class="btn btn-primary btn-sm x-equip" data-x="'+x.id+'">Equipar</button>';
-      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm x-buy" data-x="'+x.id+'">🪙 Comprar '+x.price+' pts</button>';
-      else btn='<button class="btn btn-ghost btn-sm" disabled>🔒 '+x.price+' pts</button>';
+      else if(coins>=x.price) btn='<button class="btn btn-primary btn-sm x-buy" data-x="'+x.id+'">ðŸª™ Comprar '+x.price+' pts</button>';
+      else btn='<button class="btn btn-ghost btn-sm" disabled>ðŸ”’ '+x.price+' pts</button>';
       return '<div class="frame-card"><div class="banner-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:#0a0e1a;'+x.css+'"><span>Efecto</span></div><p style="'+x.css+'">'+x.name+'</p>'+btn+'</div>';
     }).join('');
     g.querySelectorAll('.x-buy').forEach(b=>b.addEventListener('click',()=>this.buyFx(b.dataset.x)));
@@ -592,10 +592,10 @@ const Profile = {
 
     if (this.isLogged()) {
       if (nameEl) { nameEl.textContent = this.user.username || 'Invitado'; try{ let s=API.fontStyle(this.user.equippedFont)+API.fxStyle(this.user.equippedFx); const c=this.user.nameColor; if(c&&c!=='rainbow'&&c!=='#ffffff') s='color:'+c+';'+s; nameEl.style.cssText=s; if(c==='rainbow'){ nameEl.style.background='linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff)'; nameEl.style.webkitBackgroundClip='text'; nameEl.style.webkitTextFillColor='transparent'; } }catch(e){} }
-      if (levelEl) { const lvl = (this.expLevel && typeof this.expLevel === 'object' ? this.expLevel.level : this.expLevel); levelEl.textContent = `Nivel ${lvl||1} · ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
-      if (hoursEl) { hoursEl.textContent = `⏱ ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
-      if (coinsEl) { coinsEl.textContent = `🪙 ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
-      // --- TÍTULO ---
+      if (levelEl) { const lvl = (this.expLevel && typeof this.expLevel === 'object' ? this.expLevel.level : this.expLevel); levelEl.textContent = `Nivel ${lvl||1} Â· ${this.user.exp || 0} EXP`; levelEl.style.display=''; }
+      if (hoursEl) { hoursEl.textContent = `â± ${this.user.hoursPlayed || 0} horas jugadas`; hoursEl.style.display=''; }
+      if (coinsEl) { coinsEl.textContent = `ðŸª™ ${this.user.coins || 0} puntos`; coinsEl.style.display=''; }
+      // --- TÃTULO ---
       const tEl=document.getElementById('profileTitle');
       if(tEl){
         const tid=this.user.equippedTitle;
@@ -614,7 +614,7 @@ const Profile = {
           rBox.innerHTML='<span class="rank-badge" style="--rc:'+(rk.color||'#cd7f32')+'">'+(rk.icon||'')+' '+(rk.name||'')+'</span>'
             +'<span class="profile-rank-rp">'+rp+' RP</span>'
             +'<div class="ranked-mp-bar-track"><div class="ranked-mp-bar-fill" style="width:'+(rk.pct||0)+'%"></div></div>'
-            +'<span class="profile-rank-next">'+(rk.next?((rk.into||0)+' / '+(rk.span||0)+' RP → '+rk.next.name):'RANGO MÁXIMO')+'</span>';
+            +'<span class="profile-rank-next">'+(rk.next?((rk.into||0)+' / '+(rk.span||0)+' RP â†’ '+rk.next.name):'RANGO MÃXIMO')+'</span>';
         } else rBox.classList.add('hidden');
       }
       // --- CLAN ---
@@ -625,10 +625,10 @@ const Profile = {
           cBox.classList.remove('hidden');
           const cl=this.user.clan||{};
           const cr=cl.rank||null;
-          cBox.innerHTML='<span class="inspect-clan-badge">'+((cl.emblem||'🛡️')+' '+(cl.name||'')+(cl.tag?(' ['+cl.tag+']'):''))+'</span>'
+          cBox.innerHTML='<span class="inspect-clan-badge">'+((cl.emblem||'ðŸ›¡ï¸')+' '+(cl.name||'')+(cl.tag?(' ['+cl.tag+']'):''))+'</span>'
             +(cr&&cr.name?('<span class="clan-rank-badge" style="--cr:'+(cr.color||'#8a6b3a')+'">'+(cr.icon||'')+' '+(cr.name||'')+'</span>'):'')
-            +'<span class="profile-clan-role">'+({leader:'👑 Líder',officer:'⭐ Oficial',member:'🛡️ Miembro'}[this.user.clanRole]||'🛡️ Miembro')+'</span>'
-            +'<span class="profile-clan-pts">🏅 '+(this.user.clanPoints||0)+' pts</span>';
+            +'<span class="profile-clan-role">'+({leader:'ðŸ‘‘ LÃ­der',officer:'â­ Oficial',member:'ðŸ›¡ï¸ Miembro'}[this.user.clanRole]||'ðŸ›¡ï¸ Miembro')+'</span>'
+            +'<span class="profile-clan-pts">ðŸ… '+(this.user.clanPoints||0)+' pts</span>';
         } else cBox.classList.add('hidden');
       }
       const descInp = document.getElementById('profileDescInput');
@@ -696,11 +696,11 @@ const Profile = {
       const isActive = f.id === equipped;
       const canBuy = !owned && coins >= f.price;
       let btn = '';
-      if (f.exclusive) btn = '<button class="btn btn-ghost btn-sm" disabled>🏆 Solo para campeones</button>';
+      if (f.exclusive) btn = '<button class="btn btn-ghost btn-sm" disabled>ðŸ† Solo para campeones</button>';
       else if (isActive) btn = '<button class="btn btn-ghost btn-sm" disabled>Equipado</button>';
       else if (owned) btn = `<button class="btn btn-primary btn-sm frame-equip" data-frame="${f.id}">Equipar</button>`;
-      else if (canBuy) btn = `<button class="btn btn-primary btn-sm frame-buy" data-frame="${f.id}">🪙 Comprar ${f.price} pts</button>`;
-      else btn = `<button class="btn btn-ghost btn-sm" disabled>🔒 ${f.price} pts</button>`;
+      else if (canBuy) btn = `<button class="btn btn-primary btn-sm frame-buy" data-frame="${f.id}">ðŸª™ Comprar ${f.price} pts</button>`;
+      else btn = `<button class="btn btn-ghost btn-sm" disabled>ðŸ”’ ${f.price} pts</button>`;
       return `<div class="frame-card${isActive ? ' active' : ''}"><div class="frame-preview frame-${f.id}"></div><p>${f.name}</p>${btn}</div>`;
     }).join('');
     grid.querySelectorAll('.frame-buy').forEach(btn => btn.addEventListener('click', () => this.buyFrame(btn.dataset.frame)));
@@ -733,23 +733,32 @@ const Profile = {
     try{
       const data=await this.api('/api/achievements');
       const owned=data.owned||[];
-      const fmt=(ms)=>{ if(ms==null) return '—'; const s=ms/1000; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor((ms%1000)/10)).padStart(2,'0'); };
+      const fmt=(ms)=>{ if(ms==null) return 'â€”'; const s=ms/1000; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor((ms%1000)/10)).padStart(2,'0'); };
       grid.innerHTML=(data.achievements||[]).map(a=>{
         const isOwned=owned.includes(a.id);
-        const icon=a.name.match(/^[\p{Emoji}]/u)?.[0]||'🏆';
+        const icon=a.name.match(/^[\p{Emoji}]/u)?.[0]||'ðŸ†';
         // Barra de progreso para los logros con requisito medible.
-        let prog='';
+let prog='';
         if(!isOwned&&a.id==='speed_demon'){
           const best=Number(a.current)||0;
           if(best>0){
             prog=`<div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${a.progressPct||0}%"></div></div>`
-               +`<small>Tu mejor: <b>${fmt(best)}</b> · necesitás <b>${fmt(a.target)}</b></small>`
-               +(a.missing?`<small class="ach-missing">Te faltan ${a.missing} ms</small>`:'<small class="ach-missing">¡Casi! Un intento más 👀</small>')+'</div>';
+               +`<small>Tu mejor: <b>${fmt(best)}</b> ï¿½ necesitï¿½s <b>${fmt(a.target)}</b></small>`
+               +(a.missing?`<small class="ach-missing">Te faltan ${a.missing} ms</small>`:'<small class="ach-missing">ï¿½Casi! Un intento mï¿½s ??</small>')+'</div>';
           } else {
-            prog=`<div class="ach-progress"><small>Sin speedrun registrado todavía</small></div>`;
+            prog=`<div class="ach-progress"><small>Sin speedrun registrado todavï¿½a</small></div>`;
           }
+        } else if(!isOwned&&a.progressPct!==undefined&&a.target){
+          // Los 13 logros nuevos llegan con current/target/progressPct desde
+          // el servidor, asÃ­ que la barra es genÃ©rica: sirve para el infinito,
+          // las rachas, los niveles y las dificultades.
+          const cur=Number(a.current)||0;
+          const txt=(a.stat==='speedrunBest')?(' '+fmt(cur)):(a.stat==='endlessMs')?(' '+(Math.floor(cur/1000)+'s')):'';
+          prog=`<div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${a.progressPct||0}%"></div></div>`
+             +`<small>${cur}${txt} / ${a.target}</small>`
+             +(a.hint?`<small class="ach-missing">${a.hint}</small>`:'')+'</div>';
         }
-        return `<div class="achievement-card${isOwned?' owned':''}"><div class="achievement-icon">${icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div><div class="achievement-reward">Recompensa: ${a.reward}</div>${prog}${isOwned?'<div class="achievement-claimed">✅ Desbloqueado</div>':''}</div>`;
+        return `<div class="achievement-card${isOwned?' owned':''}"><div class="achievement-icon">${icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div><div class="achievement-reward">Recompensa: ${a.reward}</div>${prog}${isOwned?'<div class="achievement-claimed">âœ… Desbloqueado</div>':''}</div>`;
       }).join('');
     }catch(e){ grid.innerHTML='<p style="color:#ff5252;text-align:center">Error al cargar logros</p>'; }
   }
@@ -759,24 +768,24 @@ const Profile = {
     if(layout) layout.classList.remove('hidden');
     if(lw) lw.classList.remove('hidden');
     if(window.LuckyRoyale&&LuckyRoyale.draw) requestAnimationFrame(()=>{ try{LuckyRoyale.draw();}catch(e){} });
-     grid.innerHTML='<p style="opacity:.5;text-align:center;font-family:monospace">▸ CARGANDO SECTOR-7...</p>';
+     grid.innerHTML='<p style="opacity:.5;text-align:center;font-family:monospace">â–¸ CARGANDO SECTOR-7...</p>';
     try{
       const data=await this.api('/api/lucky/pool');
       const items=data.items||[];
       const totalW={common:65,rare:26,epic:9,legendary:3.3,mythic:0.1};
-      const RICON={common:'▫',rare:'◆',epic:'⬣',legendary:'★',mythic:'👑'};
-      const RNAME={common:'COMÚN',rare:'RARO',epic:'ÉPICO',legendary:'LEGENDARIO',mythic:'MÍTICO'};
-      let html='<div class="galaga-pool-title">◢ ◣ &nbsp;TABLA DE BOTÍN // SECTOR-7&nbsp; ◢ ◣</div>';
+      const RICON={common:'â–«',rare:'â—†',epic:'â¬£',legendary:'â˜…',mythic:'ðŸ‘‘'};
+      const RNAME={common:'COMÃšN',rare:'RARO',epic:'Ã‰PICO',legendary:'LEGENDARIO',mythic:'MÃTICO'};
+      let html='<div class="galaga-pool-title">â—¢ â—£ &nbsp;TABLA DE BOTÃN // SECTOR-7&nbsp; â—¢ â—£</div>';
       html+=items.map(i=>{
-        let icon='💬',label=i.bubbleId||i.name||'?';
-        if(i.type==='coins'){ icon=i.amount>=1000?'💰':'🪙'; label=i.name; }
-        if(i.type==='exp'){ icon='⚡'; label=i.name; }
+        let icon='ðŸ’¬',label=i.bubbleId||i.name||'?';
+        if(i.type==='coins'){ icon=i.amount>=1000?'ðŸ’°':'ðŸª™'; label=i.name; }
+        if(i.type==='exp'){ icon='âš¡'; label=i.name; }
         if(i.type==='bubble'){
-          const m={'neon_blue':'💙','emerald':'💚','gold':'💛','fire':'🔥','galaxy':'🌌','void':'🕳️','rainbow':'🌈','diamond':'💎','glitch':'👾','exclusive_00':'👑'};
-          icon=m[i.bubbleId]||'💬';
+          const m={'neon_blue':'ðŸ’™','emerald':'ðŸ’š','gold':'ðŸ’›','fire':'ðŸ”¥','galaxy':'ðŸŒŒ','void':'ðŸ•³ï¸','rainbow':'ðŸŒˆ','diamond':'ðŸ’Ž','glitch':'ðŸ‘¾','exclusive_00':'ðŸ‘‘'};
+          icon=m[i.bubbleId]||'ðŸ’¬';
           label=(i.bubbleId||'').replace(/_/g,' ');
         }
-        return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div><div class="g-odds">🎲 ${i.chance!=null?i.chance+'%':'?'}</div></div>`;
+        return `<div class="frame-card galaga-card lucky-item-${i.rarity}"><div class="g-icon">${icon}</div><div class="g-name">${label}</div><div class="g-rar">${RICON[i.rarity]||''} ${RNAME[i.rarity]||i.rarity}</div><div class="g-odds">ðŸŽ² ${i.chance!=null?i.chance+'%':'?'}</div></div>`;
       }).join('');
       grid.innerHTML=html;
       if(layout) layout.classList.remove('hidden');

@@ -398,6 +398,16 @@ main{flex:1;min-height:0;overflow:hidden;padding:12px 20px 10px;max-width:98vw;d
 .btn-speedrun:hover { background: #ffd600; color: #000; box-shadow: 0 0 30px rgba(255,214,0,.6); }
 .btn-multi-entry { border-color: #7c4dff; background: rgba(124,77,255,.18); box-shadow: 0 0 20px rgba(124,77,255,.35); }
 .btn-multi-entry:hover { background: #7c4dff; color: #fff; box-shadow: 0 0 30px rgba(124,77,255,.6); }
+/* ── Botones de modo extra: infinito, reto diario y esquiva ──────────── */
+.btn-endless { border-color:#00e676; background:rgba(0,230,118,.16); box-shadow:0 0 20px rgba(0,230,118,.35); }
+.btn-endless:hover { background:#00e676; color:#00210f; box-shadow:0 0 30px rgba(0,230,118,.6); }
+.btn-daily { border-color:#ffab40; background:rgba(255,171,64,.16); box-shadow:0 0 20px rgba(255,171,64,.35); }
+.btn-daily:hover { background:#ffab40; color:#2b1500; box-shadow:0 0 30px rgba(255,171,64,.6); }
+.btn-dodge-entry { border-color:#40c4ff; background:rgba(64,196,255,.16); box-shadow:0 0 20px rgba(64,196,255,.35); }
+.btn-dodge-entry:hover { background:#40c4ff; color:#012030; box-shadow:0 0 30px rgba(64,196,255,.6); }
+/* El banner se pinta de dorado cuando la sala es speedrun. */
+.multi-wave-banner.is-speedrun{ color:#ffd600; text-shadow:0 0 12px rgba(255,214,0,.6); animation:multiSpeedPulse 1.4s ease-in-out infinite; }
+@keyframes multiSpeedPulse{ 0%,100%{ box-shadow:0 0 0 rgba(255,214,0,0);} 50%{ box-shadow:0 0 16px rgba(255,214,0,.45);} }
 .btn-back { min-width: 120px; font-size: .95rem; padding: 12px 18px; opacity: .9; }
 .multi-mode-pick { display: flex; gap: 10px; justify-content: center; margin: 10px 0 4px; flex-wrap: wrap; }
 .multi-mode-btn { opacity: .55; }
@@ -1007,6 +1017,42 @@ footer {
 .lv-jefe-js { border-color: rgba(156,39,176,.45); }
 .lv-jefe-js .lv-icon { filter: drop-shadow(0 0 6px rgba(156,39,176,.8)); }
 .lv-card.solved { border-color: rgba(67,160,71,.45); }
+/* Selector de dificultad (dentro del overlay de niveles) */
+.difficulty-wrap { margin: 0 0 16px; text-align: left; }
+.diff-title { margin: 0 0 8px; font-size: .95rem; letter-spacing: .6px; color: var(--accent); }
+.diff-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.diff-btn {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  background: var(--bg-alt, #1a1a2e); border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px; padding: 9px 10px; cursor: pointer;
+  font-family: inherit; color: var(--text, #fff); text-align: left;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.diff-btn:hover { transform: translateY(-2px); }
+.diff-btn b { font-size: .82rem; line-height: 1.2; color: var(--diff, #fff); }
+.diff-btn small { font-size: .66rem; color: var(--text-dim, #aaa); line-height: 1.3; }
+.diff-btn.active {
+  border-color: var(--diff, var(--accent));
+  box-shadow: 0 0 0 1px var(--diff, var(--accent)), 0 6px 18px rgba(0,0,0,.4);
+}
+.diff-note { grid-column: 1 / -1; margin: 2px 0 0; font-size: .7rem; color: var(--text-dim, #aaa); line-height: 1.4; }
+/* Reto diario: overlay con las dos tarjetas, la racha y la tabla de premios */
+.daily-card-wrap { text-align: left; }
+.daily-streak { display: flex; flex-direction: column; gap: 2px; margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--bg-alt,#1a1a2e); border: 1px solid rgba(0,229,255,.22); }
+.daily-streak b { font-size: .95rem; color: #ffd600; }
+.daily-streak small { font-size: .7rem; color: var(--text-dim,#aaa); }
+.daily-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.daily-card { display: flex; flex-direction: column; gap: 8px; background: var(--bg-alt,#1a1a2e); border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 14px; }
+.daily-card h3 { margin: 0; font-size: 1rem; letter-spacing: .5px; }
+.daily-card.done { border-color: rgba(67,160,71,.45); }
+.daily-meta { margin: 0; font-size: .7rem; color: var(--text-dim,#aaa); }
+.daily-done { margin: 0; font-size: .78rem; color: #43a047; }
+.daily-qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .74rem; }
+.daily-qs code { background: rgba(0,229,255,.1); border-radius: 4px; padding: 1px 5px; }
+.daily-qs b { color: #00e676; }
+.daily-streak-table { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.daily-sr { font-size: .66rem; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.05); color: var(--text-dim,#aaa); }
+.daily-sr.hit { background: rgba(255,214,0,.16); color: #ffd600; }
 .settings-card h2 { margin: 0 0 4px; text-align: left; font-size: 1.25rem; letter-spacing: 1px; }
 .settings-card h3 { margin: 0 0 8px; color: var(--accent); text-align: left; font-size: .95rem; letter-spacing: .6px; display: flex; align-items: center; gap: 8px; }
 .settings-card h3::before { content: ''; width: 4px; height: 18px; border-radius: 2px; background: linear-gradient(180deg,var(--accent),transparent); display: inline-block; }

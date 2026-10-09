@@ -1,5 +1,5 @@
 const Ranked={
- clockInterval:null, cdInterval:null, activeTab:'normal', boards:{normal:[],speedrun:[]}, tournamentData:null,
+ clockInterval:null, cdInterval:null, activeTab:'normal', boards:{normal:[],speedrun:[],endless:[]}, tournamentData:null,
  init(){ this.bindUI(); },
  bindUI(){
   const oc=document.getElementById('inspectCloseBtn'); const ov=document.getElementById('inspectOverlay');
@@ -11,11 +11,11 @@ const Ranked={
  async loadRanking(){
   const grid=document.getElementById('rankedGrid'); if(!grid) return; grid.innerHTML='<p class="lead">Cargando ranking...</p>';
   try{
-   const [bd,sd,td]=await Promise.all([API.leaderboard(),API.leaderboardSpeedrun().catch(()=>({board:[]})),API.getTournament().catch(()=>({tournament:null,playerCount:0,minPlayers:10}))]);
-   this.tournamentData=td; this.boards.normal=bd.board||[]; this.boards.speedrun=sd.board||[]; this.renderTournamentBanner(td); document.querySelectorAll('.ranked-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===this.activeTab)); this.render();
+   const [bd,sd,ed,td]=await Promise.all([API.leaderboard(),API.leaderboardSpeedrun().catch(()=>({board:[]})),API.leaderboardEndless().catch(()=>({board:[]})),API.getTournament().catch(()=>({tournament:null,playerCount:0,minPlayers:10}))]);
+   this.tournamentData=td; this.boards.normal=bd.board||[]; this.boards.speedrun=sd.board||[]; this.boards.endless=ed.board||[]; this.renderTournamentBanner(td); document.querySelectorAll('.ranked-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===this.activeTab)); this.render();
   }catch(e){ grid.innerHTML='<p class="lead">Error al cargar ranking.</p>'; }
  },
- render(){ const g=document.getElementById('rankedGrid'); if(!g) return; if(this.activeTab==='speedrun') this.renderSpeedrun(g); else this.renderNormal(g); },
+ render(){ const g=document.getElementById('rankedGrid'); if(!g) return; if(this.activeTab==='speedrun') this.renderSpeedrun(g); else if(this.activeTab==='endless') this.renderEndless(g); else this.renderNormal(g); },
  nameStyle(c){ if(!c||c==='#ffffff') return ''; if(c==='rainbow') return 'background:linear-gradient(90deg,#ff1744,#ffd600,#00e676,#00e5ff,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:900;'; return `color:${c};text-shadow:0 0 8px ${c}66;`; },
  renderNormal(grid){
   const board=this.boards.normal;
@@ -35,8 +35,23 @@ const Ranked={
    return `<div class="ranked-card" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}${championClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot} ${posBadge}</p><p class="ranked-stats">❤️ ${u.solved} niveles · ⭐ ${u.exp||0} EXP · ⏱ ${u.hoursPlayed||0}h ${timeBadge}</p><p class="ranked-rank-line">${rankBadge}</p></div><div class="ranked-coins">🪙 ${u.coins||0}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
   }).join(''); this.bindCardEvents(grid);
  },
- renderSpeedrun(grid){
-  const board=this.boards.speedrun;
+// Infinito: se ordena por tiempo aguantado, de más a menos, con la oleada como
+   // dato secundario porque sirve para saber hasta dónde llegó cada uno.
+  formatSeconds(ms){ const s=Math.floor((Number(ms)||0)/1000); const m=Math.floor(s/60); return m>0? (m+'m '+String(s%60).padStart(2,'0')+'s') : (s+'.'+String(Math.floor(((Number(ms)||0)%1000)/100))+'s'); },
+  renderEndless(grid){
+   const board=this.boards.endless;
+   if(!board.length){ grid.innerHTML='<p class="lead">♾️ Nadie llegó al modo infinito todavía. ¡Sé el primero en aguantar!</p>'; return; }
+   grid.innerHTML=board.map((u,i)=>{
+    const medals=['🥇','🥈','🥉']; const medal=i<3?medals[i]:`<span class="ranked-pos">${i+1}</span>`;
+    const frameClass=u.equippedFrame&&u.equippedFrame!=='none'?' frame-'+u.equippedFrame:'';
+    const pic=u.profilePic?`<img src="${u.profilePic}" alt="${u.username}" class="ranked-avatar">`:`<span class="ranked-avatar-placeholder">👾</span>`;
+    const championClass=u.equippedFrame==='campeon'?' frame-campeon':(u.frames&&u.frames.includes('campeon')?' champion-active':'');
+    const isTop3=i<3?` ranked-pos-${i+1}`:''; const nameSt=this.nameStyle(u.nameColor)+API.fontStyle(u.equippedFont)+API.fxStyle(u.equippedFx); const onlineDot=`<span class="dot ${u.online?'online':'offline'}"></span>`;
+    return `<div class="ranked-card ranked-card-endless" data-user-id="${u.id}"><div class="ranked-medal">${medal}</div><div class="ranked-avatar-wrap${frameClass}${championClass}">${pic}</div><div class="ranked-info"><p class="ranked-name" style="${nameSt}">${u.username} ${onlineDot}</p><p class="ranked-stats">♾️ <span class="ranked-time-main">${this.formatSeconds(u.endlessBestMs)}</span> · oleada ${u.endlessBestWave||0}</p></div><div class="ranked-coins ranked-time-badge${isTop3}">⏱ ${this.formatSeconds(u.endlessBestMs)}</div><button class="btn btn-ghost btn-sm ranked-inspect" data-user-id="${u.id}">👤 Ver</button></div>`;
+   }).join(''); this.bindCardEvents(grid);
+  },
+  renderSpeedrun(grid){
+   const board=this.boards.speedrun;
   if(!board.length){ grid.innerHTML='<p class="lead">⚡ Aún nadie completó speedrun. ¡Sé el primero!</p>'; return; }
   grid.innerHTML=board.map((u,i)=>{
    const medals=['🥇','🥈','🥉']; const medal=i<3?medals[i]:`<span class="ranked-pos">${i+1}</span>`;

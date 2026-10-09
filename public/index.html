@@ -105,6 +105,7 @@
         <div class="canvas-wrap">
           <canvas id="gameCanvas" width="700" height="500"></canvas>
           <div class="speedrun-timer hidden" id="speedrunHud">⏱ 00:00.00</div>
+          <div class="speedrun-timer hidden" id="dailyHud">📅</div>
           <div class="game-options hidden" id="gameOptions">
             <button class="exit-btn" id="gameOptionsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Opciones de la partida" title="Opciones (Esc)">☰ OPCIONES</button>
             <div class="game-options-menu hidden" id="gameOptionsMenu" role="menu">
@@ -135,6 +136,9 @@
             <button class="btn-start hidden" id="levelsBtn">🗺️ NIVELES</button>
             <button class="btn-start btn-speedrun hidden" id="speedrunBtn">⚡ SPEEDRUN</button>
             <button class="btn-start btn-back hidden" id="modeBackBtn">← VOLVER</button>
+            <button class="btn-start btn-endless hidden" id="endlessBtn">♾️ INFINITO</button>
+            <button class="btn-start btn-daily hidden" id="dailyBtn">📅 RETO DIARIO</button>
+            <button class="btn-start btn-dodge-entry hidden" id="dodgeEntryBtn">🛡️ ESQUIVA</button>
           </div>
           <button class="btn-start hidden" id="retryBtn">↺ REINTENTAR</button>
           <div class="touch-controls" id="touchControls" aria-hidden="true">
@@ -342,6 +346,7 @@
       <div class="ranked-tabs" id="rankedTabs">
         <button class="ranked-tab active" data-tab="normal">🏆 Normal</button>
         <button class="ranked-tab" data-tab="speedrun">⚡ Speedrun</button>
+        <button class="ranked-tab" data-tab="endless">♾️ Infinito</button>
       </div>
       <div class="ranked-grid" id="rankedGrid"></div>
       <button class="btn btn-ghost" data-view="game" style="margin-top:18px">← Volver atrás</button>
@@ -640,6 +645,10 @@
         <button class="btn-close" id="levelsClose">✕</button>
       </div>
       <p class="lead muted">Elegí cualquiera de los 7 niveles. Los jefes se desbloquean igual que jugando normal.</p>
+      <div class="difficulty-wrap">
+        <h3 class="diff-title">🎚️ DIFICULTAD</h3>
+        <div id="difficultyBox"></div>
+      </div>
       <div class="levels-grid" id="levelsGrid"></div>
       <button class="btn btn-ghost btn-block" id="levelsBack" style="margin-top:12px">← Volver atrás</button>
     </div>

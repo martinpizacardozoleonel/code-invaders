@@ -973,13 +973,13 @@ const MultiUI={
       if(s.userId!==me) MultiArena.remoteFire(s);
      });
      const my=match.players.find(p=>p.userId===me);
-     const lives=my?(my.lives==null?2:my.lives):0;
+      const isSpeed=match.mode==='speedrun' || (d.room&&d.room.mode==='speedrun');
      const banner=document.getElementById('multiWaveBanner');
      if(banner) banner.textContent=!my
        ? '⏳ LA PARTIDA YA EMPEZÓ — mirá cómo juegan y esperá la próxima'
-       : ((d.room&&d.room.mode==='speedrun')?'⚡ SPEEDRUN · ':'⚔️ OLEADA '+(match.wave||1))+
-         ' · 👾 '+(match.enemies||[]).length+' naves · 🛡️ '+lives+' '+('❤️'.repeat(Math.max(0,lives))||'💀');
-     // HUD: una tarjeta por piloto, con su vida, destruidas y racha
+        : ((isSpeed?'⚡ SPEEDRUN · ':'⚔️ OLEADA '+(match.wave||1))+
+          ' · 👾 '+(match.enemies||[]).length+' naves · 🛡️ '+lives+' '+('❤️'.repeat(Math.max(0,lives))||'💀'));
+      if(banner) banner.classList.toggle('is-speedrun',!!isSpeed);
      const hud=document.getElementById('multiHud');
      if(hud){
        const hkey=(match.players||[]).map(p=>p.userId+':'+p.lives+':'+p.kills+':'+p.streak).join('|')+'|'+(match.wave||1);

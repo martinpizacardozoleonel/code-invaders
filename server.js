@@ -146,6 +146,15 @@ async function initPg(){
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_role TEXT NOT NULL DEFAULT ''`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_points INT NOT NULL DEFAULT 0`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_wins INT NOT NULL DEFAULT 0`);
+    // Fase 2 (modo infinito) y Fase 3 (reto diario). ADD COLUMN IF NOT EXISTS
+    // es idempotente: correr la migración de nuevo no rompe nada.
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS endless_best_ms INT NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS endless_best_wave INT NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_streak INT NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_last_played TEXT NOT NULL DEFAULT ''`);
+    // Una fila por jugador y día: es lo que permite que la racha se rompa si
+    // el jugador saltea un día, y saber quién hizo el reto de qué día.
+    await pool.query(`CREATE TABLE IF NOT EXISTS daily_results (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, day TEXT NOT NULL, mode TEXT NOT NULL, solved INT NOT NULL DEFAULT 0, total INT NOT NULL DEFAULT 0, ms INT NOT NULL DEFAULT 0, reward TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, UNIQUE(user_id, day, mode))`);
     await pool.query(`CREATE TABLE IF NOT EXISTS clans (id TEXT PRIMARY KEY, tag TEXT UNIQUE NOT NULL, name TEXT NOT NULL, emblem TEXT NOT NULL DEFAULT '🛡️', color TEXT NOT NULL DEFAULT '#00e5ff', description TEXT NOT NULL DEFAULT '', points INT NOT NULL DEFAULT 0, wins INT NOT NULL DEFAULT 0, losses INT NOT NULL DEFAULT 0, created_at TEXT NOT NULL, owner_id TEXT NOT NULL)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS clan_members (clan_id TEXT NOT NULL, user_id TEXT UNIQUE NOT NULL, role TEXT NOT NULL DEFAULT 'member', joined_at TEXT NOT NULL, points INT NOT NULL DEFAULT 0)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS clan_chat (id TEXT PRIMARY KEY, clan_id TEXT NOT NULL, user_id TEXT NOT NULL, username TEXT NOT NULL, text TEXT NOT NULL, created_at TEXT NOT NULL)`);
@@ -243,18 +252,24 @@ function ensureShopFields(u){
   if(!u.clanRole) u.clanRole='';
   if(u.clanPoints===undefined) u.clanPoints=0;
   if(u.clanWins===undefined) u.clanWins=0;
+  // Modo infinito y reto diario: en el JSON suenan con estos nombres, y en
+  // Postgres con los de la columna (ver pgRowToUser).
+  if(u.endlessBestMs===undefined||u.endlessBestMs===null) u.endlessBestMs=0;
+  if(u.endlessBestWave===undefined||u.endlessBestWave===null) u.endlessBestWave=0;
+  if(u.dailyStreak===undefined||u.dailyStreak===null) u.dailyStreak=0;
+  if(!u.dailyLastPlayed) u.dailyLastPlayed='';
 }
 fileDb.users.forEach(ensureShopFields);
 if(!USE_PG) saveDb(fileDb);
 function pgRowToUser(r){
-  return { id:r.id, username:r.username, salt:r.salt, passwordHash:r.password_hash, progress: JSON.parse(r.progress||'[]'), coins:r.coins, skins: JSON.parse(r.skins||'["default"]'), equipped:r.equipped, profilePic:r.profile_pic||'', theme:r.theme||'dark', hoursPlayed:r.hours_played||0, exp:r.exp||0, frames: JSON.parse(r.frames||'["none"]'), equippedFrame:r.equipped_frame||'none', speedrunBest:r.speedrun_best, speedrunHistory: JSON.parse(r.speedrun_history||'[]'), createdAt:r.created_at, lastSeen:r.last_seen||null, nameColor:r.name_color||'#ffffff', ownedNameColors: JSON.parse(r.owned_name_colors||'[]'), chatBg:r.chat_bg||'', banners: JSON.parse(r.banners||'["none"]'), equippedBanner:r.equipped_banner||'none', bannerImg:r.banner_img||'', fonts: JSON.parse(r.fonts||'["normal"]'), equippedFont:r.equipped_font||'normal', fxs: JSON.parse(r.fxs||'["none"]'), equippedFx:r.equipped_fx||'none', description:r.description||'', achievements: JSON.parse(r.achievements||'[]'), tournamentStreak: r.tournament_streak||0, tournamentWins: r.tournament_wins||0, chatBubbles: JSON.parse(r.chat_bubbles||'["none"]'), equippedBubble: r.equipped_bubble||'none', luckySpins: r.lucky_spins||0, introHidden: !!r.intro_hidden, lasers: JSON.parse(r.lasers||'["default"]'), equippedLaser: r.equipped_laser||'default', impacts: JSON.parse(r.impacts||'["default"]'), equippedImpact: r.equipped_impact||'default', labelSkins: JSON.parse(r.label_skins||'["default"]'), equippedLabelSkin: r.equipped_label_skin||'default', titles: JSON.parse(r.titles||'["none"]'), equippedTitle: r.equipped_title||'none', rankPoints: r.rank_points||0, clanId: r.clan_id||'', clanRole: r.clan_role||'', clanPoints: r.clan_points||0, clanWins: r.clan_wins||0 };
+  return { id:r.id, username:r.username, salt:r.salt, passwordHash:r.password_hash, progress: JSON.parse(r.progress||'[]'), coins:r.coins, skins: JSON.parse(r.skins||'["default"]'), equipped:r.equipped, profilePic:r.profile_pic||'', theme:r.theme||'dark', hoursPlayed:r.hours_played||0, exp:r.exp||0, frames: JSON.parse(r.frames||'["none"]'), equippedFrame:r.equipped_frame||'none', speedrunBest:r.speedrun_best, speedrunHistory: JSON.parse(r.speedrun_history||'[]'), createdAt:r.created_at, lastSeen:r.last_seen||null, nameColor:r.name_color||'#ffffff', ownedNameColors: JSON.parse(r.owned_name_colors||'[]'), chatBg:r.chat_bg||'', banners: JSON.parse(r.banners||'["none"]'), equippedBanner:r.equipped_banner||'none', bannerImg:r.banner_img||'', fonts: JSON.parse(r.fonts||'["normal"]'), equippedFont:r.equipped_font||'normal', fxs: JSON.parse(r.fxs||'["none"]'), equippedFx:r.equipped_fx||'none', description:r.description||'', achievements: JSON.parse(r.achievements||'[]'), tournamentStreak: r.tournament_streak||0, tournamentWins: r.tournament_wins||0, chatBubbles: JSON.parse(r.chat_bubbles||'["none"]'), equippedBubble: r.equipped_bubble||'none', luckySpins: r.lucky_spins||0, introHidden: !!r.intro_hidden, lasers: JSON.parse(r.lasers||'["default"]'), equippedLaser: r.equipped_laser||'default', impacts: JSON.parse(r.impacts||'["default"]'), equippedImpact: r.equipped_impact||'default', labelSkins: JSON.parse(r.label_skins||'["default"]'), equippedLabelSkin: r.equipped_label_skin||'default', titles: JSON.parse(r.titles||'["none"]'), equippedTitle: r.equipped_title||'none', rankPoints: r.rank_points||0, clanId: r.clan_id||'', clanRole: r.clan_role||'', clanPoints: r.clan_points||0, clanWins: r.clan_wins||0, endlessBestMs: r.endless_best_ms||0, endlessBestWave: r.endless_best_wave||0, dailyStreak: r.daily_streak||0, dailyLastPlayed: r.daily_last_played||'' };
 }
 async function pgUpsertUser(u){
   ensureShopFields(u);
-  await pool.query(`INSERT INTO users(id,username,salt,password_hash,progress,coins,skins,equipped,profile_pic,theme,hours_played,exp,frames,equipped_frame,speedrun_best,speedrun_history,created_at,last_seen,name_color,owned_name_colors,chat_bg,banners,equipped_banner,banner_img,fonts,equipped_font,fxs,equipped_fx,description,achievements,tournament_streak,tournament_wins,chat_bubbles,equipped_bubble,lucky_spins,intro_hidden,lasers,equipped_laser,impacts,equipped_impact,label_skins,equipped_label_skin,titles,equipped_title,rank_points,clan_id,clan_role,clan_points,clan_wins)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49)
-  ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username, salt=EXCLUDED.salt, password_hash=EXCLUDED.password_hash, progress=EXCLUDED.progress, coins=EXCLUDED.coins, skins=EXCLUDED.skins, equipped=EXCLUDED.equipped, profile_pic=EXCLUDED.profile_pic, theme=EXCLUDED.theme, hours_played=EXCLUDED.hours_played, exp=EXCLUDED.exp, frames=EXCLUDED.frames, equipped_frame=EXCLUDED.equipped_frame, speedrun_best=EXCLUDED.speedrun_best, speedrun_history=EXCLUDED.speedrun_history, last_seen=EXCLUDED.last_seen, name_color=EXCLUDED.name_color, owned_name_colors=EXCLUDED.owned_name_colors, chat_bg=EXCLUDED.chat_bg, banners=EXCLUDED.banners, equipped_banner=EXCLUDED.equipped_banner, banner_img=EXCLUDED.banner_img, fonts=EXCLUDED.fonts, equipped_font=EXCLUDED.equipped_font, fxs=EXCLUDED.fxs, equipped_fx=EXCLUDED.equipped_fx, description=EXCLUDED.description, achievements=EXCLUDED.achievements, tournament_streak=EXCLUDED.tournament_streak, tournament_wins=EXCLUDED.tournament_wins, chat_bubbles=EXCLUDED.chat_bubbles, equipped_bubble=EXCLUDED.equipped_bubble, lucky_spins=EXCLUDED.lucky_spins, intro_hidden=EXCLUDED.intro_hidden, lasers=EXCLUDED.lasers, equipped_laser=EXCLUDED.equipped_laser, impacts=EXCLUDED.impacts, equipped_impact=EXCLUDED.equipped_impact, label_skins=EXCLUDED.label_skins, equipped_label_skin=EXCLUDED.equipped_label_skin, titles=EXCLUDED.titles, equipped_title=EXCLUDED.equipped_title, rank_points=EXCLUDED.rank_points, clan_id=EXCLUDED.clan_id, clan_role=EXCLUDED.clan_role, clan_points=EXCLUDED.clan_points, clan_wins=EXCLUDED.clan_wins`,
-  [u.id,u.username,u.salt,u.passwordHash,JSON.stringify(u.progress||[]),u.coins||0,JSON.stringify(u.skins||['default']),u.equipped||'default',u.profilePic||'',u.theme||'dark',u.hoursPlayed||0,u.exp||0,JSON.stringify(u.frames||['none']),u.equippedFrame||'none',u.speedrunBest,JSON.stringify(u.speedrunHistory||[]),u.createdAt,u.lastSeen||null,u.nameColor||'#ffffff',JSON.stringify(u.ownedNameColors||[]),u.chatBg||'',JSON.stringify(u.banners||['none']),u.equippedBanner||'none',u.bannerImg||'',JSON.stringify(u.fonts||['normal']),u.equippedFont||'normal',JSON.stringify(u.fxs||['none']),u.equippedFx||'none',u.description||'',JSON.stringify(u.achievements||[]),u.tournamentStreak||0,u.tournamentWins||0,JSON.stringify(u.chatBubbles||['none']),u.equippedBubble||'none',u.luckySpins||0,(u.introHidden?1:0),JSON.stringify(u.lasers||['default']),u.equippedLaser||'default',JSON.stringify(u.impacts||['default']),u.equippedImpact||'default',JSON.stringify(u.labelSkins||['default']),u.equippedLabelSkin||'default',JSON.stringify(u.titles||['none']),u.equippedTitle||'none',u.rankPoints||0,u.clanId||'',u.clanRole||'',u.clanPoints||0,u.clanWins||0]);
+  await pool.query(`INSERT INTO users(id,username,salt,password_hash,progress,coins,skins,equipped,profile_pic,theme,hours_played,exp,frames,equipped_frame,speedrun_best,speedrun_history,created_at,last_seen,name_color,owned_name_colors,chat_bg,banners,equipped_banner,banner_img,fonts,equipped_font,fxs,equipped_fx,description,achievements,tournament_streak,tournament_wins,chat_bubbles,equipped_bubble,lucky_spins,intro_hidden,lasers,equipped_laser,impacts,equipped_impact,label_skins,equipped_label_skin,titles,equipped_title,rank_points,clan_id,clan_role,clan_points,clan_wins,endless_best_ms,endless_best_wave,daily_streak,daily_last_played)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53)
+  ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username, salt=EXCLUDED.salt, password_hash=EXCLUDED.password_hash, progress=EXCLUDED.progress, coins=EXCLUDED.coins, skins=EXCLUDED.skins, equipped=EXCLUDED.equipped, profile_pic=EXCLUDED.profile_pic, theme=EXCLUDED.theme, hours_played=EXCLUDED.hours_played, exp=EXCLUDED.exp, frames=EXCLUDED.frames, equipped_frame=EXCLUDED.equipped_frame, speedrun_best=EXCLUDED.speedrun_best, speedrun_history=EXCLUDED.speedrun_history, last_seen=EXCLUDED.last_seen, name_color=EXCLUDED.name_color, owned_name_colors=EXCLUDED.owned_name_colors, chat_bg=EXCLUDED.chat_bg, banners=EXCLUDED.banners, equipped_banner=EXCLUDED.equipped_banner, banner_img=EXCLUDED.banner_img, fonts=EXCLUDED.fonts, equipped_font=EXCLUDED.equipped_font, fxs=EXCLUDED.fxs, equipped_fx=EXCLUDED.equipped_fx, description=EXCLUDED.description, achievements=EXCLUDED.achievements, tournament_streak=EXCLUDED.tournament_streak, tournament_wins=EXCLUDED.tournament_wins, chat_bubbles=EXCLUDED.chat_bubbles, equipped_bubble=EXCLUDED.equipped_bubble, lucky_spins=EXCLUDED.lucky_spins, intro_hidden=EXCLUDED.intro_hidden, lasers=EXCLUDED.lasers, equipped_laser=EXCLUDED.equipped_laser, impacts=EXCLUDED.impacts, equipped_impact=EXCLUDED.equipped_impact, label_skins=EXCLUDED.label_skins, equipped_label_skin=EXCLUDED.equipped_label_skin, titles=EXCLUDED.titles, equipped_title=EXCLUDED.equipped_title, rank_points=EXCLUDED.rank_points, clan_id=EXCLUDED.clan_id, clan_role=EXCLUDED.clan_role, clan_points=EXCLUDED.clan_points, clan_wins=EXCLUDED.clan_wins, endless_best_ms=EXCLUDED.endless_best_ms, endless_best_wave=EXCLUDED.endless_best_wave, daily_streak=EXCLUDED.daily_streak, daily_last_played=EXCLUDED.daily_last_played`,
+  [u.id,u.username,u.salt,u.passwordHash,JSON.stringify(u.progress||[]),u.coins||0,JSON.stringify(u.skins||['default']),u.equipped||'default',u.profilePic||'',u.theme||'dark',u.hoursPlayed||0,u.exp||0,JSON.stringify(u.frames||['none']),u.equippedFrame||'none',u.speedrunBest,JSON.stringify(u.speedrunHistory||[]),u.createdAt,u.lastSeen||null,u.nameColor||'#ffffff',JSON.stringify(u.ownedNameColors||[]),u.chatBg||'',JSON.stringify(u.banners||['none']),u.equippedBanner||'none',u.bannerImg||'',JSON.stringify(u.fonts||['normal']),u.equippedFont||'normal',JSON.stringify(u.fxs||['none']),u.equippedFx||'none',u.description||'',JSON.stringify(u.achievements||[]),u.tournamentStreak||0,u.tournamentWins||0,JSON.stringify(u.chatBubbles||['none']),u.equippedBubble||'none',u.luckySpins||0,(u.introHidden?1:0),JSON.stringify(u.lasers||['default']),u.equippedLaser||'default',JSON.stringify(u.impacts||['default']),u.equippedImpact||'default',JSON.stringify(u.labelSkins||['default']),u.equippedLabelSkin||'default',JSON.stringify(u.titles||['none']),u.equippedTitle||'none',u.rankPoints||0,u.clanId||'',u.clanRole||'',u.clanPoints||0,u.clanWins||0,u.endlessBestMs||0,u.endlessBestWave||0,u.dailyStreak||0,u.dailyLastPlayed||'']);
 }
 async function getAllUsers(){ if(USE_PG){ const r=await pool.query('SELECT * FROM users'); return r.rows.map(pgRowToUser); } return fileDb.users; }
 async function getUserById(id){ if(USE_PG){ const r=await pool.query('SELECT * FROM users WHERE id=$1',[id]); return r.rows[0]?pgRowToUser(r.rows[0]):null; } return fileDb.users.find(u=>u.id===id)||null; }
@@ -583,11 +598,130 @@ const LUCKY_ITEMS=[
 ];
 
 const SPEEDRUN_ACHIEVEMENT_MS=11500;   // 11.5s o menos desbloquea "Demonio Veloz"
-const ACHIEVEMENTS=[
- {id:'triple_champion',name:'👑 Tricampeón',desc:'Gana 3 torneos seguidos',reward:'🌌 Marco Universo'},
- {id:'speed_demon',name:'⚡ Demonio Veloz',desc:'Haz speedrun en 11.5s o menos',reward:'🌠 Banner Aurora'},
- {id:'centurion',name:'💯 Centurión',desc:'Llega a 100.000 EXP',reward:'👻 Letra Fantasma + 100.000 pts'}
+/* ── Modo infinito y reto diario (Fases 2 y 3) ─────────────────────────── */
+// El día va en UTC a propósito: si dependiera de la zona horaria del jugador,
+// el mismo reto cambiaría a media noche según dónde estés y dos personas en
+// puntos distintos no jugarían lo mismo.
+function utcDayKey(d){ const t=d||new Date(); return t.toISOString().slice(0,10); }
+// Día anterior al dado, en UTC. Se usa para saber si la racha sigue viva.
+function utcDayBefore(dayKey){
+  const d=new Date(dayKey+'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate()-1);
+  return utcDayKey(d);
+}
+// Semilla estable a partir del día (y del modo). Con el mismo día, todo el
+// mundo recibe exactamente las mismas preguntas sin guardarlas en la base:
+// alcanza con elegir con el mismo número aleatorio sembrado.
+function seedFromString(s){ let h=2166136261; const str=String(s); for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function rngFromSeed(seed){ let s=seed>>>0||1; return function(){ s^=s<<13; s>>>=0; s^=s>>17; s^=s<<5; s>>>=0; return s/4294967296; }; }
+// Baraja las preguntas de un nivel con esa semilla, así el orden es el mismo
+// para todos pero distinto cada día.
+function dailyPick(levelIdx,dayKey,mode,count){
+  const base=LEVELS[levelIdx]||LEVELS[0];
+  const qs=(base.questions||[]).slice();
+  const rand=rngFromSeed(seedFromString(dayKey+'|'+mode+'|'+levelIdx));
+  for(let i=qs.length-1;i>0;i--){ const j=Math.floor(rand()*(i+1)); const t=qs[i]; qs[i]=qs[j]; qs[j]=t; }
+  return { title:base.title, level:levelIdx+1, galaxy:(base.galaxy||1), questions:qs.slice(0,count||qs.length) };
+}
+// Los dos retos de cada día: uno fácil y uno difícil, con recompensas distintas.
+const DAILY_MODES={
+  easy:  { id:'easy',  label:'🟢 Reto Fácil',    levels:[0,1],    count:5, baseCoins:3000,  baseExp:150 },
+  hard:  { id:'hard',  label:'🔴 Reto Difícil',  levels:[2,0,1],  count:7, baseCoins:9000,  baseExp:500 }
+};
+// Premio por racha: cada día seguido suma. A los 7 días, premio grande.
+const DAILY_STREAK_REWARDS=[
+  { days:1, coins:1500,  exp:50,   label:'1500 pts' },
+  { days:2, coins:2000,  exp:100,  label:'2000 pts' },
+  { days:3, coins:4000,  exp:150,  label:'4000 pts + letra' },
+  { days:4, coins:5000,  exp:200,  label:'5000 pts' },
+  { days:5, coins:7000,  exp:300,  label:'7000 pts + banner' },
+  { days:6, coins:9000,  exp:400,  label:'9000 pts' },
+  { days:7, coins:25000, exp:1500, label:'25.000 pts + nave + título' }
 ];
+function dailyStreakReward(streak){
+  let best=DAILY_STREAK_REWARDS[0];
+  for(const r of DAILY_STREAK_REWARDS) if(streak>=r.days) best=r;
+  return best;
+}
+/* Cada logro trae `give`: qué se le suma al desbloquearlo, si algo. Los
+   premios son cosas que ya existen en el catálogo (skins, marcos, letras,
+   efectos, títulos, puntos). Si `give` está vacío, el premio se canjea desde
+   el panel con GET /api/achievements/redeem, como los tres logros originales.
+   `stat` dice de dónde sale el progreso real que ve el panel. */
+const ACHIEVEMENTS=[
+ {id:'triple_champion',name:'👑 Tricampeón',desc:'Gana 3 torneos seguidos',reward:'🌌 Marco Universo',redeem:'frame',item:'universo',stat:'tournamentStreak',target:3},
+ {id:'speed_demon',name:'⚡ Demonio Veloz',desc:'Haz speedrun en 11.5s o menos',reward:'🌠 Banner Aurora',redeem:'banner',item:'aurora',stat:'speedrunBest',target:SPEEDRUN_ACHIEVEMENT_MS,dir:'lte'},
+ {id:'centurion',name:'💯 Centurión',desc:'Llega a 100.000 EXP',reward:'👻 Letra Fantasma + 100.000 pts',redeem:'font',item:'phantom',coins:100000,stat:'exp',target:100000},
+
+ // ── Dificultades (Fase 1) ───────────────────────────────────────────────
+ {id:'infierno_completo',name:'🔥 Infierno Completado',desc:'Termina un nivel en dificultad Infierno',reward:'🛡️ Nave Vórtice + 20000 pts',give:{skins:['quantum_node'],coins:20000},stat:'hardestReached',target:5},
+ {id:'insano_veterano',name:'😈 Veterano Insano',desc:'Termina 5 niveles en dificultad Difícil o más',reward:'💣 Impacto Nova + 30000 pts',give:{impacts:['neon'],coins:30000},stat:'hardLevels',target:5},
+ {id:'dificultad_lenta',name:'🧘 Zen',desc:'Termina un nivel en dificultad Fácil sin perder vidas',reward:'🏷️ Etiqueta Orbita + 10000 pts',give:{labelSkins:['orbita'],coins:10000},stat:'flawless',target:1},
+
+ // ── Modo infinito (Fase 2) ──────────────────────────────────────────────
+ {id:'endless_30s',name:'⏱️ Medio Minuto',desc:'Aguanta 30 segundos en modo infinito',reward:'🔫 Láser Plasma + 15000 pts',give:{lasers:['plasma'],coins:15000},stat:'endlessMs',target:30000},
+ {id:'endless_wave10',name:'🌊 Diez Oleadas',desc:'Llegá a la oleada 10 en modo infinito',reward:'🚀 Nave Solar Flare + 25000 pts',give:{skins:['solar_flare'],coins:25000},stat:'endlessWave',target:10},
+ {id:'endless_wave25',name:'👑 Superviviente',desc:'Llegá a la oleada 25 en modo infinito',reward:'🌠 Banner Leyenda + 60000 pts',give:{banners:['leyenda'],coins:60000},stat:'endlessWave',target:25},
+
+ // ── Reto diario (Fase 3) ────────────────────────────────────────────────
+ {id:'daily_first',name:'📅 Primera Vez',desc:'Completá un reto del día',reward:'✨ Efecto Brillo + 8000 pts',give:{fxs:['brillo'],coins:8000},stat:'dailyPlays',target:1},
+ {id:'daily_streak3',name:'🔥 Racha de 3',desc:'Jugá el reto diario 3 días seguidos',reward:'🔤 Letra Neón Vivo + 20000 pts',give:{fonts:['neonvivo'],coins:20000},stat:'dailyStreak',target:3},
+ {id:'daily_streak7',name:'🏅 Semana Perfecta',desc:'Jugá el reto diario 7 días seguidos',reward:'👑 Título CAMPEÓN DE TORNEO + 50000 pts',give:{titles:['titulo_campeon'],coins:50000},stat:'dailyStreak',target:7},
+
+ // ── Juego en general ────────────────────────────────────────────────────
+ {id:'nivel_galaxia2',name:'🌌 Segunda Galaxia',desc:'Llegá al nivel 7 (Galaxia 2)',reward:'🕳️ Marco Vacío + 35000 pts',give:{frames:['void'],coins:35000},stat:'levelsReached',target:7},
+ {id:'todos_los_niveles',name:'🗺️ Leyenda del Código',desc:'Completá los 7 niveles',reward:'💎 Nave Supernova + 100000 pts',give:{skins:['supernova'],coins:100000},stat:'levelsSolved',target:7},
+ {id:'insano_puro',name:'😈 Insano Puro',desc:'Termina un nivel en dificultad Insano o Infierno sin perder vidas',reward:'🔤 Letra Cuadrada + 45000 pts',give:{fonts:['cuadrada'],coins:45000},stat:'hardFlawless',target:1},
+ {id:'cazador_de_jefes',name:'👑 Cazador de Jefes',desc:'Derrotá a los 3 jefes (Final, CSS y JavaScript)',reward:'💀 Nave Blood Hunter + 70000 pts',give:{skins:['blood_hunter'],coins:70000},stat:'bossLevels',target:3}
+];
+// Cuántos de cada stat necesita cada logro, para el panel de progreso. Los
+// que dependen de varias cosas (niveles, racha, oleadas) se calculan aparte.
+const ACH_PROGRESS={
+ speedrunBest:{ value:u=>Number(u.speedrunBest)||0, dir:'lte' },
+ tournamentStreak:{ value:u=>Number(u.tournamentStreak||0) },
+ exp:{ value:u=>Number(u.exp)||0 },
+ endlessMs:{ value:u=>Number(u.endlessBestMs)||0 },
+ endlessWave:{ value:u=>Number(u.endlessBestWave||0) },
+ dailyStreak:{ value:u=>Number(u.dailyStreak||0) },
+ // "Terminar en Difícil o más": se cuentan los niveles resueltos cuya
+ // dificultad más alta en la que se resolvieron sea difícil, insano o infierno.
+ hardLevels:{ value:u=>(u.progress||[]).filter(p=>p&&p.solved&&diffRank(p.hardestDifficulty)>=3).length },
+ levelsSolved:{ value:u=>levelStats(u).solved },
+ levelsReached:{ value:u=>levelStats(u).reached },
+ levelStats:{ value:u=>levelStats(u).solved },
+ hardestReached:{ value:u=>(u.progress||[]).reduce((m,p)=>p&&p.solved?Math.max(m,diffRank(p.hardestDifficulty)):m,0) },
+ // "Sin perder vidas": el cliente lo marca cuando ganó el nivel con todas las
+ // vidas intactas.
+ flawless:{ value:u=>(u.progress||[]).filter(p=>p&&p.flawless).length },
+ // Igual, pero en una dificultad dura (Insano o Infierno): ahí "sin perder
+ // vidas" significa una sola vida, que es donde el logro vale algo.
+ hardFlawless:{ value:u=>(u.progress||[]).filter(p=>p&&p.flawless&&diffRank(p.hardestDifficulty)>=4).length },
+ // "Jugó el reto diario alguna vez". OJO: dailyLastPlayed es una FECHA
+// ('AAAA-MM-DD'), no un número, así que hay que compararla como texto.
+ dailyPlays:{ value:u=>u.dailyLastPlayed?1:0 },
+ // Los jefes son los niveles 4, 5 y 6 de LEVELS (los que tienen isBoss).
+ bossLevels:{ value:u=>(u.progress||[]).filter(p=>{ if(!p||!p.solved) return false; const lv=LEVELS.find(x=>Number(x.id)===Number(p.level)); return !!(lv&&lv.isBoss); }).length }
+};
+// Agrega al usuario lo que el logro regala, sin duplicar nada.
+function giveAchievement(user,a){
+  const g=a.give; if(!g) return [];
+  const added=[];
+  if(g.skins) for(const id of g.skins) if(!user.skins.includes(id)){ user.skins.push(id); added.push('skin '+id); }
+  if(g.frames) for(const id of g.frames) if(!user.frames.includes(id)){ user.frames.push(id); added.push('marco '+id); }
+  if(g.banners) for(const id of g.banners) if(!user.banners.includes(id)){ user.banners.push(id); added.push('banner '+id); }
+  if(g.fonts) for(const id of g.fonts) if(!user.fonts.includes(id)){ user.fonts.push(id); added.push('letra '+id); }
+  if(g.fxs) for(const id of g.fxs) if(!user.fxs.includes(id)){ user.fxs.push(id); added.push('efecto '+id); }
+  if(g.impacts) for(const id of g.impacts) if(!user.impacts.includes(id)){ user.impacts.push(id); added.push('impacto '+id); }
+  if(g.lasers) for(const id of g.lasers) if(!user.lasers.includes(id)){ user.lasers.push(id); added.push('laser '+id); }
+  if(g.labelSkins) for(const id of g.labelSkins) if(!user.labelSkins.includes(id)){ user.labelSkins.push(id); added.push('etiqueta '+id); }
+  if(g.titles) for(const id of g.titles) if(!user.titles.includes(id)){ user.titles.push(id); added.push('titulo '+id); }
+  if(g.coins){ user.coins=(user.coins||0)+g.coins; added.push(g.coins+' pts'); }
+  return added;
+}
+// Orden de las dificultades: sirve para guardar en qué dificultad se resolvió
+// cada nivel y reconocer la más difícil, sin que el cliente mande un número.
+const DIFFICULTY_ORDER={facil:1,normal:2,dificil:3,insano:4,infierno:5};
+function diffRank(id){ return DIFFICULTY_ORDER[id]||0; }
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 process.on('unhandledRejection',(e)=>{ console.error('[unhandled]',e&&e.message||e); });
 async function checkAchievements(user){
@@ -606,12 +740,27 @@ if(!user.achievements.includes('speed_demon') && user.speedrunBest!=null && user
    avisos.push(['⚡ ¡LOGRO DESBLOQUEADO! Demonio Veloz','Demonio Veloz: '+(user.speedrunBest/1000).toFixed(2)+'s ≤ 11.5s → 🌠 Banner Aurora desbloqueado']);
   }
 if(!user.achievements.includes('centurion') && (user.exp||0)>=100000){
-   user.achievements.push('centurion');
-   if(!user.fonts.includes('phantom')) user.fonts.push('phantom');
-   user.coins=(user.coins||0)+100000;
-   newly.push('centurion');
-   avisos.push(['💯 ¡LOGRO DESBLOQUEADO! Centurión','Centurión: 100k EXP → 👻 Letra Fantasma + 100.000 pts']);
-  }
+    user.achievements.push('centurion');
+    if(!user.fonts.includes('phantom')) user.fonts.push('phantom');
+    user.coins=(user.coins||0)+100000;
+    newly.push('centurion');
+    avisos.push(['💯 ¡LOGRO DESBLOQUEADO! Centurión','Centurión: 100k EXP → 👻 Letra Fantasma + 100.000 pts']);
+   }
+   // Los logros con `give` se acreditan solos: antes había que canjearlos a
+   // mano desde el panel, y con 3 logros no se notaba; con 16 sería untenable.
+   for(const a of ACHIEVEMENTS){
+     if(!a.give) continue;
+     if(user.achievements.includes(a.id)) continue;
+     const prog=ACH_PROGRESS[a.stat];
+     if(!prog) continue;
+     const cur=prog.value(user);
+     const ok=(prog.dir==='lte') ? (cur>0&&cur<=a.target) : (cur>=a.target);
+     if(!ok) continue;
+     const added=giveAchievement(user,a);
+     user.achievements.push(a.id);
+     newly.push(a.id);
+     avisos.push(['🏆 ¡LOGRO DESBLOQUEADO! '+a.name, a.desc+' → '+a.reward+(added.length?' ('+added.join(', ')+')':'')]);
+   }
   // Guarda el logro PRIMERO y avisa después. Antes la notificación iba antes
   // del update: si esa insert fallaba, la excepción se comía el update y el
   // logro se perdía para siempre (el jugador cumplía y no se enteraba).
@@ -645,6 +794,11 @@ function publicUser(u){ const lv=levelStats(u); return { id:u.id, username:u.use
 // Igual que publicUser pero resuelve el TAG/nivel del clan (necesita await).
 async function publicUserFull(u){
   const base=publicUser(u);
+  // El modo infinito y la racha del reto diario son datos del propio jugador,
+  // no del perfil público: van sólo en /api/me (y no en /api/user/:id, que es
+  // lo que ven los demás).
+  base.endlessBestMs=u.endlessBestMs||0; base.endlessBestWave=u.endlessBestWave||0;
+  base.dailyStreak=u.dailyStreak||0; base.dailyLastPlayed=u.dailyLastPlayed||'';
   if(u.clanId){ const c=await getClanById(u.clanId); if(c){ base.clanTag=c.tag; base.clan={id:c.id,tag:c.tag,name:c.name,emblem:c.emblem,color:c.color,level:clanLevel(c.points||0),rank:clanRankFromPoints(c.points||0)}; } }
   return base;
 }
@@ -662,12 +816,17 @@ app.get('/api/me', async (req,res)=>{ try{ const user=await findUserByToken(req)
   const lv=levelFromExp(user.exp); res.json({user:await publicUserFull(user),progress:user.progress,coins:user.coins,skins:user.skins,equipped:user.equipped,lasers:user.lasers||['default'],equippedLaser:user.equippedLaser||'default',impacts:user.impacts||['default'],equippedImpact:user.equippedImpact||'default',labelSkins:user.labelSkins||['default'],equippedLabelSkin:user.equippedLabelSkin||'default',expLevel:lv}); }catch(e){ console.error('[me]',e.message); res.status(500).json({error:'Error al obtener datos'}); } });
 app.post('/api/heartbeat', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); user.lastSeen=new Date().toISOString(); await updateUser(user); res.json({ok:true, online:true}); }catch(e){ res.status(500).json({error:'heartbeat error'}); } });
 app.get('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); res.json({progress:user.progress}); }catch(e){ res.status(500).json({error:'progress error'}); } });
-app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);   const {level,attempts,solved,coinsEarned}=req.body||{}; const lvl=Number(level); if(!Number.isFinite(lvl)||lvl<1) return res.status(400).json({error:'Falta el nivel'}); if(!Array.isArray(user.progress)) user.progress=[];
+app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado'}); ensureShopFields(user);   const {level,attempts,solved,coinsEarned,difficulty,flawless}=req.body||{}; const lvl=Number(level); if(!Number.isFinite(lvl)||lvl<1) return res.status(400).json({error:'Falta el nivel'}); if(!Array.isArray(user.progress)) user.progress=[];
   let entry=user.progress.find(p=>Number(p.level)===lvl);
   if(!entry){ entry={level:lvl,attempts:0,solved:false,solvedAt:null}; user.progress.push(entry); }
   // El cliente manda attempts=0 cuando solo está avanzando de nivel, para no
   // sumar intentos de más: cada intento real cuenta una vez y una sola vez.
   entry.attempts=(Number(entry.attempts)||0)+Math.max(0,Number(attempts)||0);
+  // La dificultad en la que se resolvió se anota SÓLO para los logros. No
+  // entra al ranking (que mira solved/reached/attempts), así el tablero de
+  // siempre queda comparable entre los que juegan en Normal y los que no.
+  if(solved&&difficulty) entry.hardestDifficulty=diffRank(String(difficulty))>diffRank(entry.hardestDifficulty)?String(difficulty):entry.hardestDifficulty;
+  if(solved&&flawless) entry.flawless=true;
   if(solved&&!entry.solved){ entry.solved=true; entry.solvedAt=new Date().toISOString(); await pushNotification(user.id,'¡Nivel completado! 🎉',`Completaste el nivel ${lvl}. ¡Sigue así!`,'success'); }
   if(Number(coinsEarned)) user.coins+=Number(coinsEarned);
   const ls=levelStats(user);
@@ -675,6 +834,130 @@ app.put('/api/progress', async (req,res)=>{ try{ const user=await findUserByToke
   await updateUser(user); res.json({progress:user.progress,coins:user.coins,maxLevelReached:ls.reached,levelsCompleted:ls.solved}); }catch(e){ console.error('[progress]',e.message); res.status(500).json({error:'Error al guardar progreso'}); } });
 
 app.get('/api/leaderboard', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.map(u=>{ const ls=levelStats(u); return {id:u.id,username:u.username,solved:ls.solved,reached:ls.reached,attempts:(u.progress||[]).reduce((a,p)=>a+(Number(p&&p.attempts)||0),0),exp:u.exp||0,hoursPlayed:Math.floor((u.hoursPlayed||0)/3600),profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen),rankPoints:u.rankPoints||0,rank:(rk=>rk?{name:rk.name,icon:rk.icon,color:rk.color,pct:rk.pct,next:rk.next?rk.next.name:null}:null)(rankFromRP(u.rankPoints||0))}; }).sort((a,b)=>b.solved-a.solved||b.reached-a.reached||b.exp-a.exp||a.attempts-b.attempts); res.json({board}); });
+/* ── Modo infinito: récord y ranking de supervivencia ────────────────────── */
+async function getDailyResults(userId,dayKey){
+  if(USE_PG){ const r=await pool.query('SELECT * FROM daily_results WHERE user_id=$1 AND day=$2',[userId,dayKey]); return r.rows.map(pgRowToDaily); }
+  return (fileDb.dailyResults||[]).filter(d=>d.userId===userId&&d.day===dayKey).map(rowToDaily);
+}
+function pgRowToDaily(r){ return {id:r.id,userId:r.user_id,day:r.day,mode:r.mode,solved:r.solved||0,total:r.total||0,ms:r.ms||0,reward:r.reward||'',createdAt:r.created_at}; }
+function rowToDaily(d){ return {id:d.id,userId:d.userId,day:d.day,mode:d.mode,solved:d.solved||0,total:d.total||0,ms:d.ms||0,reward:d.reward||'',createdAt:d.createdAt}; }
+async function saveDailyResult(d){
+  if(USE_PG){
+    await pool.query(`INSERT INTO daily_results(id,user_id,day,mode,solved,total,ms,reward,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT(user_id,day,mode) DO UPDATE SET solved=EXCLUDED.solved,total=EXCLUDED.total,ms=EXCLUDED.ms,reward=EXCLUDED.reward`,
+      [d.id,d.userId,d.day,d.mode,d.solved,d.total,d.ms,d.reward,d.createdAt]);
+  } else {
+    if(!fileDb.dailyResults) fileDb.dailyResults=[];
+    const i=fileDb.dailyResults.findIndex(x=>x.userId===d.userId&&x.day===d.day&&x.mode===d.mode);
+    if(i>=0) fileDb.dailyResults[i]=d; else fileDb.dailyResults.push(d);
+    saveDb(fileDb);
+  }
+}
+// Ranking de supervivencia: gana quien aguanta más tiempo. A igual tiempo se
+// desempata por la oleada más alta que llegó a ver.
+app.get('/api/leaderboard/endless', async (req,res)=>{ res.set('Cache-Control','no-store'); try{
+  const users=await getAllUsers();
+  const board=users.filter(u=>(u.endlessBestMs||0)>0).map(u=>({id:u.id,username:u.username,endlessBestMs:u.endlessBestMs||0,endlessBestWave:u.endlessBestWave||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',equippedTitle:u.equippedTitle||'none',online:isOnline(u.lastSeen),rankPoints:u.rankPoints||0,rank:(rk=>rk?{name:rk.name,icon:rk.icon,color:rk.color,pct:rk.pct,next:rk.next?rk.next.name:null}:null)(rankFromRP(u.rankPoints||0))})).sort((a,b)=>b.endlessBestMs-a.endlessBestMs||b.endlessBestWave-a.endlessBestWave);
+  res.json({board});
+}catch(e){ console.error('[leaderboard/endless]',e.message); res.status(500).json({error:'endless leaderboard error'}); } });
+app.post('/api/endless', async (req,res)=>{ try{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'});
+  ensureShopFields(user);
+  const {ms,wave}=req.body||{};
+  const t=Math.round(Number(ms)), w=Math.round(Number(wave));
+  if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'});
+  if(t>3600000) return res.status(400).json({error:'Tiempo fuera de rango (máx 1h)'});
+  if(!Number.isFinite(w)||w<0) return res.status(400).json({error:'Oleada inválida'});
+  const prevMs=user.endlessBestMs||0, prevWave=user.endlessBestWave||0;
+  const isNewBest=t>prevMs||(t===prevMs&&w>prevWave);
+  // Sólo se guarda si mejora: si no, la partida anterior queda intacta.
+  if(isNewBest){ user.endlessBestMs=t; user.endlessBestWave=Math.max(w,prevWave); }
+  await updateUser(user);
+  let unlocked=[];
+  try{ unlocked=(await checkAchievements(user))||[]; }catch(e){ console.error('[endless] checkAchievements',e.message); }
+  if(isNewBest){ try{ await pushNotification(user.id,'♾️ Nuevo récord infinito',`Aguantaste ${(t/1000).toFixed(1)}s y llegaste a la oleada ${user.endlessBestWave}.`,'success'); }catch(e){} }
+  console.log(`[endless] ${user.username} ${t}ms oleada ${w} nuevo=${isNewBest} (antes ${prevMs}ms/${prevWave})`);
+  res.json({endlessBestMs:user.endlessBestMs,endlessBestWave:user.endlessBestWave,isNewBest,unlocked,achievements:user.achievements||[]});
+}catch(e){ console.error('[endless]',e&&e.stack||e); res.status(500).json({error:'Error al guardar la partida infinita: '+(e.message||e)}); } });
+
+/* ── Reto diario ───────────────────────────────────────────────────────── */
+// GET /api/daily devuelve los dos retos del día. No hace falta haber jugado:
+// las preguntas salen de la semilla del día, así que todos ven lo mismo.
+app.get('/api/daily', wrap(async (req,res)=>{
+  const user=await findUserByToken(req); if(user) ensureShopFields(user);
+  const day=utcDayKey();
+  const challenges=Object.keys(DAILY_MODES).map(mid=>{
+    const m=DAILY_MODES[mid];
+    // Cada modo mezcla varios niveles (el fácil HTML+CSS, el difícil JS+HTML).
+    const questions=[];
+    for(let i=0;i<m.levels.length&&questions.length<m.count;i++){
+      const pick=dailyPick(m.levels[i],day,mid,m.count);
+      questions.push(...pick.questions.map(q=>({q:q.q,a:q.a})));
+    }
+    return { id:m.id, label:m.label, count:m.count, baseCoins:m.baseCoins, baseExp:m.baseExp, questions:questions.slice(0,m.count) };
+  });
+  let mine=[], streak=user?(user.dailyStreak||0):0, lastPlayed=user?(user.dailyLastPlayed||''):'', reward=dailyStreakReward(streak);
+  if(user){
+    const rows=await getDailyResults(user.id,day);
+    mine=rows.map(r=>({mode:r.mode,solved:r.solved,total:r.total,ms:r.ms,reward:r.reward}));
+    reward=dailyStreakReward(streak);
+  }
+  res.set('Cache-Control','no-store');
+  res.json({day,challenges,mine,streak,lastPlayed,nextReward:dailyStreakReward(streak+1),currentReward:reward,streakTable:DAILY_STREAK_REWARDS});
+}));
+// POST /api/daily guarda el resultado de un reto del día y paga la racha.
+app.post('/api/daily', wrap(async (req,res)=>{
+  const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'});
+  ensureShopFields(user);
+  const {mode,solved,total,ms}=req.body||{};
+  const m=DAILY_MODES[String(mode)];
+  if(!m) return res.status(400).json({error:'Reto desconocido'});
+  const s=Math.max(0,Math.min(m.count,Math.round(Number(solved)||0)));
+  const t=Math.max(0,Math.round(Number(total)||0))||m.count;
+  const time=Math.max(0,Math.round(Number(ms)||0));
+  const day=utcDayKey();
+  const prev=await getDailyResults(user.id,day);
+  const already=prev.find(r=>r.mode===m.id);
+  // Un reto se juega una vez por día. Si ya lo hizo, se devuelve cómo le fue
+  // pero no se vuelve a pagar: si no, se podría farmear el premio.
+  if(already){
+    // Si hay resultado de HOY, el último día jugado es hoy. Sin esto, un
+    // registro de hoy con dailyLastPlayed viejo dejaba la racha y los logros
+    // (que leen esa fecha) en un estado que no corresponde a lo que se hizo.
+    if((user.dailyLastPlayed||'')<day){ user.dailyLastPlayed=day; await updateUser(user); }
+    // Aun así se revisan los logros: el segundo intento del día puede ser el
+    // que acredita un logro que se agregó después de su única partida.
+    let unlocked=[];
+    try{ unlocked=(await checkAchievements(user))||[]; }catch(e){ console.error('[daily] checkAchievements',e.message); }
+    return res.json({day,mode:m.id,alreadyPlayed:true,solved:already.solved,total:already.total,ms:already.ms,reward:already.reward,streak:user.dailyStreak||0,coins:user.coins,unlocked,achievements:user.achievements||[]});
+  }
+  await saveDailyResult({id:crypto.randomUUID(),userId:user.id,day,mode:m.id,solved:s,total:t,ms:time,reward:'',createdAt:new Date().toISOString()});
+  // Racha: suma 1 si ayer también juegaste. Si saltaste un día (o es tu primer
+  // día) la racha arranca de nuevo en 1.
+  const last=user.dailyLastPlayed||'';
+  user.dailyStreak = (last && utcDayBefore(day)===last) ? (user.dailyStreak||0)+1 : 1;
+  user.dailyLastPlayed=day;
+  // El premio sale de la racha (que ya incluye el día de hoy). El difícil paga
+  // su extra encima, así compensar el riesgo de las 7 preguntas.
+  const rw=dailyStreakReward(user.dailyStreak);
+  const extra = (m.id==='hard') ? Math.round(m.baseCoins*0.5) : 0;
+  const coins=rw.coins+m.baseCoins+extra;
+  const exp=rw.exp+m.baseExp;
+  const rewardLabel=rw.label+(extra?(' + extra difícil'):'');
+  user.coins=(user.coins||0)+coins;
+  user.exp=(user.exp||0)+exp;
+  user.lastSeen=new Date().toISOString();
+  await updateUser(user);
+  // Anota el premio sobre la fila ya guardada (misma clave user+día+modo).
+  const rows=await getDailyResults(user.id,day);
+  const row=rows.find(r=>r.mode===m.id);
+  if(row) await saveDailyResult(Object.assign({},row,{reward:rewardLabel}));
+  try{ await pushNotification(user.id,'📅 Reto diario completado',`${m.label}: ${s}/${t} · racha ${user.dailyStreak} día(s) · +${coins} pts y +${exp} EXP`,'success'); }catch(e){}
+  let unlocked=[];
+  try{ unlocked=(await checkAchievements(user))||[]; }catch(e){ console.error('[daily] checkAchievements',e.message); }
+  res.json({day,mode:m.id,alreadyPlayed:false,solved:s,total:t,ms:time,reward:rewardLabel,coins:user.coins,exp:user.exp,streak:user.dailyStreak,unlocked,achievements:user.achievements||[]});
+}));
+
 app.get('/api/leaderboard/speedrun', async (req,res)=>{ res.set('Cache-Control','no-store'); const users=await getAllUsers(); const board=users.filter(u=>u.speedrunBest!=null).map(u=>({id:u.id,username:u.username,speedrunBest:u.speedrunBest,solved:u.progress.filter(p=>p.solved).length,exp:u.exp||0,profilePic:u.profilePic||'',equippedFrame:u.equippedFrame||'none',frames:u.frames||[],coins:u.coins||0,nameColor:u.nameColor||'#ffffff',equippedFont:u.equippedFont||'normal',equippedFx:u.equippedFx||'none',online:isOnline(u.lastSeen),rankPoints:u.rankPoints||0,rank:(rk=>rk?{name:rk.name,icon:rk.icon,color:rk.color,pct:rk.pct,next:rk.next?rk.next.name:null}:null)(rankFromRP(u.rankPoints||0))})).sort((a,b)=>a.speedrunBest-b.speedrunBest); res.json({board}); });
 app.post('/api/speedrun', async (req,res)=>{ try{ const user=await findUserByToken(req); if(!user) return res.status(401).json({error:'No autenticado, inicia sesión'}); ensureShopFields(user); const {time}=req.body||{}; const t=Math.round(Number(time)); if(!Number.isFinite(t)||t<=0) return res.status(400).json({error:'Tiempo inválido'}); if(t<1000||t>600000) return res.status(400).json({error:'Tiempo fuera de rango (1s - 10m)'}); const isNewBest=user.speedrunBest==null||t<user.speedrunBest; let savedToDb=false; if(isNewBest){ user.speedrunBest=t; if(!Array.isArray(user.speedrunHistory)) user.speedrunHistory=[]; user.speedrunHistory.push({time:t,at:new Date().toISOString()}); if(user.speedrunHistory.length>20) user.speedrunHistory=user.speedrunHistory.slice(-20); try{ await updateUser(user); savedToDb=true; }catch(dbErr){ console.error('[speedrun] updateUser FAIL',dbErr.message); try{ const dbUser=fileDb.users.find(u=>u.id===user.id); if(dbUser){ Object.assign(dbUser,user); } else { fileDb.users.push(user); } saveDb(fileDb); }catch(fe){ console.error('[speedrun] fallback file fail',fe.message); } } // `_unlocked` se declara arriba para poder devolverlo en el JSON.
   let _unlocked=[];
@@ -1187,7 +1470,12 @@ async function importDb(d){
   } else {
     const byId=(arr)=>(new Map((arr||[]).map(x=>[x.id,x])));
     const mu=byId(fileDb.users); (d.users||[]).forEach(u=>{ ensureShopFields(u); if(mapId[u.id]) u.id=mapId[u.id]; mu.set(u.id,u); }); fileDb.users=[...mu.values()];
-    const ms=byId(fileDb.sessions); (d.sessions||[]).forEach(s=>ms.set(s.token||s.id,Object.assign({},s,{userId:id(s.userId)}))); fileDb.sessions=[...ms.values()];
+    // Las sesiones NO tienen campo `id`: la clave es el token. Si se usara
+    // byId() acá, todas caían en la misma clave (undefined) y el import dejaba
+    // una sola sesión viva: los demás quedaban deslogueados sin razón.
+    const ms=new Map(fileDb.sessions.map(s=>[s.token,s]));
+    (d.sessions||[]).forEach(s=>{ if(s&&s.token) ms.set(s.token,Object.assign({},s,{userId:id(s.userId)})); });
+    fileDb.sessions=[...ms.values()];
     const mn=byId(fileDb.notifications); (d.notifications||[]).forEach(n=>mn.set(n.id,Object.assign({},n,{userId:id(n.userId)}))); fileDb.notifications=[...mn.values()];
     const mt=byId(fileDb.tournaments); (d.tournaments||[]).forEach(x=>mt.set(x.id,x)); fileDb.tournaments=[...mt.values()];
     const mc=byId(fileDb.chat); (d.chat||[]).forEach(m=>mc.set(m.id,Object.assign({},m,{userId:id(m.userId)}))); fileDb.chat=[...mc.values()];
@@ -1302,8 +1590,23 @@ const ARENA_START_SHIPS=6;
 // tiene que bajar un poco para que las nuevas aparezcan ARRIBA y no encima
 // de ella. Es el "cuenta atrás" del nivel 1.
 const ARENA_FIRST_SPAWN_MS=10000;
-function arenaFall(wave){ return Math.min(ARENA_FALL_MAX, ARENA_FALL_BASE + Math.max(0,(wave||1)-1)*ARENA_FALL_WAVE); }
-function arenaSpawnMs(ps,wave){ return Math.max(ARENA_SPAWN_MIN, ARENA_SPAWN_BASE - (ps.kills||0)*ARENA_SPAWN_KILL_STEP - Math.max(0,(wave||1)-1)*ARENA_SPAWN_WAVE_STEP); }
+// ── Ajuste por modo de sala ─────────────────────────────────────────────
+// El modo "speedrun" estaba guardado en la sala pero nunca se leía: la
+// partida era idéntica a la normal. Ahora cada modo multiplica la caída de
+// las naves, la frecuencia de aparición y las vidas iniciales.
+const ARENA_MODE_TUNING={
+  normal:{ fall:1,    spawn:1,    lives:ARENA_START_LIVES, label:'▶ JUGAR' },
+  speedrun:{ fall:2.1,  spawn:0.38, lives:1,                label:'⚡ SPEEDRUN' }
+};
+function arenaTuning(room){ return ARENA_MODE_TUNING[(room&&room.mode)||'normal']||ARENA_MODE_TUNING.normal; }
+function arenaFall(wave,tune){
+  const t=tune||ARENA_MODE_TUNING.normal;
+  return Math.min(ARENA_FALL_MAX*t.fall, (ARENA_FALL_BASE + Math.max(0,(wave||1)-1)*ARENA_FALL_WAVE)*t.fall);
+}
+function arenaSpawnMs(ps,wave,tune){
+  const t=tune||ARENA_MODE_TUNING.normal;
+  return Math.max(ARENA_SPAWN_MIN*t.spawn, (ARENA_SPAWN_BASE - (ps.kills||0)*ARENA_SPAWN_KILL_STEP - Math.max(0,(wave||1)-1)*ARENA_SPAWN_WAVE_STEP)*t.spawn);
+}
 // El piso es 0.008 y no 0.05: con 0.05 ninguna nave podía tardar más de 20 s
 // en caer y el límite se comía la velocidad lenta del nivel 1 (el servidor
 // sacaba la nave antes de que llegara abajo).
@@ -1322,9 +1625,9 @@ function multiPickOne(){ const p=multiPool(); return p[Math.floor(Math.random()*
 // En el multijugador cada nave sale con uno al azar para que se vean varias
 // formas distintas a la vez.
 const SHIP_DESIGNS=['html','css','js','boss','bossCss'];
-function arenaMakeEnemy(ownerId,wave,spawnAt){
+function arenaMakeEnemy(ownerId,wave,spawnAt,tune){
   const p=multiPickOne();
-  return { id:crypto.randomUUID(), ownerId, cat:p.cat, q:p.q, a:p.a, design:SHIP_DESIGNS[Math.floor(Math.random()*SHIP_DESIGNS.length)], spawnAt:(spawnAt||Date.now()), fall:arenaFall(wave) };
+  return { id:crypto.randomUUID(), ownerId, cat:p.cat, q:p.q, a:p.a, design:SHIP_DESIGNS[Math.floor(Math.random()*SHIP_DESIGNS.length)], spawnAt:(spawnAt||Date.now()), fall:arenaFall(wave,tune) };
 }
 function leaveRoomInternal(uid){
   const r=findRoomOfUser(uid);
@@ -1356,6 +1659,7 @@ function tickRoom(r){
   }
   if(r.match && r.match.status==='playing'){
     const m=r.match;
+    const tune=arenaTuning(r);
     m.wave=1+Math.floor((m.totalKills||0)/ARENA_KILLS_PER_WAVE);
     const ids=Object.keys(m.players);
     for(const pid of ids){
@@ -1368,8 +1672,8 @@ function tickRoom(r){
       let enCarril=0;
       for(const e of m.enemies) if(e.ownerId===pid) enCarril++;
       if(enCarril>=ARENA_MAX_PER_LANE){ ps.nextSpawnAt=now+1000; continue; }
-      m.enemies.push(arenaMakeEnemy(pid,m.wave));
-      ps.nextSpawnAt=now+arenaSpawnMs(ps,m.wave);
+      m.enemies.push(arenaMakeEnemy(pid,m.wave,undefined,tune));
+      ps.nextSpawnAt=now+arenaSpawnMs(ps,m.wave,tune);
     }
     // Cada nave rompe la línea cuando pasa SU propio tiempo de caída (el que
     // tenía cuando salió). Usar el de la oleada en curso las borraba antes de
@@ -1380,13 +1684,13 @@ function tickRoom(r){
       breaches.push(e); return false;
     });
     if(breaches.length){
-      for(const pid of ids){ const ps=m.players[pid]; ps.lives=Math.max(0,(ps.lives==null?ARENA_START_LIVES:ps.lives)-1); ps.streak=0; }
+      for(const pid of ids){ const ps=m.players[pid]; ps.lives=Math.max(0,(ps.lives==null?tune.lives:ps.lives)-1); ps.streak=0; }
       m.events=m.events||[];
       breaches.forEach(e=>m.events.push({id:crypto.randomUUID(),type:'breach',ownerId:e.ownerId,cat:e.cat,at:now}));
       if(m.events.length>20) m.events=m.events.slice(-20);
       r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:'🚨 ¡Rompen la línea! Todos pierden 1 vida.',createdAt:new Date().toISOString()});
     }
-    const anyAlive=ids.some(id=>(!r.lobby||r.lobby.has(id)) && (m.players[id].lives==null?ARENA_START_LIVES:m.players[id].lives)>0);
+    const anyAlive=ids.some(id=>(!r.lobby||r.lobby.has(id)) && (m.players[id].lives==null?tune.lives:m.players[id].lives)>0);
     if(!anyAlive && !m.finishing){
       m.finishing=true;
       (async()=>{
@@ -1458,15 +1762,17 @@ u.exp=(u.exp||0)+expGain; u.coins=(u.coins||0)+coinGain; u.lastSeen=new Date().t
     const sizeOk=r.isRanked?(l.length===needPlayers):(l.length>=2);
     if(sizeOk && l.every(p=>p.ready)){
       const now=Date.now();
+      const tune=arenaTuning(r);
       const players={};
-      l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor||'#ffffff',lives:ARENA_START_LIVES,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+ARENA_FIRST_SPAWN_MS,expWon:0,coinsWon:0}; });
-      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[],isRanked:!!r.isRanked,teamSize:r.teamSize||0};
+      l.forEach(p=>{ players[p.userId]={userId:p.userId,username:p.username,profilePic:p.profilePic||'',frame:p.frame||'none',skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor||'#ffffff',lives:tune.lives,kills:0,misses:0,streak:0,best:0,alive:true,nextSpawnAt:now+ARENA_FIRST_SPAWN_MS,expWon:0,coinsWon:0}; });
+      const m={id:crypto.randomUUID(),status:'playing',startedAt:now,wave:1,totalKills:0,players,enemies:[],shots:[],events:[],isRanked:!!r.isRanked,teamSize:r.teamSize||0,mode:r.mode||'normal'};
       // Las naves iniciales salen TODAS juntas y con el mismo spawnAt, para que
       // el cliente las ordene en una grilla de varias filas (la formación del
       // nivel 1) y no en una fila sola pegada al borde.
-      l.forEach(p=>{ for(let i=0;i<ARENA_START_SHIPS;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now)); });
+      l.forEach(p=>{ for(let i=0;i<ARENA_START_SHIPS;i++) m.enemies.push(arenaMakeEnemy(p.userId,m.wave,now,tune)); });
       r.match=m;
-      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:r.isRanked?('🏅 ¡Partida RANKED '+((r.teamSize===2)?'1v1':'2v2')+'! Suerte, '+r.name):('⚔️ ¡Partida iniciada en '+r.name+'! Todos contra la oleada. No hay tiempo: sobrevive.'),createdAt:new Date().toISOString()});
+      const velTxt=(tune.fall>1?' Las naves caen el doble de rápido y cada uno tiene 1 sola vida.':'');
+      r.chat.push({id:crypto.randomUUID(),userId:'sys',username:'SISTEMA',text:r.isRanked?('🏅 ¡Partida RANKED '+((r.teamSize===2)?'1v1':'2v2')+'! Suerte, '+r.name):((r.mode==='speedrun'?'⚡ ¡SPEEDRUN MULTIJUGADOR en ':'⚔️ ¡Partida iniciada en ')+r.name+'!'+velTxt),createdAt:new Date().toISOString()});
     }
   }
   if((!r.lobby || r.lobby.size===0) && (!r.match || r.match.status!=='playing')){ Rooms.delete(r.id); }
@@ -1571,14 +1877,15 @@ app.get('/api/multi/state', async (req,res)=>{
     if(room.match){
       const now=Date.now();
       const m=room.match;
+      const mtune=arenaTuning(room);
       const order=Object.keys(m.players);
       const players=order.map((pid,idx)=>{
         const p=m.players[pid];
-        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?ARENA_START_LIVES:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,rpWon:p.rpWon||0,aliveNow:p.alive!==false};
+        return {userId:p.userId,username:p.username,profilePic:multiSlimPic(p.profilePic),hasPic:!!(p.profilePic&&p.profilePic.length>500),frame:p.frame,skin:p.skin||'default',laser:p.laser||'default',impact:p.impact||'default',nameColor:p.nameColor,alive:p.alive!==false,lives:(p.lives==null?mtune.lives:p.lives),lane:idx,kills:p.kills||0,misses:p.misses||0,streak:p.streak||0,best:p.best||0,score:(p.kills||0)*100+(p.best||0)*25,expWon:p.expWon||0,coinsWon:p.coinsWon||0,rpWon:p.rpWon||0,aliveNow:p.alive!==false};
       });
       if(m.shots) m.shots=m.shots.filter(s=>now-s.at<6000).slice(-20);
       if(m.events) m.events=m.events.filter(e=>now-e.at<6000).slice(-10);
-      match={id:m.id,status:m.status,winnerId:m.winnerId||null,winnerIds:m.winnerIds||[],wave:m.wave||1,totalKills:m.totalKills||0,isRanked:!!m.isRanked,teamSize:m.teamSize||0,players,enemies:(m.enemies||[]).map(e=>({id:e.id,ownerId:e.ownerId,lane:order.indexOf(e.ownerId),cat:e.cat,q:e.q,design:e.design||'html',spawnAt:e.spawnAt,fall:e.fall})),events:(m.events||[]).slice(-6),shots:(m.shots||[]).slice(-12),now,travelMs:arenaTravelMs(arenaFall(m.wave||1))};
+      match={id:m.id,status:m.status,winnerId:m.winnerId||null,winnerIds:m.winnerIds||[],wave:m.wave||1,totalKills:m.totalKills||0,isRanked:!!m.isRanked,teamSize:m.teamSize||0,mode:(m.mode||room.mode||'normal'),modeLabel:mtune.label,players,enemies:(m.enemies||[]).map(e=>({id:e.id,ownerId:e.ownerId,lane:order.indexOf(e.ownerId),cat:e.cat,q:e.q,design:e.design||'html',spawnAt:e.spawnAt,fall:e.fall})),events:(m.events||[]).slice(-6),shots:(m.shots||[]).slice(-12),now,travelMs:arenaTravelMs(arenaFall(m.wave||1,mtune))};
     }
     const info={...roomCard(room),code:(user&&room.ownerId===user.id&&!room.isPublic)?room.code:null,isOwner:!!(user&&room.ownerId===user.id)};
     res.set('Cache-Control','no-store');
@@ -1626,8 +1933,9 @@ app.post('/api/multi/answer', async (req,res)=>{
   const m=_room?_room.match:null;
   if(!m || m.status!=='playing') return res.status(400).json({error:'Sin partida'});
   const ps=m.players[user.id];
+  const ptune=arenaTuning(_room);
   if(!ps) return res.status(400).json({error:'No estás en la partida'});
-  if((ps.lives==null?ARENA_START_LIVES:ps.lives)<=0) return res.status(400).json({error:'No te quedan vidas'});
+  if((ps.lives==null?ptune.lives:ps.lives)<=0) return res.status(400).json({error:'No te quedan vidas'});
   const now=Date.now();
   const norm=s=>String(s).trim().replace(/\s+/g,' ').toLowerCase();
   const order=Object.keys(m.players);
@@ -1646,15 +1954,15 @@ app.post('/api/multi/answer', async (req,res)=>{
     m.totalKills=(m.totalKills||0)+1;
     // Cada destrucción acelera la aparición de las naves de su dueño.
     const own=m.players[killed.ownerId];
-    if(own) own.nextSpawnAt=Math.min(own.nextSpawnAt, now+Math.max(ARENA_SPAWN_MIN, arenaSpawnMs(own,m.wave)));
+    if(own) own.nextSpawnAt=Math.min(own.nextSpawnAt, now+Math.max(ARENA_SPAWN_MIN*ptune.spawn, arenaSpawnMs(own,m.wave,ptune)));
     pushShot(true,killed.id);
     if(_room) tickRoom(_room);
     // Se manda dónde estaba la nave (franja, momento y velocidad) para que el
     // cliente dibuje la explosión en el lugar exacto y no en el centro.
-    return res.json({hit:true,killed:{id:killed.id,cat:killed.cat,q:killed.q,a:killed.a,ownerId:killed.ownerId,lane:order.indexOf(killed.ownerId),spawnAt:killed.spawnAt,fall:killed.fall},wave:m.wave,kills:ps.kills,streak:ps.streak,best:ps.best,lives:(ps.lives==null?ARENA_START_LIVES:ps.lives),totalKills:m.totalKills,enemiesLeft:m.enemies.length});
+    return res.json({hit:true,killed:{id:killed.id,cat:killed.cat,q:killed.q,a:killed.a,ownerId:killed.ownerId,lane:order.indexOf(killed.ownerId),spawnAt:killed.spawnAt,fall:killed.fall},wave:m.wave,kills:ps.kills,streak:ps.streak,best:ps.best,lives:(ps.lives==null?ptune.lives:ps.lives),totalKills:m.totalKills,enemiesLeft:m.enemies.length});
   }
   ps.misses=(ps.misses||0)+1; ps.streak=0;
-  ps.lives=Math.max(0,(ps.lives==null?ARENA_START_LIVES:ps.lives)-1);
+  ps.lives=Math.max(0,(ps.lives==null?ptune.lives:ps.lives)-1);
   pushShot(false,null);
   if(_room) tickRoom(_room);
   return res.json({hit:false,misses:ps.misses,streak:0,lives:ps.lives,kills:ps.kills||0,totalKills:m.totalKills||0,enemiesLeft:m.enemies.length,out:ps.lives<=0});
@@ -1671,19 +1979,34 @@ app.get('/api/achievements', async (req,res)=>{
   try{ await checkAchievements(user); }catch(e){ console.error('[achievements] check fail',e.message); }
   // Progreso real por logro, para que se vea cuánto falta en vez de
   // un "bloqueado" sin explicación.
-  const stats={speedrunBest:user.speedrunBest,exp:user.exp,tournamentStreak:user.tournamentStreak||0,tournamentWins:user.tournamentWins||0};
+const stats={speedrunBest:user.speedrunBest,exp:user.exp,tournamentStreak:user.tournamentStreak||0,tournamentWins:user.tournamentWins||0,
+     endlessBestMs:user.endlessBestMs||0,endlessBestWave:user.endlessBestWave||0,dailyStreak:user.dailyStreak||0};
+  // El panel muestra cuánto falta de cada logro, con la barra llena cuando ya
+  // se cumplió. Los tres logros originales tenían su propio cálculo; ahora
+  // todos salen de la misma tabla.
   const list=ACHIEVEMENTS.map(a=>{
-    const o=Object.assign({},a);
-    if(a.id==='speed_demon'){
-      const target=SPEEDRUN_ACHIEVEMENT_MS, best=Number(user.speedrunBest)||0;
-      o.current=best; o.target=target;
-      o.missing=best>0?Math.max(0,best-target):target;
-      o.progressPct=best>0?Math.max(0,Math.min(100,Math.round((1-(best-target)/Math.max(1,best))*100))):0;
-      o.hint=best>0?('Te faltan '+(best-target)+' ms'):('Necesitás un speedrun de '+(target/1000)+'s o menos');
-    }
-    if(a.id==='triple_champion'){ o.current=user.tournamentStreak||0; o.target=3; o.missing=Math.max(0,3-(user.tournamentStreak||0)); }
-    if(a.id==='centurion'){ o.current=user.exp||0; o.target=100000; o.missing=Math.max(0,100000-(user.exp||0)); }
-    return o;
+   const o=Object.assign({},a);
+   const prog=ACH_PROGRESS[a.stat];
+   const target=a.target;
+   if(prog&&target){
+     const cur=prog.value(user);
+     o.current=cur; o.target=target;
+     if(prog.dir==='lte'){
+       // "Cuanto más bajo, mejor": va al revés, así que la barra se llena desde 0.
+       o.missing=cur>0?Math.max(0,cur-target):target;
+       o.progressPct=cur>0?Math.max(0,Math.min(100,Math.round((1-cur/Math.max(1,target))*100))):0;
+       o.hint=cur>0?('Te faltan '+(cur-target)+' ms'):('Necesitás '+(target/1000)+'s o menos');
+     } else {
+       o.missing=Math.max(0,target-cur);
+       o.progressPct=Math.max(0,Math.min(100,Math.round(cur/target*100)));
+       o.hint=cur>0?('Te faltan '+o.missing):('Necesitás '+target);
+     }
+   }
+   // Los tres logros viejos se canjean desde el panel; los nuevos se acreditan
+   // solos y ya traen el premio, así que no hay nada que canjear.
+   o.canRedeem=!!a.redeem;
+   o.autoGranted=!!a.give;
+   return o;
   });
   res.json({achievements:list,owned:user.achievements||[],stats});
  }catch(e){ console.error('[achievements]',e.message); res.status(500).json({error:'achievements error'}); }
